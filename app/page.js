@@ -1780,7 +1780,7 @@ const handleLogin = async () => {
                                                                 <div className={`w-8 h-8 rounded flex items-center justify-center font-black text-lg bg-slate-800 ${index < 3 ? 'text-yellow-400' : 'text-slate-500'}`}>#{index + 1}</div>
                                                                 <div>
                                                                     <h3 className="font-black text-white text-lg uppercase leading-none">{eq.nom}</h3>
-                                                                    <p className={`text-[10px] font-bold uppercase tracking-widest ${color}`}>{eq.faction} • Niv {eq.niveau}</p>
+                                                                    <p className={`text-[12px] font-bold uppercase tracking-widest ${color}`}>{eq.faction} • Niv {eq.niveau}</p>
                                                                 </div>
                                                             </div>
                                                             <div className="text-right">
@@ -1839,7 +1839,7 @@ const handleLogin = async () => {
                                                             ) : leaderboardType === 'RICHESSE' ? (
                                                                 <span className="text-yellow-400 font-mono font-bold text-xs md:text-base">{j.berrys.toLocaleString()} ฿</span>
                                                             ) : (
-                                                                <span className="text-cyan-400 font-bold text-xs md:text-sm">Niv {j.niveau}</span>
+                                                                <span className="text-cyan-400 font-bold text-[10px] md:text-sm">Niv {j.niveau}</span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -1892,7 +1892,7 @@ const handleLogin = async () => {
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
                                                                     <span className={`font-black uppercase ${factionColor}`}>{adv.faction || 'Neutre'}</span>
                                                                     <span className="text-slate-600">•</span>
-                                                                    <span className={`font-mono font-bold ${theme.textDim}`}>Niv {adv.niveau}</span>
+                                                                    <span className={`font-mono text-[10px] font-bold ${theme.textDim}`}>Niv {adv.niveau}</span>
                                                                     {(areneFilter === 'PVP' || adv.elo_pvp > 0) && (
                                                                         <>
                                                                             <span className="text-slate-600">•</span>
