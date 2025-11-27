@@ -1899,19 +1899,19 @@ useEffect(() => {
                 </div>
             </div>
 
-            {/* === NOUVEAU : BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
-            {/* === BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
+            {/* === BARRE DE NAVIGATION MOBILE (GRILLE FIXE EN BAS) === */}
             {activeTab !== 'combat_actif' && (
-                <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 z-50 px-2 py-2 safe-area-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-                    <div className="flex justify-between items-center overflow-x-auto gap-1 no-scrollbar">
+                <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 z-50 px-1 py-1 safe-area-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+                    {/* GRILLE 6 COLONNES (2 Lignes) : Tout est visible sans scroll */}
+                    <div className="grid grid-cols-6 gap-1">
                          {[
                             { id: null, icon: '🏠', label: 'Moi' },
+                            { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
                             { id: 'inventaire', icon: '🎒', label: 'Sac' },
                             { id: 'stats', icon: '📊', label: 'Stats', alert: joueur.points_carac > 0 },
                             { id: 'deck', icon: '📘', label: 'Skills' },
                             { id: 'arene', icon: '⚔️', label: 'PvP' },
-                            { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
-                            { id: 'expeditions', icon: '🧭', label: 'Voyage' },
+                            { id: 'expeditions', icon: '🧭', label: 'Voy.' }, // Label raccourci
                             { id: 'boutique', icon: '🏪', label: 'Shop' },
                             { id: 'marche', icon: '⚖️', label: 'HDV' },
                             { id: 'casino', icon: '🎰', label: 'Jeux' },
@@ -1921,14 +1921,14 @@ useEffect(() => {
                             <button 
                                 key={index}
                                 onClick={() => setActiveTab(btn.id)}
-                                className={`flex flex-col items-center justify-center min-w-[50px] h-[50px] rounded-xl transition-all active:scale-90 shrink-0
+                                className={`flex flex-col items-center justify-center w-full h-[42px] rounded-lg transition-all active:scale-90
                                 ${(activeTab === btn.id) || (btn.id === null && !activeTab) 
-                                    ? `${theme.btnPrimary} shadow-lg -translate-y-2` 
-                                    : 'text-slate-500 hover:text-slate-300'}`}
+                                    ? `${theme.btnPrimary} shadow-sm` 
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                             >
-                                <span className="text-xl leading-none mb-1">{btn.icon}</span>
-                                <span className="text-[9px] font-bold uppercase leading-none">{btn.label}</span>
-                                {btn.alert && <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-slate-900"></span>}
+                                <span className="text-lg leading-none mb-0.5">{btn.icon}</span>
+                                <span className="text-[8px] font-bold uppercase leading-none tracking-tight">{btn.label}</span>
+                                {btn.alert && <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse border border-slate-900"></span>}
                             </button>
                         ))}
                     </div>
