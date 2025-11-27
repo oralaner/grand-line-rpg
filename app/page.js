@@ -908,9 +908,9 @@ useEffect(() => {
             {/* Sur mobile, caché si pas d'onglet actif (car on affiche le profil), sinon affiche l'onglet */}
             <div className={`flex-1 flex flex-col h-full relative z-0 min-w-0 transition-all duration-300 ${!activeTab ? 'hidden lg:flex' : 'flex'}`}>
                 
-                {/* BARRE DE NAVIGATION (PC UNIQUEMENT) */}
-                {/* NAVIGATION (GRILLE 5x2 sur Mobile / Regroupé sur PC) */}
-                <div className={`grid grid-cols-5 md:flex md:flex-wrap justify-center gap-2 md:gap-3 mb-4 transition-all duration-500 ${activeTab === 'combat_actif' ? '-translate-y-[200px] opacity-0 hidden' : 'translate-y-0 opacity-100'}`}>
+
+                {/* NAVIGATION (PC UNIQUEMENT - Caché sur mobile car on a la Bottom Bar) */}
+                <div className={`hidden md:flex md:flex-wrap justify-center gap-3 mb-4 transition-all duration-500 ${activeTab === 'combat_actif' ? '-translate-y-[200px] opacity-0 hidden' : 'translate-y-0 opacity-100'}`}>
                     {[
                         { id: 'inventaire', icon: '🎒', label: 'Sac', color: 'hover:bg-amber-600/20 hover:text-amber-400 hover:border-amber-600' },
                         { id: 'stats', icon: '📊', label: 'Stats', color: 'hover:bg-cyan-600/20 hover:text-cyan-400 hover:border-cyan-600', alert: joueur.points_carac > 0 },
@@ -926,17 +926,15 @@ useEffect(() => {
                         <button 
                             key={btn.id}
                             onClick={() => setActiveTab(btn.id)}
-                            // CHANGEMENT ICI : w-full aspect-square pour des carrés parfaits dans la grille
-                            className={`w-full aspect-square md:h-20 md:w-20 rounded-xl border bg-slate-800/50 backdrop-blur flex flex-col items-center justify-center gap-0.5 md:gap-1 transition-all active:scale-95 group relative 
+                            className={`h-20 w-20 rounded-xl border bg-slate-800/50 backdrop-blur flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group relative 
                             ${activeTab === btn.id ? `${theme.btnPrimary} border-white/50 shadow-lg` : `border-slate-700 ${theme.textDim} ${btn.color}`}`}
                         >
-                            <span className="text-xl md:text-2xl lg:group-hover:scale-110 transition-transform">{btn.icon}</span>
-                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight">{btn.label}</span>
+                            <span className="text-2xl lg:group-hover:scale-110 transition-transform">{btn.icon}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-tight">{btn.label}</span>
                             {btn.alert && <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>}
                         </button>
                     ))}
                 </div>
-
                 {/* CONTENU PRINCIPAL */}
                 <div className="flex-1 relative overflow-hidden rounded-3xl bg-slate-900/50 backdrop-blur-md border border-slate-700 shadow-2xl h-full">
                     
@@ -996,7 +994,6 @@ useEffect(() => {
                         // --- ONGLETS (Full height on mobile with scroll + padding bottom) ---
                         <div className="absolute inset-0 p-3 md:p-8 overflow-y-auto custom-scrollbar animate-fadeIn safe-area-bottom lg:pb-8">
                             
-                            {/* HEADER TAB AVEC BOUTON RETOUR POUR MOBILE */}
                             {/* HEADER TAB MOBILE OPTIMISÉ */}
                             <div className={`flex justify-between items-center mb-6 border-b ${theme.borderLow} pb-4 sticky top-0 z-20 backdrop-blur-xl bg-black/60 -mx-4 px-4 pt-2 md:mx-0 md:px-0 md:pt-0 md:bg-transparent transition-all`}>
                                 <h2 className={`text-xl md:text-3xl font-black uppercase flex items-center gap-3 tracking-tight ${theme.textMain}`}>
