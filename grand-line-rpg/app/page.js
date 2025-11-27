@@ -11,6 +11,7 @@ const formatStatsItem = (stats) => {
         return `${val > 0 ? '+' : ''}${val} ${label}`;
     }).join(', ');
 };
+
 const getStatCost = (val) => {
     if (val < 50) return 1;
     if (val < 100) return 2;
