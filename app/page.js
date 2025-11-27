@@ -991,29 +991,40 @@ useEffect(() => {
                         <div className="absolute inset-0 p-3 md:p-8 overflow-y-auto custom-scrollbar animate-fadeIn safe-area-bottom lg:pb-8">
                             
                             {/* HEADER TAB MOBILE OPTIMISÉ */}
-                            <div className={`flex justify-between items-center mb-6 border-b ${theme.borderLow} pb-4 sticky top-0 z-20 backdrop-blur-xl bg-black/60 -mx-4 px-4 pt-2 md:mx-0 md:px-0 md:pt-0 md:bg-transparent transition-all`}>
-                                <h2 className={`text-xl md:text-3xl font-black uppercase flex items-center gap-3 tracking-tight ${theme.textMain}`}>
-                                    {(() => {
-                                        const tabDetails = {
-                                            'inventaire': { i: "🎒", t: "Inventaire" },
-                                            'stats':      { i: "📊", t: "Statistiques" },
-                                            'deck':       { i: "📘", t: "Compétences" },
-                                            'arene':      { i: "⚔️", t: "Arène PvP" },
-                                            'equipage':   { i: "🏴‍☠️", t: "Équipage" },
-                                            'boutique':   { i: "🏪", t: "Boutique" },
-                                            'marche':     { i: "⚖️", t: "Hôtel des Ventes" },
-                                            'expeditions':{ i: "🧭", t: "Expéditions" },
-                                            'atelier':    { i: "🔨", t: "Atelier" },
-                                            'classement': { i: "🏆", t: "Classement" },
-                                            'casino':     { i: "🎰", t: "Casino" }
-                                            
-                                        };
-                                        const current = tabDetails[activeTab] || { i: "❓", t: activeTab };
-                                        return (<><span className="text-2xl md:text-3xl drop-shadow-md">{current.i}</span><span className="truncate">{current.t}</span></>);
-                                    })()}
-                                </h2>
-                                <button onClick={() => setActiveTab(null)} className={`group flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full border ${theme.borderLow} bg-black/40 hover:bg-red-900/50 hover:border-red-500 transition-all`}><span className="text-slate-400 group-hover:text-white font-bold text-sm md:text-lg">✕</span></button>
-                            </div>
+                            {/* === BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
+            {activeTab !== 'combat_actif' && (
+                <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 z-50 px-2 py-2 safe-area-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+                    <div className="flex justify-between items-center overflow-x-auto gap-1 no-scrollbar">
+                         {[
+                            { id: null, icon: '🏠', label: 'Moi' },
+                            { id: 'equipage', icon: '🏴‍☠️', label: 'Team' }, // <--- AJOUTÉ ICI
+                            { id: 'inventaire', icon: '🎒', label: 'Sac' },
+                            { id: 'stats', icon: '📊', label: 'Stats', alert: joueur.points_carac > 0 },
+                            { id: 'deck', icon: '📘', label: 'Skills' },
+                            { id: 'arene', icon: '⚔️', label: 'PvP' },
+                            { id: 'expeditions', icon: '🧭', label: 'Voyage' },
+                            { id: 'boutique', icon: '🏪', label: 'Shop' },
+                            { id: 'marche', icon: '⚖️', label: 'HDV' },
+                            { id: 'casino', icon: '🎰', label: 'Jeux' },
+                            { id: 'atelier', icon: '🔨', label: 'Craft' },
+                            { id: 'classement', icon: '🏆', label: 'Top' },
+                        ].map((btn, index) => (
+                            <button 
+                                key={index}
+                                onClick={() => setActiveTab(btn.id)}
+                                className={`flex flex-col items-center justify-center min-w-[50px] h-[50px] rounded-xl transition-all active:scale-90 shrink-0
+                                ${(activeTab === btn.id) || (btn.id === null && !activeTab) 
+                                    ? `${theme.btnPrimary} shadow-lg -translate-y-2` 
+                                    : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                <span className="text-xl leading-none mb-1">{btn.icon}</span>
+                                <span className="text-[9px] font-bold uppercase leading-none">{btn.label}</span>
+                                {btn.alert && <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-slate-900"></span>}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
                             {/* CONTENU SPECIFIQUE */}
                             <div className="max-w-5xl mx-auto">
                                 
