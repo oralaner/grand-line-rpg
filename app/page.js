@@ -1561,10 +1561,11 @@ const handleLogin = async () => {
                                 </div>
                             )}
                                 {/* CARTE DU MONDE INTERACTIVE */}
+                            {/* CARTE DU MONDE INTERACTIVE (CORRIGÉE) */}
                             {activeTab === 'expeditions' && (
                                 <div className="space-y-4 h-full flex flex-col">
                                     {joueur?.expedition_fin ? (
-                                        // MODE : EN VOYAGE (Reste affiché si une expédition est en cours)
+                                        // MODE : EN VOYAGE
                                         <div className="bg-indigo-900/80 text-white p-8 rounded-xl text-center border-2 border-indigo-500 shadow-2xl my-auto animate-fadeIn">
                                             <div className="text-6xl mb-4 animate-bounce">⛵</div>
                                             <h3 className="text-2xl font-bold mb-2 text-white">En voyage...</h3>
@@ -1576,21 +1577,23 @@ const handleLogin = async () => {
                                             }
                                         </div>
                                     ) : (
-                                        // MODE : CARTE
-                                        <div className="relative w-full h-full bg-[#1a4c6e] rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl group">
-                                            {/* IMAGE DE FOND (CORRIGÉE) */}
-                                            <img 
-                                            src="/map.jpg" 
-                                            alt="Carte du Monde"
-                                            className="absolute inset-0 w-full h-full object-cover opacity-60 hover:opacity-100 transition-opacity duration-700"
-                                        />
+                                        // MODE : CARTE (Hauteur forcée ici avec h-[60vh])
+                                        <div className="relative w-full h-[60vh] min-h-[400px] bg-[#1a4c6e] rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl group">
                                             
-                                            {/* TITRE DISCRET */}
-                                            <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10">
+                                            {/* IMAGE DE FOND */}
+                                            <img 
+                                                src="/map.jpg" 
+                                                alt="Carte du Monde"
+                                                className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-700"
+                                                onError={(e) => { e.target.style.display = 'none'; }} // Cache l'image si elle plante pour voir le fond bleu
+                                            />
+                                            
+                                            {/* TITRE */}
+                                            <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10 z-10 pointer-events-none">
                                                 🗺️ GRAND LINE
                                             </div>
 
-                                            {/* PINS (POINTS) SUR LA CARTE */}
+                                            {/* PINS */}
                                             {destinations.map((dest, i) => {
                                                 const isLocked = joueur.niveau < dest.niveau_requis;
                                                 const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
@@ -1599,17 +1602,14 @@ const handleLogin = async () => {
                                                     <button
                                                         key={i}
                                                         onClick={() => setSelectedDest(dest)}
-                                                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20
+                                                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20 z-10
                                                         ${isLocked ? 'grayscale opacity-70' : 'cursor-pointer'}`}
                                                         style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
                                                     >
-                                                        {/* PIN ICON */}
                                                         <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-lg md:text-xl shadow-lg border-2 
                                                             ${isLocked ? 'bg-slate-700 border-slate-500' : selectedDest?.id === dest.id ? 'bg-yellow-400 border-white animate-bounce' : 'bg-white border-blue-500'}`}>
                                                             {isLocked ? '🔒' : typeIcon}
                                                         </div>
-                                                        
-                                                        {/* ETIQUETTE NOM */}
                                                         <span className={`mt-1 px-2 py-0.5 rounded text-[8px] md:text-[10px] font-bold uppercase tracking-wide shadow-md whitespace-nowrap
                                                             ${selectedDest?.id === dest.id ? 'bg-yellow-400 text-black' : 'bg-black/70 text-white backdrop-blur-sm'}`}>
                                                             {dest.nom}
@@ -1618,54 +1618,32 @@ const handleLogin = async () => {
                                                 )
                                             })}
 
-                                            {/* POP-UP DÉTAILS ÎLE (S'affiche par dessus la carte si une île est sélectionnée) */}
+                                            {/* POP-UP DÉTAILS */}
                                             {selectedDest && (
                                                 <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-30 flex flex-col md:flex-row gap-4 items-center md:items-start">
-                                                    {/* Info Gauche */}
                                                     <div className="flex-1 text-center md:text-left">
                                                         <h3 className="text-xl font-black text-white uppercase">{selectedDest.nom}</h3>
                                                         <p className="text-xs text-slate-400 mb-2">Niveau Requis : <span className={joueur.niveau >= selectedDest.niveau_requis ? "text-green-400" : "text-red-400"}>{selectedDest.niveau_requis}</span></p>
-                                                        
                                                         <div className="flex justify-center md:justify-start gap-3 text-[10px] font-bold uppercase">
                                                             <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-slate-300">⏱️ {selectedDest.duree_minutes} min</span>
                                                             <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-yellow-400">💰 ~{selectedDest.gain_estime}</span>
                                                         </div>
                                                     </div>
-
-                                                    {/* Calculs Chances (Dynamique) */}
-                                                    <div className="flex-1 w-full md:w-auto">
+                                                    <div className="flex-1 w-full md:w-auto text-center">
                                                         {(() => {
-                                                             // On refait le calcul de chance ici pour l'affichage
                                                              const force = (joueur.force_brute || 0) + (equipement.arme?.stats_bonus?.force || 0);
                                                              const intel = (joueur.intelligence || 0) + (equipement.tete?.stats_bonus?.intelligence || 0);
-                                                             const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); // Simplifié
+                                                             const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); 
                                                              const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
                                                              const diff = selectedDest.niveau_requis * 25;
                                                              let chance = 50 + (puissance - diff) + ((joueur.chance || 0)/2);
                                                              chance = Math.max(5, Math.min(100, Math.floor(chance)));
-                                                             
                                                              let color = chance > 80 ? 'text-green-400' : chance > 50 ? 'text-yellow-400' : 'text-red-500';
-                                                             
-                                                             return (
-                                                                 <div className="text-center">
-                                                                     <p className="text-[10px] text-slate-500 mb-1">PROBABILITÉ DE SUCCÈS</p>
-                                                                     <p className={`text-3xl font-black ${color}`}>{chance}%</p>
-                                                                 </div>
-                                                             )
+                                                             return (<div><p className="text-[10px] text-slate-500 mb-1">PROBABILITÉ DE SUCCÈS</p><p className={`text-3xl font-black ${color}`}>{chance}%</p></div>)
                                                         })()}
                                                     </div>
-
-                                                    {/* Boutons Action */}
                                                     <div className="flex flex-col gap-2 w-full md:w-auto">
-                                                        {joueur.niveau >= selectedDest.niveau_requis ? (
-                                                            <button onClick={() => partirExpeditionV2(selectedDest)} className={`w-full md:w-32 py-3 rounded-lg font-bold shadow-lg text-sm ${theme.btnPrimary}`}>
-                                                                PARTIR
-                                                            </button>
-                                                        ) : (
-                                                            <button disabled className="w-full md:w-32 py-3 rounded-lg font-bold bg-slate-700 text-slate-500 cursor-not-allowed text-sm">
-                                                                BLOQUÉ
-                                                            </button>
-                                                        )}
+                                                        {joueur.niveau >= selectedDest.niveau_requis ? (<button onClick={() => partirExpeditionV2(selectedDest)} className={`w-full md:w-32 py-3 rounded-lg font-bold shadow-lg text-sm ${theme.btnPrimary}`}>PARTIR</button>) : (<button disabled className="w-full md:w-32 py-3 rounded-lg font-bold bg-slate-700 text-slate-500 cursor-not-allowed text-sm">BLOQUÉ</button>)}
                                                         <button onClick={() => setSelectedDest(null)} className="text-xs text-slate-500 underline hover:text-white">Fermer</button>
                                                     </div>
                                                 </div>
