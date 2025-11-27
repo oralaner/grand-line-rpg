@@ -910,12 +910,13 @@ useEffect(() => {
                 
 
                 {/* NAVIGATION (PC UNIQUEMENT - Caché sur mobile car on a la Bottom Bar) */}
-                <div className={`hidden md:flex md:flex-wrap justify-center gap-3 mb-4 transition-all duration-500 ${activeTab === 'combat_actif' ? '-translate-y-[200px] opacity-0 hidden' : 'translate-y-0 opacity-100'}`}>
+                <div className={`hidden md:flex md:flex-wrap gap-3 mb-4 transition-all duration-500 ${activeTab === 'combat_actif' ? '-translate-y-[200px] opacity-0 hidden' : 'translate-y-0 opacity-100'}`}>
                     {[
                         { id: 'inventaire', icon: '🎒', label: 'Sac', color: 'hover:bg-amber-600/20 hover:text-amber-400 hover:border-amber-600' },
                         { id: 'stats', icon: '📊', label: 'Stats', color: 'hover:bg-cyan-600/20 hover:text-cyan-400 hover:border-cyan-600', alert: joueur.points_carac > 0 },
                         { id: 'deck', icon: '📘', label: 'Skills', color: 'hover:bg-indigo-600/20 hover:text-indigo-400 hover:border-indigo-600' },
                         { id: 'arene', icon: '⚔️', label: 'Arène', color: 'hover:bg-red-600/20 hover:text-red-400 hover:border-red-600' },
+                        { id: 'equipage', icon: '🏴‍☠️', label: 'Team', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' }, // <-- AJOUT ICI
                         { id: 'boutique', icon: '🏪', label: 'Shop', color: 'hover:bg-emerald-600/20 hover:text-emerald-400 hover:border-emerald-600' },
                         { id: 'marche', icon: '⚖️', label: 'HDV', color: 'hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-600' },
                         { id: 'expeditions', icon: '🧭', label: 'Voyage', color: 'hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-600' },
@@ -923,12 +924,7 @@ useEffect(() => {
                         { id: 'casino', icon: '🎰', label: 'Jeux', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' },
                         { id: 'classement', icon: '🏆', label: 'Top', color: 'hover:bg-yellow-600/20 hover:text-yellow-400 hover:border-yellow-600' },
                     ].map(btn => (
-                        <button 
-                            key={btn.id}
-                            onClick={() => setActiveTab(btn.id)}
-                            className={`h-20 w-20 rounded-xl border bg-slate-800/50 backdrop-blur flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group relative 
-                            ${activeTab === btn.id ? `${theme.btnPrimary} border-white/50 shadow-lg` : `border-slate-700 ${theme.textDim} ${btn.color}`}`}
-                        >
+                        <button key={btn.id} onClick={() => setActiveTab(btn.id)} className={`h-20 w-20 rounded-xl border bg-slate-800/50 backdrop-blur flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group relative ${activeTab === btn.id ? `${theme.btnPrimary} border-white/50 shadow-lg` : `border-slate-700 ${theme.textDim} ${btn.color}`}`}>
                             <span className="text-2xl lg:group-hover:scale-110 transition-transform">{btn.icon}</span>
                             <span className="text-[10px] font-bold uppercase tracking-tight">{btn.label}</span>
                             {btn.alert && <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>}
@@ -997,7 +993,6 @@ useEffect(() => {
                             {/* HEADER TAB MOBILE OPTIMISÉ */}
                             <div className={`flex justify-between items-center mb-6 border-b ${theme.borderLow} pb-4 sticky top-0 z-20 backdrop-blur-xl bg-black/60 -mx-4 px-4 pt-2 md:mx-0 md:px-0 md:pt-0 md:bg-transparent transition-all`}>
                                 <h2 className={`text-xl md:text-3xl font-black uppercase flex items-center gap-3 tracking-tight ${theme.textMain}`}>
-                                    {/* Logique d'affichage simplifiée */}
                                     {(() => {
                                         const tabDetails = {
                                             'inventaire': { i: "🎒", t: "Inventaire" },
@@ -1013,21 +1008,10 @@ useEffect(() => {
                                             'equipage':   { i: "🏴‍☠️", t: "Équipage" }
                                         };
                                         const current = tabDetails[activeTab] || { i: "❓", t: activeTab };
-                                        return (
-                                            <>
-                                                <span className="text-2xl md:text-3xl drop-shadow-md">{current.i}</span>
-                                                <span className="truncate">{current.t}</span>
-                                            </>
-                                        );
+                                        return (<><span className="text-2xl md:text-3xl drop-shadow-md">{current.i}</span><span className="truncate">{current.t}</span></>);
                                     })()}
                                 </h2>
-                                
-                                <button 
-                                    onClick={() => setActiveTab(null)} 
-                                    className={`group flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full border ${theme.borderLow} bg-black/40 hover:bg-red-900/50 hover:border-red-500 transition-all`}
-                                >
-                                    <span className="text-slate-400 group-hover:text-white font-bold text-sm md:text-lg">✕</span>
-                                </button>
+                                <button onClick={() => setActiveTab(null)} className={`group flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full border ${theme.borderLow} bg-black/40 hover:bg-red-900/50 hover:border-red-500 transition-all`}><span className="text-slate-400 group-hover:text-white font-bold text-sm md:text-lg">✕</span></button>
                             </div>
                             {/* CONTENU SPECIFIQUE */}
                             <div className="max-w-5xl mx-auto">
