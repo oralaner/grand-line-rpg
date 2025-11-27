@@ -996,8 +996,42 @@ useEffect(() => {
                         // --- ONGLETS (Full height on mobile with scroll + padding bottom) ---
                         <div className="absolute inset-0 p-3 md:p-8 overflow-y-auto custom-scrollbar animate-fadeIn safe-area-bottom lg:pb-8">
                             
-                           
-
+                            {/* HEADER TAB AVEC BOUTON RETOUR POUR MOBILE */}
+                            {/* HEADER TAB MOBILE OPTIMISÉ */}
+                            <div className={`flex justify-between items-center mb-6 border-b ${theme.borderLow} pb-4 sticky top-0 z-20 backdrop-blur-xl bg-black/60 -mx-4 px-4 pt-2 md:mx-0 md:px-0 md:pt-0 md:bg-transparent transition-all`}>
+                                <h2 className={`text-xl md:text-3xl font-black uppercase flex items-center gap-3 tracking-tight ${theme.textMain}`}>
+                                    {/* Logique d'affichage simplifiée */}
+                                    {(() => {
+                                        const tabDetails = {
+                                            'inventaire': { i: "🎒", t: "Inventaire" },
+                                            'stats':      { i: "📊", t: "Statistiques" },
+                                            'deck':       { i: "📘", t: "Compétences" },
+                                            'arene':      { i: "⚔️", t: "Arène PvP" },
+                                            'boutique':   { i: "🏪", t: "Boutique" },
+                                            'marche':     { i: "⚖️", t: "Hôtel des Ventes" },
+                                            'expeditions':{ i: "🧭", t: "Expéditions" },
+                                            'atelier':    { i: "🔨", t: "Atelier" },
+                                            'classement': { i: "🏆", t: "Classement" },
+                                            'casino':     { i: "🎰", t: "Casino" },
+                                            'equipage':   { i: "🏴‍☠️", t: "Équipage" }
+                                        };
+                                        const current = tabDetails[activeTab] || { i: "❓", t: activeTab };
+                                        return (
+                                            <>
+                                                <span className="text-2xl md:text-3xl drop-shadow-md">{current.i}</span>
+                                                <span className="truncate">{current.t}</span>
+                                            </>
+                                        );
+                                    })()}
+                                </h2>
+                                
+                                <button 
+                                    onClick={() => setActiveTab(null)} 
+                                    className={`group flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full border ${theme.borderLow} bg-black/40 hover:bg-red-900/50 hover:border-red-500 transition-all`}
+                                >
+                                    <span className="text-slate-400 group-hover:text-white font-bold text-sm md:text-lg">✕</span>
+                                </button>
+                            </div>
                             {/* CONTENU SPECIFIQUE */}
                             <div className="max-w-5xl mx-auto">
                                 
