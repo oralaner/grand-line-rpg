@@ -561,7 +561,19 @@ useEffect(() => {
   const jouerPFC = async (choix) => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_pfc', { mise: parseInt(miseCasino), choix_joueur: choix }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat + " (IA: " + data.choix_ia + ")", data.resultat === 'VICTOIRE' ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
   const jouerDes = async () => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_des', { mise: parseInt(miseCasino) }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat, data.resultat.includes('VICTOIRE') ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
 
-  const handleLogin = async () => { setLoading(true); await supabase.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.origin } }); };
+const handleLogin = async () => { 
+      setLoading(true); 
+      await supabase.auth.signInWithOAuth({ 
+          provider: 'discord', 
+          options: { 
+              redirectTo: window.location.origin,
+              // C'est ici que ça se joue : on précise les scopes
+              // 'identify' = Pseudo + Avatar + ID (Suffisant pour le jeu)
+              // On retire 'email' qui est souvent mis par défaut
+              scopes: 'identify', 
+          } 
+      }); 
+  };
   const handleLogout = async () => { await supabase.auth.signOut(); setSession(null); setJoueur(null); };
   const formatTemps = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`; };
   const getQtePossedee = (id) => { const i = inventaire.find(x => x.objet_id === parseInt(id)); return i ? i.quantite : 0; };
