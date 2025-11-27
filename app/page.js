@@ -1578,8 +1578,11 @@ const handleLogin = async () => {
                                     ) : (
                                         // MODE : CARTE
                                         <div className="relative w-full h-full bg-[#1a4c6e] rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl group">
-                                            {/* IMAGE DE FOND (Remplace l'URL par '/map.jpg' quand tu as l'image) */}
-                                            <div className="absolute inset-0 bg-[url('/map.jpg')] bg-cover bg-center opacity-60 hover:opacity-100 transition-opacity duration-700"></div>
+                                            {/* IMAGE DE FOND (CORRIGÉE) */}
+                                            <div 
+                                                className="absolute inset-0 bg-cover bg-center opacity-60 hover:opacity-100 transition-opacity duration-700"
+                                                style={{ backgroundImage: "url('/map.jpg')" }}
+                                            ></div>
                                             
                                             {/* TITRE DISCRET */}
                                             <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10">
