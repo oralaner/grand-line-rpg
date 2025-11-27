@@ -1697,9 +1697,33 @@ useEffect(() => {
                                     
                                     {/* Filtres */}
                                     <div className="flex justify-center gap-2 md:gap-4 mb-4 p-2 bg-black/20 rounded-xl overflow-x-auto no-scrollbar">
-                                        <button onClick={() => setLeaderboardType('NIVEAU')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'NIVEAU' ? theme.btnPrimary : 'text-slate-400'}`}>Joueurs (Niv)</button>
-                                        <button onClick={() => setLeaderboardType('PVP')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'PVP' ? theme.btnPrimary : 'text-slate-400'}`}>Joueurs (PvP)</button>
-                                        <button onClick={() => setLeaderboardType('EQUIPAGE')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'EQUIPAGE' ? theme.btnPrimary : 'text-slate-400'}`}>🏴‍☠️ Équipages</button>
+                                        <button 
+                                            onClick={() => setLeaderboardType('NIVEAU')} 
+                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'NIVEAU' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            Joueurs (Niv)
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => setLeaderboardType('RICHESSE')} 
+                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'RICHESSE' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            💰 Richesse
+                                        </button>
+
+                                        <button 
+                                            onClick={() => setLeaderboardType('PVP')} 
+                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'PVP' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            ⚔️ PvP
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => setLeaderboardType('EQUIPAGE')} 
+                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'EQUIPAGE' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            🏴‍☠️ Équipages
+                                        </button>
                                     </div>
                                     
                                     {/* LISTE DES EQUIPAGES */}
@@ -1752,7 +1776,7 @@ useEffect(() => {
                                             {topEquipages.length === 0 && <div className="text-center py-10 italic opacity-50">Aucun équipage formé pour le moment.</div>}
                                         </div>
                                     ) : (
-                                        /* LISTE DES JOUEURS (Ton ancien code pour Joueurs/Richesse/PvP) */
+                                        /* LISTE DES JOUEURS */
                                         <div className="space-y-2">
                                             <div className="flex justify-between px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
                                                 <span>Joueur</span>
@@ -1760,7 +1784,7 @@ useEffect(() => {
                                             </div>
                                             {topJoueurs.map((j, index) => {
                                                 const isMe = j.pseudo === joueur?.pseudo;
-                                                const rankData = getRankInfo(j.elo_pvp || 0); // Assure-toi que getRankInfo est bien dispo
+                                                const rankData = getRankInfo(j.elo_pvp || 0);
 
                                                 return (
                                                     <div key={index} className={`flex items-center p-3 rounded-xl border transition-all ${isMe ? `${theme.border} bg-white/10 shadow-lg scale-[1.02]` : "border-white/5 bg-black/20"}`}>
