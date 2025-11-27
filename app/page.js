@@ -1089,7 +1089,7 @@ const handleLogin = async () => {
                                                 base={joueur.agilite} 
                                                 total={statsTotales?.agilite} 
                                                 statCode="agilite" 
-                                                icon="💨" 
+                                                icon="🐈" 
                                                 desc="Augmente les dégâts des armes à feu et vos chances d'esquive." 
                                                 pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
                                             />
