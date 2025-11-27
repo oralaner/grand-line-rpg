@@ -150,6 +150,11 @@ export default function Home() {
   const [listeEquipages, setListeEquipages] = useState([]); // Pour la recherche
   const [nomEquipageCrea, setNomEquipageCrea] = useState("");
 
+  const [crewTab, setCrewTab] = useState('GENERAL'); // GENERAL, MEMBERS, BANK, EXPE
+  const [banqueMontant, setBanqueMontant] = useState(100);
+  const [banqueLogs, setBanqueLogs] = useState([]);
+  const [candidatures, setCandidatures] = useState([]);
+
   const [casinoGame, setCasinoGame] = useState('QUITTE');
   const [miseCasino, setMiseCasino] = useState(100);
   const [expeditionResult, setExpeditionResult] = useState(null); // Stocke le résultat (XP, Or, Message)
@@ -194,7 +199,13 @@ useEffect(() => {
       // ... (le reste inchangé)
       if (activeTab === 'equipage') chargerEquipage(); 
   }, [activeTab, joueur]); // Ajoute 'joueur' pour recharger si on rejoint/quitte
-
+useEffect(() => {
+      if (activeTab === 'equipage') {
+          chargerEquipage();
+          if (crewTab === 'BANK') chargerBanque();
+          if (crewTab === 'MEMBERS') chargerCandidatures();
+      }
+  }, [activeTab, crewTab, joueur]);
   // --- CREATION AUTOMATIQUE COTE CLIENT ---
   // --- CREATION AUTOMATIQUE COTE CLIENT (CORRIGÉE) ---
   const creerNouveauJoueur = async (user) => {
@@ -310,7 +321,38 @@ useEffect(() => {
       const { data: mb } = await supabase.from('joueurs').select('id, pseudo, avatar_url, niveau, elo_pvp').eq('equipage_id', joueur.equipage_id);
       setMembresEquipage(mb || []);
   };
+  const chargerBanque = async () => {
+      const { data } = await supabase.from('banque_logs').select('*').eq('equipage_id', joueur.equipage_id).order('date_log', { ascending: false }).limit(20);
+      setBanqueLogs(data || []);
+  };
   
+  const chargerCandidatures = async () => {
+      if (!monEquipage || monEquipage.chef_id !== session.user.id) return;
+      const { data } = await supabase.from('demandes_adhesion').select('*').eq('equipage_id', joueur.equipage_id);
+      setCandidatures(data || []);
+  };
+
+  const actionBanque = async (action) => {
+      const { data } = await supabase.rpc('gestion_banque', { _montant: parseInt(banqueMontant), _action: action });
+      if (data.success) { notify(data.message, "success"); fetchJoueur(session.user.id); chargerEquipage(); chargerBanque(); }
+      else { notify(data.message, "error"); }
+  };
+  
+  const gererCandidat = async (idDemande, accept) => {
+      const { data } = await supabase.rpc('gerer_candidature', { _demande_id: idDemande, _accepter: accept });
+      if (data.success) { notify(data.message, accept ? "success" : "info"); chargerCandidatures(); chargerEquipage(); }
+  };
+  
+  const changerXpPart = async (val) => {
+      await supabase.from('joueurs').update({ part_xp_equipage: val }).eq('id', session.user.id);
+      setJoueur(prev => ({...prev, part_xp_equipage: val}));
+  };
+  
+  const kickMembre = async (idMembre) => {
+      if (!confirm("Exclure ce membre ?")) return;
+      const { data } = await supabase.rpc('exclure_membre', { _membre_id: idMembre });
+      if (data.success) { notify(data.message, "success"); chargerEquipage(); } else { notify(data.message, "error"); }
+  };
   const creerEquipage = async () => {
       if (!nomEquipageCrea) return;
       const { data } = await supabase.rpc('creer_equipage', { _nom: nomEquipageCrea, _desc: "En route vers le sommet !" });
@@ -1157,78 +1199,142 @@ useEffect(() => {
                                 </div>
                             )}
 {/* EQUIPAGE (GUILDE) */}
+                            {/* ONGLET EQUIPAGE V2 */}
                             {activeTab === 'equipage' && (
                                 <div className="space-y-6 animate-fadeIn">
                                     {!monEquipage ? (
-                                        // MODE : SANS EQUIPAGE
+                                        // --- SANS EQUIPAGE (Liste + Création) ---
                                         <div className="text-center space-y-8">
                                             <div className={`p-6 rounded-2xl border-2 border-dashed ${theme.border} bg-black/20`}>
                                                 <h3 className={`text-xl font-black uppercase mb-4 ${theme.textMain}`}>Créer ton organisation</h3>
                                                 <div className="flex gap-2 justify-center">
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Nom de l'équipage" 
-                                                        className="bg-slate-900 border border-slate-700 px-4 py-2 rounded-lg text-white outline-none focus:border-white"
-                                                        value={nomEquipageCrea}
-                                                        onChange={(e) => setNomEquipageCrea(e.target.value)}
-                                                    />
+                                                    <input type="text" placeholder="Nom de l'équipage" className="bg-slate-900 border border-slate-700 px-4 py-2 rounded-lg text-white outline-none focus:border-white" value={nomEquipageCrea} onChange={(e) => setNomEquipageCrea(e.target.value)} />
                                                     <button onClick={creerEquipage} className={`px-4 py-2 rounded-lg font-bold ${theme.btnPrimary}`}>Créer (1000 ฿)</button>
                                                 </div>
                                             </div>
-
                                             <div className="space-y-2">
-                                                <h4 className="text-slate-400 text-xs uppercase font-bold tracking-widest">Rejoindre une équipe {joueur.faction}</h4>
-                                                {listeEquipages.length === 0 && <p className="text-slate-600 italic">Aucun recrutement en cours...</p>}
+                                                <h4 className="text-slate-400 text-xs uppercase font-bold tracking-widest">Recrutement {joueur.faction}</h4>
                                                 {listeEquipages.map(eq => (
                                                     <div key={eq.id} className={`flex justify-between items-center p-4 rounded-xl border ${theme.borderLow} bg-black/20 hover:bg-black/40 transition`}>
-                                                        <div className="text-left">
-                                                            <p className={`font-black text-lg ${theme.textMain}`}>{eq.nom}</p>
-                                                            <p className="text-xs text-slate-500 italic">"{eq.description}"</p>
-                                                        </div>
-                                                        <button onClick={() => rejoindreEquipage(eq.id)} className={`text-xs px-4 py-2 rounded-lg font-bold border ${theme.btnSecondary}`}>REJOINDRE</button>
+                                                        <div className="text-left"><p className={`font-black text-lg ${theme.textMain}`}>{eq.nom}</p><p className="text-xs text-slate-500 italic">{eq.description || "Pas de description"}</p></div>
+                                                        <button onClick={() => { supabase.rpc('postuler_equipage', { _equipage_id: eq.id }).then(({data}) => notify(data.message, data.success?'success':'error')) }} className={`text-xs px-4 py-2 rounded-lg font-bold border ${theme.btnSecondary}`}>POSTULER</button>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     ) : (
-                                        // MODE : DANS UN EQUIPAGE
+                                        // --- AVEC EQUIPAGE (Dashboard) ---
                                         <div className="space-y-6">
+                                            {/* Header Guilde */}
                                             <div className={`p-6 rounded-2xl border-b-4 shadow-lg text-center ${theme.btnPrimary}`}>
                                                 <h2 className="text-3xl font-black uppercase drop-shadow-md">{monEquipage.nom}</h2>
-                                                <p className="text-sm opacity-80 italic mt-1">"{monEquipage.description}"</p>
-                                                <div className="mt-4 text-[10px] font-bold uppercase tracking-widest bg-black/20 inline-block px-3 py-1 rounded">
-                                                    {membresEquipage.length} Membres • Faction {monEquipage.faction}
+                                                <div className="flex justify-center gap-4 mt-2 text-xs font-bold">
+                                                    <span>Niveau {monEquipage.niveau}</span>
+                                                    <span>•</span>
+                                                    <span>{membresEquipage.length} Membres</span>
+                                                    <span>•</span>
+                                                    <span>{monEquipage.berrys_banque.toLocaleString()} ฿ en Banque</span>
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {membresEquipage.map(m => {
-                                                    const isChef = m.id === monEquipage.chef_id;
-                                                    return (
-                                                        <div key={m.id} className={`flex items-center gap-4 p-3 rounded-xl border ${isChef ? 'border-yellow-500/50 bg-yellow-900/10' : `${theme.borderLow} bg-black/20`}`}>
-                                                            <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-600">
-                                                                {m.avatar_url ? <img src={m.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full">👤</div>}
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <p className={`font-bold ${isChef ? 'text-yellow-400' : 'text-white'}`}>{m.pseudo}</p>
-                                                                    {isChef && <span className="text-[9px] bg-yellow-500 text-black px-1.5 rounded font-black">CAPITAINE</span>}
-                                                                </div>
-                                                                <p className="text-xs text-slate-500">Niveau {m.niveau}</p>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <span className="text-xs font-mono text-slate-400">{m.elo_pvp} LP</span>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
+                                            {/* Sous-Navigation */}
+                                            <div className="flex justify-center gap-2 bg-black/30 p-1 rounded-xl">
+                                                {['GENERAL', 'MEMBERS', 'BANK', 'EXPE'].map(tab => (
+                                                    <button key={tab} onClick={() => setCrewTab(tab)} className={`flex-1 py-2 rounded-lg text-[10px] font-bold transition ${crewTab === tab ? 'bg-white text-black' : 'text-slate-400 hover:text-white'}`}>
+                                                        {tab === 'GENERAL' ? 'QG' : tab === 'MEMBERS' ? 'MEMBRES' : tab === 'BANK' ? 'BANQUE' : 'RAIDS'}
+                                                    </button>
+                                                ))}
                                             </div>
 
-                                            <div className="text-center pt-4">
-                                                <button onClick={quitterEquipage} className="text-red-500 hover:text-red-400 text-xs font-bold underline">
-                                                    {monEquipage.chef_id === session.user.id ? "Dissoudre l'équipage" : "Quitter l'équipage"}
-                                                </button>
-                                            </div>
+                                            {/* 1. GENERAL */}
+                                            {crewTab === 'GENERAL' && (
+                                                <div className="text-center space-y-4">
+                                                    <div className="bg-black/20 p-4 rounded-xl border border-white/10">
+                                                        <p className="text-xs uppercase font-bold text-slate-500 mb-2">Progression Guilde</p>
+                                                        <div className="w-full h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-600"><div className={`h-full ${theme.barFill}`} style={{ width: `${Math.min(100, (monEquipage.xp / (monEquipage.niveau * 1000)) * 100)}%` }}></div></div>
+                                                        <p className="text-xs mt-1">{monEquipage.xp} / {monEquipage.niveau * 1000} XP</p>
+                                                    </div>
+                                                    <div className="bg-black/20 p-4 rounded-xl border border-white/10">
+                                                        <p className="text-xs uppercase font-bold text-slate-500 mb-2">Ma Contribution XP</p>
+                                                        <input type="range" min="0" max="100" value={joueur.part_xp_equipage || 0} onChange={(e) => changerXpPart(e.target.value)} className="w-full accent-white cursor-pointer" />
+                                                        <p className="font-bold text-xl">{joueur.part_xp_equipage}%</p>
+                                                        <p className="text-[10px] italic text-slate-500">Dédouané sur vos gains personnels</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* 2. MEMBRES */}
+                                            {crewTab === 'MEMBERS' && (
+                                                <div className="space-y-4">
+                                                    {/* Candidatures (Chef) */}
+                                                    {candidatures.length > 0 && (
+                                                        <div className="bg-yellow-900/20 p-4 rounded-xl border border-yellow-700/50">
+                                                            <h4 className="text-yellow-500 text-xs font-bold uppercase mb-2">En attente ({candidatures.length})</h4>
+                                                            {candidatures.map(c => (
+                                                                <div key={c.id} className="flex justify-between items-center bg-black/30 p-2 rounded mb-1">
+                                                                    <span>{c.pseudo_joueur}</span>
+                                                                    <div className="flex gap-2">
+                                                                        <button onClick={() => gererCandidat(c.id, true)} className="text-green-400 text-xs font-bold border border-green-400 px-2 rounded">ACCEPTER</button>
+                                                                        <button onClick={() => gererCandidat(c.id, false)} className="text-red-400 text-xs font-bold border border-red-400 px-2 rounded">REFUSER</button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Liste Membres */}
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {membresEquipage.map(m => {
+                                                            const isChef = m.id === monEquipage.chef_id;
+                                                            const isMe = m.id === session.user.id;
+                                                            const amIChef = monEquipage.chef_id === session.user.id;
+                                                            return (
+                                                                <div key={m.id} className={`flex items-center gap-4 p-3 rounded-xl border ${isChef ? 'border-yellow-500/50 bg-yellow-900/10' : `${theme.borderLow} bg-black/20`}`}>
+                                                                    <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-600">
+                                                                        {m.avatar_url ? <img src={m.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full">👤</div>}
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center gap-2"><p className={`font-bold ${isChef ? 'text-yellow-400' : 'text-white'}`}>{m.pseudo}</p>{isChef && <span className="text-[9px] bg-yellow-500 text-black px-1.5 rounded font-black">CAPITAINE</span>}</div>
+                                                                        <p className="text-xs text-slate-500">Niveau {m.niveau}</p>
+                                                                    </div>
+                                                                    {amIChef && !isChef && <button onClick={() => kickMembre(m.id)} className="text-xs text-red-500 hover:text-red-400 underline">Exclure</button>}
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* 3. BANQUE */}
+                                            {crewTab === 'BANK' && (
+                                                <div className="space-y-4">
+                                                    <div className="bg-black/20 p-4 rounded-xl text-center border border-white/10">
+                                                        <p className="text-xs uppercase font-bold text-slate-500">Solde Commun</p>
+                                                        <p className="text-4xl font-black text-yellow-400">{monEquipage.berrys_banque.toLocaleString()} ฿</p>
+                                                    </div>
+                                                    <div className="flex gap-2 justify-center">
+                                                        <input type="number" value={banqueMontant} onChange={(e) => setBanqueMontant(e.target.value)} className="bg-slate-900 border border-slate-700 px-4 py-2 rounded-lg text-white w-32 text-center" />
+                                                        <button onClick={() => actionBanque('DEPOT')} className="bg-green-600 text-white px-4 rounded font-bold text-xs">DÉPOSER</button>
+                                                        {monEquipage.chef_id === session.user.id && <button onClick={() => actionBanque('RETRAIT')} className="bg-red-600 text-white px-4 rounded font-bold text-xs">RETIRER</button>}
+                                                    </div>
+                                                    <div className="bg-black/30 p-4 rounded-xl h-40 overflow-y-auto custom-scrollbar text-xs space-y-1">
+                                                        {banqueLogs.map(log => (
+                                                            <div key={log.id} className="flex justify-between text-slate-400 border-b border-white/5 pb-1">
+                                                                <span>{log.pseudo_joueur}</span>
+                                                                <span className={log.action === 'DEPOT' ? 'text-green-400' : 'text-red-400'}>{log.action === 'DEPOT' ? '+' : '-'}{log.montant} ฿</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {/* 4. EXPEDITIONS DE GROUPE */}
+                                            {crewTab === 'EXPE' && (
+                                                <div className="text-center py-10 text-slate-500 italic">
+                                                    Module Raid de Guilde en construction...<br/>
+                                                    Préparez vos équipages !
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
