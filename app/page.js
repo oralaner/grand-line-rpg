@@ -154,6 +154,7 @@ export default function Home() {
   const [banqueMontant, setBanqueMontant] = useState(100);
   const [banqueLogs, setBanqueLogs] = useState([]);
   const [candidatures, setCandidatures] = useState([]);
+  const [topEquipages, setTopEquipages] = useState([]);
 
   const [casinoGame, setCasinoGame] = useState('QUITTE');
   const [miseCasino, setMiseCasino] = useState(100);
@@ -294,12 +295,20 @@ useEffect(() => {
   const chargerAtelier = async () => { await chargerInventaire(); const { data } = await supabase.from('recettes').select('*, objets:objet_resultat_id(nom, rarete)'); if (data) setRecettes(data); };
   const chargerCompetences = async () => { const { data: allComp } = await supabase.from('competences').select('*').eq('exclusif_pnj', false).order('puissance'); setCompetences(allComp || []); const { data: mesComp } = await supabase.from('joueur_competences').select('competence_id').eq('joueur_id', session.user.id); setMesCompetences(mesComp ? mesComp.map(c => c.competence_id) : []); };
   const chargerClassement = async () => { 
-      let query = supabase.from('joueurs').select('pseudo, avatar_url, niveau, xp, berrys, faction, elo_pvp').eq('is_bot', false); // <-- FILTRE HUMAINS
-      if (leaderboardType === 'NIVEAU') query = query.order('niveau', { ascending: false }).order('xp', { ascending: false });
-      else query = query.order('berrys', { ascending: false });
-      const { data } = await query.limit(20); 
-      if (data) setTopJoueurs(data); 
-  };  const chargerDestinations = async () => { const { data } = await supabase.from('destinations').select('*').order('niveau_requis'); if (data) setDestinations(data); }
+      if (leaderboardType === 'EQUIPAGE') {
+          const { data } = await supabase.rpc('get_classement_equipages');
+          setTopEquipages(data || []);
+      } else {
+          let query = supabase.from('joueurs').select('pseudo, avatar_url, niveau, xp, berrys, faction, elo_pvp').eq('is_bot', false); 
+          if (leaderboardType === 'NIVEAU') query = query.order('niveau', { ascending: false }).order('xp', { ascending: false });
+          else if (leaderboardType === 'RICHESSE') query = query.order('berrys', { ascending: false });
+          else if (leaderboardType === 'PVP') query = query.order('elo_pvp', { ascending: false });
+          
+          const { data } = await query.limit(20); 
+          if (data) setTopJoueurs(data); 
+      }
+  };
+  const chargerDestinations = async () => { const { data } = await supabase.from('destinations').select('*').order('niveau_requis'); if (data) setDestinations(data); }
   const chargerMarche = async () => { const { data } = await supabase.from('marche').select('*, objets(nom, rarete), joueurs(pseudo)').order('created_at', { ascending: false }); if (data) setMarcheItems(data); }
   const chargerArene = async () => { 
       const isBot = areneFilter === 'PVE'; 
@@ -1306,7 +1315,7 @@ useEffect(() => {
                                                         <div className="bg-yellow-900/20 p-4 rounded-xl border border-yellow-700/50">
                                                             <h4 className="text-yellow-500 text-xs font-bold uppercase mb-2">En attente ({candidatures.length})</h4>
                                                             {candidatures.map(c => (
-                                                                <div key={c.id} className="flex justify-between items-center bg-black/30 p-2 rounded mb-1">
+                                                                <div key={c.id} className="flex justify-between text-white items-center bg-black/30 p-2 rounded mb-1">
                                                                     <span>{c.pseudo_joueur}</span>
                                                                     <div className="flex gap-2">
                                                                         <button onClick={() => gererCandidat(c.id, true)} className="text-green-400 text-xs font-bold border border-green-400 px-2 rounded">ACCEPTER</button>
@@ -1411,15 +1420,45 @@ useEffect(() => {
                                                                 return cible ? <p className="text-lg text-white font-bold mb-4">Cible : {cible.nom}</p> : null;
                                                             })()}
 
-                                                            <div className="bg-black/40 p-4 rounded-lg mb-6">
-                                                                <p className="text-xs text-slate-400 uppercase font-bold mb-2">Participants ({monEquipage.expedition_participants?.length || 0})</p>
+                                                            <div className="bg-black/40 p-4 rounded-lg mb-6 border border-white/10">
+                                                                <p className="text-xs text-slate-400 uppercase font-bold mb-3">
+                                                                    Participants ({monEquipage.expedition_participants?.length || 0})
+                                                                </p>
+                                                                
+                                                                {/* NOUVEAU BLOC D'AFFICHAGE DES AVATARS */}
                                                                 <div className="flex flex-wrap justify-center gap-2">
-                                                                    {monEquipage.expedition_participants?.map((uid, idx) => (
-                                                                        <div key={idx} className="w-8 h-8 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-xs">
-                                                                            👤
-                                                                        </div>
-                                                                    ))}
+                                                                    {monEquipage.expedition_participants?.map((uid, idx) => {
+                                                                        // On cherche les infos complètes du membre grâce à son ID
+                                                                        const participant = membresEquipage.find(m => m.id === uid);
+                                                                        
+                                                                        // Si le membre n'est plus dans la guilde (cas rare), on n'affiche rien
+                                                                        if (!participant) return null;
+
+                                                                        const isChefDuRaid = participant.id === monEquipage.chef_id;
+
+                                                                        return (
+                                                                            <div 
+                                                                                key={idx} 
+                                                                                className={`w-10 h-10 rounded-full bg-slate-800 border-2 flex items-center justify-center overflow-hidden relative group shadow-md transition hover:scale-110 hover:z-10 cursor-help
+                                                                                ${isChefDuRaid ? 'border-yellow-500 shadow-yellow-500/30' : 'border-slate-500'}`}
+                                                                                title={`${participant.pseudo} (Niv.${participant.niveau})`} // Tooltip au survol
+                                                                            >
+                                                                                {participant.avatar_url ? (
+                                                                                    <img src={participant.avatar_url} alt={participant.pseudo} className="w-full h-full object-cover" />
+                                                                                ) : (
+                                                                                    <span className="text-lg">👤</span>
+                                                                                )}
+                                                                                
+                                                                                {/* Petite couronne pour le chef */}
+                                                                                {isChefDuRaid && (
+                                                                                    <div className="absolute -top-1 -right-1 text-[10px]">👑</div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
+                                                                {/* FIN DU NOUVEAU BLOC */}
+
                                                             </div>
 
                                                             {!monEquipage.expedition_participants?.includes(session.user.id) ? (
@@ -1454,16 +1493,23 @@ useEffect(() => {
                                                                 if (diff <= 0) {
                                                                     return (
                                                                         <div className="animate-bounce mt-4">
-                                                                            <button onClick={recolterRaid} className="bg-yellow-500 text-black font-black text-xl py-4 px-8 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.6)]">
+                                                                            <button onClick={recolterRaid} className="bg-yellow-500 text-black font-black text-xl py-4 px-8 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.6)] hover:scale-105 transition">
                                                                                 RÉCUPÉRER LE BUTIN
                                                                             </button>
                                                                         </div>
                                                                     );
                                                                 } else {
-                                                                    const m = Math.floor(diff / 60000);
+                                                                    // Calcul H:M:S
+                                                                    const h = Math.floor(diff / (1000 * 60 * 60));
+                                                                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                                                    const s = Math.floor((diff % (1000 * 60)) / 1000);
+
                                                                     return (
-                                                                        <div className="text-4xl font-mono font-bold text-white my-6">
-                                                                            {m} min restants
+                                                                        <div className="my-6">
+                                                                            <div className="text-5xl font-mono font-black text-white tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                                                                                {h > 0 ? `${h}:` : ''}{m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+                                                                            </div>
+                                                                            <p className="text-xs text-slate-400 uppercase font-bold tracking-[0.5em] mt-2">Temps Restant</p>
                                                                         </div>
                                                                     );
                                                                 }
@@ -1646,53 +1692,105 @@ useEffect(() => {
                             )}
 
                     {/* CLASSEMENT */}
-                    {activeTab === 'classement' && (
-                        <div className="space-y-4">
-                            <div className="flex justify-center gap-2 md:gap-4 mb-4 p-2 bg-black/20 rounded-xl overflow-x-auto">
-                                <button onClick={() => setLeaderboardType('NIVEAU')} className={`px-2 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'NIVEAU' ? theme.btnPrimary : 'text-slate-400'}`}>Par Niveau</button>
-                                <button onClick={() => setLeaderboardType('RICHESSE')} className={`px-2 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'RICHESSE' ? theme.btnPrimary : 'text-slate-400'}`}>Par Richesse</button>
-                                <button onClick={() => setLeaderboardType('PVP')} className={`px-2 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'PVP' ? theme.btnPrimary : 'text-slate-400'}`}>Classé PvP</button>
-                            </div>
-                            <div className="flex justify-between px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                                <span>Joueur</span>
-                                <span>{leaderboardType === 'PVP' ? 'Rang & LP' : leaderboardType === 'RICHESSE' ? 'Fortune' : 'Niveau'}</span>
-                            </div>
-                            <div className="space-y-2">
-                                {topJoueurs.sort((a, b) => {
-                                    if (leaderboardType === 'PVP') return b.elo_pvp - a.elo_pvp;
-                                    if (leaderboardType === 'RICHESSE') return b.berrys - a.berrys;
-                                    return b.niveau - a.niveau;
-                                }).map((j, index) => {
-                                    const isMe = j.pseudo === joueur?.pseudo;
-                                    const rankData = getRankLabel(j.elo_pvp || 0);
-                                    return (
-                                        <div key={index} className={`flex items-center p-3 rounded-xl border transition-all ${isMe ? `${theme.border} bg-white/10 shadow-lg scale-[1.02]` : "border-white/5 bg-black/20"}`}>
-                                            <div className={`w-6 md:w-8 font-black text-base md:text-lg text-center ${index < 3 ? "text-yellow-400 drop-shadow-md" : "text-slate-500"}`}>{index + 1}</div>
-                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border border-white/10 mx-3 shrink-0">
-                                                {j.avatar_url ? <img src={j.avatar_url} className="w-full h-full object-cover"/> : <div className="bg-slate-800 w-full h-full"></div>}
-                                            </div>
-                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                <p className={`font-bold text-xs md:text-sm truncate ${isMe ? "text-white" : "text-slate-300"}`}>{j.pseudo}</p>
-                                                <p className="text-[10px] text-slate-500">{j.faction || "Neutre"}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                {leaderboardType === 'PVP' ? (
-                                                    <div className="flex flex-col items-end">
-                                                        <span className={`font-black text-xs md:text-sm ${rankData.color}`}>{rankData.label}</span>
-                                                        <span className="text-[9px] text-slate-500 font-bold">Total: {j.elo_pvp} pts</span>
+                            {activeTab === 'classement' && (
+                                <div className="space-y-4">
+                                    
+                                    {/* Filtres */}
+                                    <div className="flex justify-center gap-2 md:gap-4 mb-4 p-2 bg-black/20 rounded-xl overflow-x-auto no-scrollbar">
+                                        <button onClick={() => setLeaderboardType('NIVEAU')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'NIVEAU' ? theme.btnPrimary : 'text-slate-400'}`}>Joueurs (Niv)</button>
+                                        <button onClick={() => setLeaderboardType('PVP')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'PVP' ? theme.btnPrimary : 'text-slate-400'}`}>Joueurs (PvP)</button>
+                                        <button onClick={() => setLeaderboardType('EQUIPAGE')} className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'EQUIPAGE' ? theme.btnPrimary : 'text-slate-400'}`}>🏴‍☠️ Équipages</button>
+                                    </div>
+                                    
+                                    {/* LISTE DES EQUIPAGES */}
+                                    {leaderboardType === 'EQUIPAGE' ? (
+                                        <div className="space-y-3">
+                                            {topEquipages.map((eq, index) => {
+                                                // Couleur faction
+                                                let color = "text-slate-400";
+                                                let border = "border-slate-700";
+                                                if(eq.faction === 'Pirate') { color = "text-red-500"; border = "border-red-900/50"; }
+                                                if(eq.faction === 'Marine') { color = "text-cyan-400"; border = "border-blue-900/50"; }
+                                                if(eq.faction === 'Révolutionnaire') { color = "text-emerald-500"; border = "border-emerald-900/50"; }
+                                                
+                                                const isMyCrew = eq.id === joueur.equipage_id;
+
+                                                return (
+                                                    <div key={index} className={`relative p-4 rounded-xl border bg-black/20 transition hover:bg-black/30 ${border} ${isMyCrew ? 'ring-1 ring-white/20' : ''}`}>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-8 h-8 rounded flex items-center justify-center font-black text-lg bg-slate-800 ${index < 3 ? 'text-yellow-400' : 'text-slate-500'}`}>#{index + 1}</div>
+                                                                <div>
+                                                                    <h3 className="font-black text-white text-lg uppercase leading-none">{eq.nom}</h3>
+                                                                    <p className={`text-[10px] font-bold uppercase tracking-widest ${color}`}>{eq.faction} • Niv {eq.niveau}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-yellow-500 font-black text-sm">{eq.berrys_banque.toLocaleString()} ฿</p>
+                                                                <p className="text-[9px] text-slate-500 uppercase font-bold">Banque</p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Stats Détaillées */}
+                                                        <div className="grid grid-cols-3 gap-2 mt-3 bg-black/20 p-2 rounded-lg border border-white/5">
+                                                            <div className="text-center">
+                                                                <p className="text-white font-bold text-xs">{Math.floor(eq.elo_moyen)}</p>
+                                                                <p className="text-[8px] text-slate-500 uppercase">Elo Moyen</p>
+                                                            </div>
+                                                            <div className="text-center border-l border-white/5">
+                                                                <p className="text-indigo-400 font-bold text-xs">{parseInt(eq.xp).toLocaleString()}</p>
+                                                                <p className="text-[8px] text-slate-500 uppercase">XP Totale</p>
+                                                            </div>
+                                                            <div className="text-center border-l border-white/5">
+                                                                <p className="text-green-400 font-bold text-xs">{eq.expeditions_reussies}</p>
+                                                                <p className="text-[8px] text-slate-500 uppercase">Raids Réussis</p>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                ) : leaderboardType === 'RICHESSE' ? (
-                                                    <span className="text-yellow-400 font-mono font-bold text-xs md:text-base">{j.berrys.toLocaleString()} ฿</span>
-                                                ) : (
-                                                    <span className="text-cyan-400 font-bold text-xs md:text-sm">Niv {j.niveau}</span>
-                                                )}
-                                            </div>
+                                                )
+                                            })}
+                                            {topEquipages.length === 0 && <div className="text-center py-10 italic opacity-50">Aucun équipage formé pour le moment.</div>}
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    )}
+                                    ) : (
+                                        /* LISTE DES JOUEURS (Ton ancien code pour Joueurs/Richesse/PvP) */
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                                                <span>Joueur</span>
+                                                <span>{leaderboardType === 'PVP' ? 'Rang & LP' : leaderboardType === 'RICHESSE' ? 'Fortune' : 'Niveau'}</span>
+                                            </div>
+                                            {topJoueurs.map((j, index) => {
+                                                const isMe = j.pseudo === joueur?.pseudo;
+                                                const rankData = getRankInfo(j.elo_pvp || 0); // Assure-toi que getRankInfo est bien dispo
+
+                                                return (
+                                                    <div key={index} className={`flex items-center p-3 rounded-xl border transition-all ${isMe ? `${theme.border} bg-white/10 shadow-lg scale-[1.02]` : "border-white/5 bg-black/20"}`}>
+                                                        <div className={`w-8 font-black text-base md:text-lg text-center ${index < 3 ? "text-yellow-400 drop-shadow-md" : "text-slate-500"}`}>{index + 1}</div>
+                                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border border-white/10 mx-3 shrink-0">
+                                                            {j.avatar_url ? <img src={j.avatar_url} className="w-full h-full object-cover"/> : <div className="bg-slate-800 w-full h-full"></div>}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                            <p className={`font-bold text-xs md:text-sm truncate ${isMe ? "text-white" : "text-slate-300"}`}>{j.pseudo}</p>
+                                                            <p className="text-[10px] text-slate-500">{j.faction || "Neutre"}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            {leaderboardType === 'PVP' ? (
+                                                                <div className="flex flex-col items-end">
+                                                                    <span className={`font-black text-xs md:text-sm ${rankData.color}`}>{rankData.label}</span>
+                                                                    <span className="text-[9px] text-slate-500 font-bold">Total: {j.elo_pvp} pts</span>
+                                                                </div>
+                                                            ) : leaderboardType === 'RICHESSE' ? (
+                                                                <span className="text-yellow-400 font-mono font-bold text-xs md:text-base">{j.berrys.toLocaleString()} ฿</span>
+                                                            ) : (
+                                                                <span className="text-cyan-400 font-bold text-xs md:text-sm">Niv {j.niveau}</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                     {/* ARENE */}
                     {activeTab === 'arene' && (
