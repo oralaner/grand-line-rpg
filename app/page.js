@@ -1581,7 +1581,7 @@ const handleLogin = async () => {
                                             {/* IMAGE DE FOND (CORRIGÉE) */}
                                             <div 
                                                 className="absolute inset-0 bg-cover bg-center opacity-60 hover:opacity-100 transition-opacity duration-700"
-                                                style={{ backgroundImage: "url('https://image.noelshack.com/fichiers/2025/48/4/1764280923-phf7wbld54zc1.jpg')" }}
+                                                style={{ backgroundImage: "url('/map.jpg')" }}
                                             ></div>
                                             
                                             {/* TITRE DISCRET */}
