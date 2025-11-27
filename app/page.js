@@ -1257,7 +1257,7 @@ useEffect(() => {
                                                     <div className="bg-black/20 p-4 rounded-xl border border-white/10">
                                                         <p className="text-xs uppercase font-bold text-slate-500 mb-2">Ma Contribution XP</p>
                                                         <input type="range" min="0" max="100" value={joueur.part_xp_equipage || 0} onChange={(e) => changerXpPart(e.target.value)} className="w-full accent-white cursor-pointer" />
-                                                        <p className="font-bold text-xl">{joueur.part_xp_equipage}%</p>
+                                                        <p className="font-bold text-white text-xl">{joueur.part_xp_equipage}%</p>
                                                         <p className="text-[10px] italic text-slate-500">Dédouané sur vos gains personnels</p>
                                                     </div>
                                                 </div>
