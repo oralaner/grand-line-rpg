@@ -1839,7 +1839,7 @@ const handleLogin = async () => {
                                                             ) : leaderboardType === 'RICHESSE' ? (
                                                                 <span className="text-yellow-400 font-mono font-bold text-xs md:text-base">{j.berrys.toLocaleString()} ฿</span>
                                                             ) : (
-                                                                <span className="text-cyan-400 font-bold text-[10px] md:text-sm">Niv {j.niveau}</span>
+                                                                <span className="text-cyan-400 font-bold text-[12px] md:text-sm">Niv {j.niveau}</span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -1863,7 +1863,7 @@ const handleLogin = async () => {
                                     </div>
                                     <div className={`border ${theme.border} p-3 rounded-xl text-center mb-2 bg-black/20`}>
                                         <p className={`font-bold text-sm ${theme.textMain}`}>Combats restants : {10 - (joueur.combats_journaliers || 0)} / 10</p>
-                                        <div className="flex justify-center gap-4 text-[10px] mt-1 font-mono">
+                                        <div className="flex justify-center gap-4 text-[14px] mt-1 font-mono">
                                             <span className="text-green-400">V: {joueur.victoires_pve + joueur.victoires_pvp}</span>
                                             <span className="text-red-400">D: {joueur.defaites_pve + joueur.defaites_pvp}</span>
                                         </div>
@@ -1892,7 +1892,7 @@ const handleLogin = async () => {
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
                                                                     <span className={`font-black uppercase ${factionColor}`}>{adv.faction || 'Neutre'}</span>
                                                                     <span className="text-slate-600">•</span>
-                                                                    <span className={`font-mono text-[10px] font-bold ${theme.textDim}`}>Niv {adv.niveau}</span>
+                                                                    <span className={`font-mono text-[12px] font-bold ${theme.textDim}`}>Niv {adv.niveau}</span>
                                                                     {(areneFilter === 'PVP' || adv.elo_pvp > 0) && (
                                                                         <>
                                                                             <span className="text-slate-600">•</span>
