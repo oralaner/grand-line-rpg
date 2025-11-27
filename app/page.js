@@ -327,7 +327,10 @@ useEffect(() => {
           // Charger la liste des équipages rejoignables (même faction)
           const { data } = await supabase.from('equipages').select('*').eq('faction', joueur.faction).limit(10);
           setListeEquipages(data || []);
+          const { data: mb } = await supabase.from('joueurs').select('id, pseudo, avatar_url, niveau, elo_pvp, xp_donnee_equipage').eq('equipage_id', joueur.equipage_id);
+      setMembresEquipage(mb || []);
           return;
+          
       }
       
       // Charger mon équipage
@@ -1351,8 +1354,17 @@ useEffect(() => {
                                                                         {m.avatar_url ? <img src={m.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full">👤</div>}
                                                                     </div>
                                                                     <div className="flex-1">
-                                                                        <div className="flex items-center gap-2"><p className={`font-bold ${isChef ? 'text-yellow-400' : 'text-white'}`}>{m.pseudo}</p>{isChef && <span className="text-[9px] bg-yellow-500 text-black px-1.5 rounded font-black">CAPITAINE</span>}</div>
-                                                                        <p className="text-xs text-slate-500">Niveau {m.niveau}</p>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className={`font-bold ${isChef ? 'text-yellow-400' : 'text-white'}`}>{m.pseudo}</p>
+                                                                            {isChef && <span className="text-[9px] bg-yellow-500 text-black px-1.5 rounded font-black">CHEF</span>}
+                                                                        </div>
+                                                                        <div className="flex gap-3 text-xs mt-0.5">
+                                                                            <span className="text-slate-500">Niveau {m.niveau}</span>
+                                                                            {/* AFFICHAGE DE LA CONTRIBUTION */}
+                                                                            <span className="text-indigo-400 font-bold flex items-center gap-1">
+                                                                                ✨ {m.xp_donnee_equipage?.toLocaleString() || 0} XP donnés
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
                                                                     {amIChef && !isChef && <button onClick={() => kickMembre(m.id)} className="text-xs text-red-500 hover:text-red-400 underline">Exclure</button>}
                                                                 </div>
