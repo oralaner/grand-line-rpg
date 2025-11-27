@@ -1900,26 +1900,30 @@ useEffect(() => {
             </div>
 
             {/* === NOUVEAU : BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
+            {/* === BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
             {activeTab !== 'combat_actif' && (
                 <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 z-50 px-2 py-2 safe-area-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
                     <div className="flex justify-between items-center overflow-x-auto gap-1 no-scrollbar">
                          {[
-                            { id: null, icon: '🏠', label: 'Moi' }, // Bouton Retour Accueil
+                            { id: null, icon: '🏠', label: 'Moi' },
                             { id: 'inventaire', icon: '🎒', label: 'Sac' },
                             { id: 'stats', icon: '📊', label: 'Stats', alert: joueur.points_carac > 0 },
                             { id: 'deck', icon: '📘', label: 'Skills' },
                             { id: 'arene', icon: '⚔️', label: 'PvP' },
+                            { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
                             { id: 'expeditions', icon: '🧭', label: 'Voyage' },
                             { id: 'boutique', icon: '🏪', label: 'Shop' },
                             { id: 'marche', icon: '⚖️', label: 'HDV' },
                             { id: 'casino', icon: '🎰', label: 'Jeux' },
+                            { id: 'atelier', icon: '🔨', label: 'Craft' },
+                            { id: 'classement', icon: '🏆', label: 'Top' },
                         ].map((btn, index) => (
                             <button 
                                 key={index}
                                 onClick={() => setActiveTab(btn.id)}
-                                className={`flex flex-col items-center justify-center min-w-[50px] h-[50px] rounded-xl transition-all active:scale-90
+                                className={`flex flex-col items-center justify-center min-w-[50px] h-[50px] rounded-xl transition-all active:scale-90 shrink-0
                                 ${(activeTab === btn.id) || (btn.id === null && !activeTab) 
-                                    ? 'bg-blue-600 text-white shadow-lg -translate-y-2' 
+                                    ? `${theme.btnPrimary} shadow-lg -translate-y-2` 
                                     : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 <span className="text-xl leading-none mb-1">{btn.icon}</span>
