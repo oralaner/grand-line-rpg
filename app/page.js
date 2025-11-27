@@ -1885,16 +1885,8 @@ const handleLogin = async () => {
                                                     <div key={i} className={`flex flex-col sm:flex-row justify-between sm:items-center bg-black/20 p-3 rounded-xl shadow-sm border-l-4 transition hover:bg-black/30 ${theme.border} gap-3 sm:gap-0`}>
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border border-slate-600 bg-slate-800 shrink-0">
-                                                                {adv.avatar_url ? (
-                                                                             <img rc={adv.avatar_url} 
-            className="w-full h-full object-cover" 
-            referrerPolicy="no-referrer"  // <--- L'ASTUCE EST ICI
-            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} 
-        />
-    ) : (
-        <div className="flex items-center justify-center h-full text-2xl">👤</div>
-    )}
-</div>
+                                                                {adv.avatar_url ? <img src={adv.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full text-2xl">👤</div>}
+                                                            </div>
                                                             <div>
                                                                 <p className={`font-bold text-sm ${theme.textMain}`}>{adv.pseudo}</p>
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
