@@ -206,6 +206,14 @@ useEffect(() => {
           if (crewTab === 'MEMBERS') chargerCandidatures();
       }
   }, [activeTab, crewTab, joueur]);
+  useEffect(() => {
+      if (activeTab === 'equipage') {
+          chargerEquipage();
+          chargerDestinations(); // <--- AJOUT IMPORTANT : Charger les cartes
+          if (crewTab === 'BANK') chargerBanque();
+          if (crewTab === 'MEMBERS') chargerCandidatures();
+      }
+  }, [activeTab, crewTab, joueur]);
   // --- CREATION AUTOMATIQUE COTE CLIENT ---
   // --- CREATION AUTOMATIQUE COTE CLIENT (CORRIGÉE) ---
   const creerNouveauJoueur = async (user) => {
@@ -352,6 +360,33 @@ useEffect(() => {
       if (!confirm("Exclure ce membre ?")) return;
       const { data } = await supabase.rpc('exclure_membre', { _membre_id: idMembre });
       if (data.success) { notify(data.message, "success"); chargerEquipage(); } else { notify(data.message, "error"); }
+  };
+  // --- LOGIQUE RAIDS DE GUILDE ---
+  const preparerRaid = async (destId) => {
+      const { data } = await supabase.rpc('preparer_expedition_equipage', { _dest_id: destId });
+      if(data.success) { notify(data.message, "success"); chargerEquipage(); }
+      else { notify(data.message, "error"); }
+  };
+
+  const rejoindreRaid = async () => {
+      const { data } = await supabase.rpc('rejoindre_expedition_equipage');
+      if(data.success) { notify(data.message, "success"); chargerEquipage(); }
+      else { notify(data.message, "error"); }
+  };
+
+  const lancerRaid = async () => {
+      const { data } = await supabase.rpc('lancer_expedition_equipage');
+      if(data.success) { notify(data.message, "success"); chargerEquipage(); }
+      else { notify(data.message, "error"); }
+  };
+  
+  const recolterRaid = async () => {
+      const { data } = await supabase.rpc('resoudre_expedition_equipage');
+      // Que ce soit une victoire ou une défaite, l'action a "réussi" (le raid est fini)
+      if(data) { 
+          notify(data.message, data.success ? "success" : "warning"); 
+          chargerEquipage(); 
+      }
   };
   const creerEquipage = async () => {
       if (!nomEquipageCrea) return;
@@ -1330,9 +1365,113 @@ useEffect(() => {
                                             
                                             {/* 4. EXPEDITIONS DE GROUPE */}
                                             {crewTab === 'EXPE' && (
-                                                <div className="text-center py-10 text-slate-500 italic">
-                                                    Module Raid de Guilde en construction...<br/>
-                                                    Préparez vos équipages !
+                                                <div className="space-y-4 animate-fadeIn">
+                                                    
+                                                    {/* ETAT 1 : AUCUNE EXPÉDITION EN COURS */}
+                                                    {monEquipage.expedition_etat === 'AUCUNE' && (
+                                                        <>
+                                                            {monEquipage.chef_id === session.user.id ? (
+                                                                <div className="space-y-3">
+                                                                    <p className={`text-center text-xs uppercase font-bold mb-4 ${theme.textMain}`}>Choisissez une cible pour le Raid</p>
+                                                                    {destinations.map((dest, i) => {
+                                                                        // Difficulté = Niveau Requis * 20 * Nombre de membres total
+                                                                        const difficulte = dest.niveau_requis * 20 * membresEquipage.length;
+                                                                        
+                                                                        return (
+                                                                            <div key={i} className={`bg-black/20 border ${theme.borderLow} p-3 rounded-xl flex justify-between items-center`}>
+                                                                                <div>
+                                                                                    <p className={`font-bold text-sm ${theme.textMain}`}>{dest.nom}</p>
+                                                                                    <p className="text-[10px] text-slate-400">Difficulté: <span className="text-red-400 font-mono">{difficulte}</span> (Basée sur {membresEquipage.length} membres)</p>
+                                                                                    <div className="flex gap-2 mt-1 text-[10px]">
+                                                                                        <span className="text-yellow-500">💰 {dest.gain_estime * 5} /membre</span>
+                                                                                        <span className="text-green-400">✨ {dest.gain_estime * 3} /membre</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <button onClick={() => preparerRaid(dest.id)} className={`text-xs font-bold px-3 py-1.5 rounded-lg ${theme.btnPrimary}`}>PRÉPARER</button>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-center py-10 opacity-50 italic">
+                                                                    <p>Le Capitaine n'a pas encore planifié de raid.</p>
+                                                                    <p className="text-xs mt-2">Préparez-vous !</p>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+
+                                                    {/* ETAT 2 : EN PRÉPARATION (Lobby) */}
+                                                    {monEquipage.expedition_etat === 'PREPARATION' && (
+                                                        <div className={`bg-black/30 border-2 border-dashed ${theme.border} p-6 rounded-xl text-center`}>
+                                                            <h3 className={`text-xl font-black uppercase mb-2 ${theme.textMain}`}>Raid en Préparation !</h3>
+                                                            
+                                                            {(() => {
+                                                                const cible = destinations.find(d => d.id === monEquipage.expedition_cible_id);
+                                                                return cible ? <p className="text-lg text-white font-bold mb-4">Cible : {cible.nom}</p> : null;
+                                                            })()}
+
+                                                            <div className="bg-black/40 p-4 rounded-lg mb-6">
+                                                                <p className="text-xs text-slate-400 uppercase font-bold mb-2">Participants ({monEquipage.expedition_participants?.length || 0})</p>
+                                                                <div className="flex flex-wrap justify-center gap-2">
+                                                                    {monEquipage.expedition_participants?.map((uid, idx) => (
+                                                                        <div key={idx} className="w-8 h-8 rounded-full bg-slate-700 border border-slate-500 flex items-center justify-center text-xs">
+                                                                            👤
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            {!monEquipage.expedition_participants?.includes(session.user.id) ? (
+                                                                <button onClick={rejoindreRaid} className="w-full bg-green-600 hover:bg-green-500 text-white font-black py-3 rounded-xl shadow-lg animate-pulse uppercase tracking-wider">
+                                                                    REJOINDRE L'EXPÉDITION
+                                                                </button>
+                                                            ) : (
+                                                                <p className="text-green-400 text-xs font-bold uppercase tracking-widest mb-4">✅ Vous êtes inscrit</p>
+                                                            )}
+
+                                                            {monEquipage.chef_id === session.user.id && (
+                                                                <button onClick={lancerRaid} className={`w-full mt-4 py-3 rounded-xl font-bold shadow-lg border ${theme.border} ${theme.btnPrimary}`}>
+                                                                    LANCER LE RAID
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* ETAT 3 : EN COURS */}
+                                                    {monEquipage.expedition_etat === 'EN_COURS' && (
+                                                        <div className={`bg-black/40 border ${theme.border} p-8 rounded-xl text-center relative overflow-hidden`}>
+                                                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-10 animate-pulse"></div>
+                                                            
+                                                            <h3 className={`text-2xl font-black uppercase mb-2 ${theme.textMain}`}>Raid en Cours</h3>
+                                                            
+                                                            {/* Timer calculé à la volée car le state timer est pour le perso solo */}
+                                                            {(() => {
+                                                                const now = new Date().getTime();
+                                                                const fin = new Date(monEquipage.expedition_fin).getTime();
+                                                                const diff = fin - now;
+                                                                
+                                                                if (diff <= 0) {
+                                                                    return (
+                                                                        <div className="animate-bounce mt-4">
+                                                                            <button onClick={recolterRaid} className="bg-yellow-500 text-black font-black text-xl py-4 px-8 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.6)]">
+                                                                                RÉCUPÉRER LE BUTIN
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                } else {
+                                                                    const m = Math.floor(diff / 60000);
+                                                                    return (
+                                                                        <div className="text-4xl font-mono font-bold text-white my-6">
+                                                                            {m} min restants
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            })()}
+                                                            
+                                                            <p className="text-xs text-slate-500 italic mt-4">L'équipage combat pour la gloire...</p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
