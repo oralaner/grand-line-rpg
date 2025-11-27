@@ -1582,7 +1582,7 @@ const handleLogin = async () => {
                                             
                                             {/* IMAGE DE FOND */}
                                             <img 
-                                                src="/map.jpg" 
+                                                src="" 
                                                 alt="Carte du Monde"
                                                 className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-700"
                                                 onError={(e) => { e.target.style.display = 'none'; }} // Cache l'image si elle plante pour voir le fond bleu
