@@ -909,7 +909,8 @@ useEffect(() => {
             <div className={`flex-1 flex flex-col h-full relative z-0 min-w-0 transition-all duration-300 ${!activeTab ? 'hidden lg:flex' : 'flex'}`}>
                 
                 {/* BARRE DE NAVIGATION (PC UNIQUEMENT) */}
-                <div className={`hidden md:flex gap-2 lg:gap-3 mb-2 lg:mb-4 transition-all duration-500 overflow-x-auto pb-2 lg:pb-0 shrink-0 custom-scrollbar ${activeTab === 'combat_actif' ? '-translate-y-[200px] opacity-0 hidden' : 'translate-y-0 opacity-100'}`}>
+                {/* NAVIGATION (GRILLE 5x2 sur Mobile / Regroupé sur PC) */}
+                <div className={`grid grid-cols-5 md:flex md:flex-wrap justify-center gap-2 md:gap-3 mb-4 transition-all duration-500 ${activeTab === 'combat_actif' ? '-translate-y-[200px] opacity-0 hidden' : 'translate-y-0 opacity-100'}`}>
                     {[
                         { id: 'inventaire', icon: '🎒', label: 'Sac', color: 'hover:bg-amber-600/20 hover:text-amber-400 hover:border-amber-600' },
                         { id: 'stats', icon: '📊', label: 'Stats', color: 'hover:bg-cyan-600/20 hover:text-cyan-400 hover:border-cyan-600', alert: joueur.points_carac > 0 },
@@ -918,21 +919,20 @@ useEffect(() => {
                         { id: 'boutique', icon: '🏪', label: 'Shop', color: 'hover:bg-emerald-600/20 hover:text-emerald-400 hover:border-emerald-600' },
                         { id: 'marche', icon: '⚖️', label: 'HDV', color: 'hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-600' },
                         { id: 'expeditions', icon: '🧭', label: 'Voyage', color: 'hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-600' },
+                        { id: 'atelier', icon: '🔨', label: 'Craft', color: 'hover:bg-slate-600/20 hover:text-slate-400 hover:border-slate-600' },
                         { id: 'casino', icon: '🎰', label: 'Jeux', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' },
                         { id: 'classement', icon: '🏆', label: 'Top', color: 'hover:bg-yellow-600/20 hover:text-yellow-400 hover:border-yellow-600' },
-                        { id: 'atelier', icon: '🔨', label: 'Craft', color: 'hover:bg-slate-600/20 hover:text-slate-400 hover:border-slate-600' },
-                        { id: 'equipage', icon: '🏴‍☠️', label: 'Team', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' },
-
                     ].map(btn => (
                         <button 
                             key={btn.id}
                             onClick={() => setActiveTab(btn.id)}
-                            className={`h-14 w-14 md:h-20 md:w-20 shrink-0 rounded-xl border bg-slate-800/50 backdrop-blur flex flex-col items-center justify-center gap-0.5 md:gap-1 transition-all active:scale-95 group relative 
-                            ${activeTab === btn.id ? 'bg-slate-700 border-white/50 text-white shadow-lg' : `border-slate-700 text-slate-400 ${btn.color}`}`}
+                            // CHANGEMENT ICI : w-full aspect-square pour des carrés parfaits dans la grille
+                            className={`w-full aspect-square md:h-20 md:w-20 rounded-xl border bg-slate-800/50 backdrop-blur flex flex-col items-center justify-center gap-0.5 md:gap-1 transition-all active:scale-95 group relative 
+                            ${activeTab === btn.id ? `${theme.btnPrimary} border-white/50 shadow-lg` : `border-slate-700 ${theme.textDim} ${btn.color}`}`}
                         >
-                            <span className="text-lg md:text-2xl lg:group-hover:scale-110 transition-transform">{btn.icon}</span>
-                            <span className="text-[9px] md:text-[10px] font-bold uppercase">{btn.label}</span>
-                            {btn.alert && <span className="absolute top-2 right-2 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>}
+                            <span className="text-xl md:text-2xl lg:group-hover:scale-110 transition-transform">{btn.icon}</span>
+                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight">{btn.label}</span>
+                            {btn.alert && <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>}
                         </button>
                     ))}
                 </div>
@@ -996,22 +996,7 @@ useEffect(() => {
                         // --- ONGLETS (Full height on mobile with scroll + padding bottom) ---
                         <div className="absolute inset-0 p-3 md:p-8 overflow-y-auto custom-scrollbar animate-fadeIn safe-area-bottom lg:pb-8">
                             
-                            {/* HEADER TAB AVEC BOUTON RETOUR POUR MOBILE */}
-                            <div className="flex justify-between items-center mb-4 md:mb-8 border-b border-slate-700 pb-4 sticky top-0 bg-slate-900/90 z-20 backdrop-blur-lg -mx-3 px-3 md:mx-0 md:px-0">
-                                <h2 className="text-lg md:text-3xl font-black text-white uppercase flex items-center gap-2 md:gap-3 tracking-tight truncate">
-                                    {activeTab === 'inventaire' && "🎒 Inventaire"}
-                                    {activeTab === 'stats' && "📊 Statistiques"}
-                                    {activeTab === 'deck' && "📘 Compétences"}
-                                    {activeTab === 'arene' && "⚔️ Arène PvP"}
-                                    {activeTab === 'boutique' && "🏪 Boutique"}
-                                    {activeTab === 'marche' && "⚖️ Hôtel des Ventes"}
-                                    {activeTab === 'expeditions' && "🧭 Expéditions"}
-                                    {activeTab === 'atelier' && "🔨 Atelier de Craft"}
-                                    {activeTab === 'classement' && "🏆 Classement"}
-                                    {activeTab === 'casino' && "🎰 Casino"}
-                                </h2>
-                                <button onClick={() => setActiveTab(null)} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-200 hover:bg-red-500/20 hover:text-red-400 flex items-center justify-center transition text-base md:text-lg font-bold shrink-0 text-black">✕</button>
-                            </div>
+                           
 
                             {/* CONTENU SPECIFIQUE */}
                             <div className="max-w-5xl mx-auto">
