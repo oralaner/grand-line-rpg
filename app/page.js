@@ -26,9 +26,8 @@ const formatChronoLong = (ms) => {
     return `${h}h ${m}m ${s.toString().padStart(2, '0')}s`; 
 };
 
-// Slot d'équipement (Design Moderne : Carte Flottante)
-// Slot d'équipement (Correction Hover)
-// Slot d'équipement (Correction Hover précis)
+
+
 // Slot d'équipement (Correction : Groupe Nommé "item")
 const EquipSlot = ({ type, item, onUnequip }) => (
     <div 
@@ -145,7 +144,12 @@ export default function Home() {
   const [combatLog, setCombatLog] = useState([]);
   const [combatRewards, setCombatRewards] = useState(null);
   const [areneFilter, setAreneFilter] = useState('PVE'); // 'PVP' (Humains) ou 'PVE' (Bots)
-  
+
+  const [monEquipage, setMonEquipage] = useState(null);
+  const [membresEquipage, setMembresEquipage] = useState([]);
+  const [listeEquipages, setListeEquipages] = useState([]); // Pour la recherche
+  const [nomEquipageCrea, setNomEquipageCrea] = useState("");
+
   const [casinoGame, setCasinoGame] = useState('QUITTE');
   const [miseCasino, setMiseCasino] = useState(100);
   const [expeditionResult, setExpeditionResult] = useState(null); // Stocke le résultat (XP, Or, Message)
@@ -186,7 +190,10 @@ useEffect(() => {
   }, [activeTab, leaderboardType, areneFilter]);
   useEffect(() => { if (joueur && joueur.derniere_activite) { const interval = setInterval(() => { const diff = new Date().getTime() - new Date(joueur.derniere_activite).getTime(); if (diff < DELAI_COOLDOWN) setTempsRestant(DELAI_COOLDOWN - diff); else setTempsRestant(0); }, 1000); return () => clearInterval(interval); } }, [joueur]);
   useEffect(() => { if (joueur && joueur.expedition_fin) { const interval = setInterval(() => { const diff = new Date(joueur.expedition_fin).getTime() - new Date().getTime(); if (diff > 0) setExpeditionChrono(diff); else setExpeditionChrono(0); }, 1000); return () => clearInterval(interval); } else setExpeditionChrono(null); }, [joueur]);
-
+useEffect(() => { 
+      // ... (le reste inchangé)
+      if (activeTab === 'equipage') chargerEquipage(); 
+  }, [activeTab, joueur]); // Ajoute 'joueur' pour recharger si on rejoint/quitte
 
   // --- CREATION AUTOMATIQUE COTE CLIENT ---
   // --- CREATION AUTOMATIQUE COTE CLIENT (CORRIGÉE) ---
@@ -262,7 +269,7 @@ useEffect(() => {
   const fetchRang = async (userId) => { const { data } = await supabase.rpc('get_rang_joueur', { target_id: userId }); if (data) setRangJoueur(data); };
 
   useEffect(() => { if (!session) return; if (activeTab === 'inventaire') chargerInventaire(); if (activeTab === 'deck') chargerCompetences(); if (activeTab === 'boutique') chargerBoutique(); if (activeTab === 'atelier') chargerAtelier(); if (activeTab === 'classement') chargerClassement(); if (activeTab === 'expeditions') chargerDestinations(); if (activeTab === 'marche') chargerMarche(); if (activeTab === 'arene') chargerArene(); }, [activeTab, leaderboardType]);
-
+ 
   const chargerInventaire = async () => { const { data } = await supabase.from('inventaire').select('quantite, objet_id, objets(nom, rarete, description, type_equipement, stats_bonus, prix_achat)').eq('joueur_id', session.user.id); if (data) setInventaire(data); };
   const chargerBoutique = async () => { const { data } = await supabase.from('objets').select('*').eq('en_boutique', true).order('prix_achat'); if (data) setBoutiqueItems(data); };
   const chargerAtelier = async () => { await chargerInventaire(); const { data } = await supabase.from('recettes').select('*, objets:objet_resultat_id(nom, rarete)'); if (data) setRecettes(data); };
@@ -285,6 +292,42 @@ useEffect(() => {
           .order('niveau', { ascending: false })
           .limit(20); 
       setAreneJoueurs(data || []); 
+  };
+  const chargerEquipage = async () => {
+      if (!joueur.equipage_id) {
+          setMonEquipage(null);
+          // Charger la liste des équipages rejoignables (même faction)
+          const { data } = await supabase.from('equipages').select('*').eq('faction', joueur.faction).limit(10);
+          setListeEquipages(data || []);
+          return;
+      }
+      
+      // Charger mon équipage
+      const { data: eq } = await supabase.from('equipages').select('*').eq('id', joueur.equipage_id).single();
+      setMonEquipage(eq);
+      
+      // Charger les membres
+      const { data: mb } = await supabase.from('joueurs').select('id, pseudo, avatar_url, niveau, elo_pvp').eq('equipage_id', joueur.equipage_id);
+      setMembresEquipage(mb || []);
+  };
+  
+  const creerEquipage = async () => {
+      if (!nomEquipageCrea) return;
+      const { data } = await supabase.rpc('creer_equipage', { _nom: nomEquipageCrea, _desc: "En route vers le sommet !" });
+      if (data.success) { notify(data.message, "success"); fetchJoueur(session.user.id); }
+      else { notify(data.message, "error"); }
+  };
+  
+  const rejoindreEquipage = async (id) => {
+      const { data } = await supabase.rpc('rejoindre_equipage', { _target_id: id });
+      if (data.success) { notify(data.message, "success"); fetchJoueur(session.user.id); }
+      else { notify(data.message, "error"); }
+  };
+
+  const quitterEquipage = async () => {
+      if(!confirm("Voulez-vous vraiment quitter ?")) return;
+      const { data } = await supabase.rpc('quitter_equipage');
+      if (data.success) { notify(data.message, "info"); fetchJoueur(session.user.id); setMonEquipage(null); }
   };
   // Actions
   const clickActivite = async () => { if (!session || !joueur || tempsRestant > 0 || explorationLoading) return; setExplorationLoading(true); const oldLevel = joueur.niveau; const { data, error } = await supabase.rpc('faire_activite'); if (error) { notify("Erreur: " + error.message, "error"); setExplorationLoading(false); return; } if (data.success) { if (data.new_level > oldLevel) { notify(`🎉 NIVEAU UP ! Lvl ${data.new_level} !`, "success", 8000); } else { notify(`+${data.gain_xp} XP | +${data.gain_berrys} ฿`, "success"); } setTempsRestant(60 * 1000); await fetchJoueur(session.user.id); setExplorationLoading(false); } else { notify(data.message, "error"); setExplorationLoading(false); } };
@@ -791,6 +834,9 @@ useEffect(() => {
                         { id: 'expeditions', icon: '🧭', label: 'Voyage', color: 'hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-600' },
                         { id: 'casino', icon: '🎰', label: 'Jeux', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' },
                         { id: 'classement', icon: '🏆', label: 'Top', color: 'hover:bg-yellow-600/20 hover:text-yellow-400 hover:border-yellow-600' },
+                        { id: 'atelier', icon: '🔨', label: 'Craft', color: 'hover:bg-slate-600/20 hover:text-slate-400 hover:border-slate-600' },
+                        { id: 'equipage', icon: '🏴‍☠️', label: 'Team', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' },
+
                     ].map(btn => (
                         <button 
                             key={btn.id}
@@ -1110,7 +1156,83 @@ useEffect(() => {
                                     </div>
                                 </div>
                             )}
+{/* EQUIPAGE (GUILDE) */}
+                            {activeTab === 'equipage' && (
+                                <div className="space-y-6 animate-fadeIn">
+                                    {!monEquipage ? (
+                                        // MODE : SANS EQUIPAGE
+                                        <div className="text-center space-y-8">
+                                            <div className={`p-6 rounded-2xl border-2 border-dashed ${theme.border} bg-black/20`}>
+                                                <h3 className={`text-xl font-black uppercase mb-4 ${theme.textMain}`}>Créer ton organisation</h3>
+                                                <div className="flex gap-2 justify-center">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Nom de l'équipage" 
+                                                        className="bg-slate-900 border border-slate-700 px-4 py-2 rounded-lg text-white outline-none focus:border-white"
+                                                        value={nomEquipageCrea}
+                                                        onChange={(e) => setNomEquipageCrea(e.target.value)}
+                                                    />
+                                                    <button onClick={creerEquipage} className={`px-4 py-2 rounded-lg font-bold ${theme.btnPrimary}`}>Créer (1000 ฿)</button>
+                                                </div>
+                                            </div>
 
+                                            <div className="space-y-2">
+                                                <h4 className="text-slate-400 text-xs uppercase font-bold tracking-widest">Rejoindre une équipe {joueur.faction}</h4>
+                                                {listeEquipages.length === 0 && <p className="text-slate-600 italic">Aucun recrutement en cours...</p>}
+                                                {listeEquipages.map(eq => (
+                                                    <div key={eq.id} className={`flex justify-between items-center p-4 rounded-xl border ${theme.borderLow} bg-black/20 hover:bg-black/40 transition`}>
+                                                        <div className="text-left">
+                                                            <p className={`font-black text-lg ${theme.textMain}`}>{eq.nom}</p>
+                                                            <p className="text-xs text-slate-500 italic">"{eq.description}"</p>
+                                                        </div>
+                                                        <button onClick={() => rejoindreEquipage(eq.id)} className={`text-xs px-4 py-2 rounded-lg font-bold border ${theme.btnSecondary}`}>REJOINDRE</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // MODE : DANS UN EQUIPAGE
+                                        <div className="space-y-6">
+                                            <div className={`p-6 rounded-2xl border-b-4 shadow-lg text-center ${theme.btnPrimary}`}>
+                                                <h2 className="text-3xl font-black uppercase drop-shadow-md">{monEquipage.nom}</h2>
+                                                <p className="text-sm opacity-80 italic mt-1">"{monEquipage.description}"</p>
+                                                <div className="mt-4 text-[10px] font-bold uppercase tracking-widest bg-black/20 inline-block px-3 py-1 rounded">
+                                                    {membresEquipage.length} Membres • Faction {monEquipage.faction}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {membresEquipage.map(m => {
+                                                    const isChef = m.id === monEquipage.chef_id;
+                                                    return (
+                                                        <div key={m.id} className={`flex items-center gap-4 p-3 rounded-xl border ${isChef ? 'border-yellow-500/50 bg-yellow-900/10' : `${theme.borderLow} bg-black/20`}`}>
+                                                            <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-600">
+                                                                {m.avatar_url ? <img src={m.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full">👤</div>}
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className={`font-bold ${isChef ? 'text-yellow-400' : 'text-white'}`}>{m.pseudo}</p>
+                                                                    {isChef && <span className="text-[9px] bg-yellow-500 text-black px-1.5 rounded font-black">CAPITAINE</span>}
+                                                                </div>
+                                                                <p className="text-xs text-slate-500">Niveau {m.niveau}</p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-xs font-mono text-slate-400">{m.elo_pvp} LP</span>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+
+                                            <div className="text-center pt-4">
+                                                <button onClick={quitterEquipage} className="text-red-500 hover:text-red-400 text-xs font-bold underline">
+                                                    {monEquipage.chef_id === session.user.id ? "Dissoudre l'équipage" : "Quitter l'équipage"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                                 {/* EXPEDITIONS */}
                                 {activeTab === 'expeditions' && (
                         <div className="space-y-4">
