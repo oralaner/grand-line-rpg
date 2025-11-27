@@ -878,7 +878,7 @@ const handleLogin = async () => {
 
                     {/* GRILLE STATS */}
                     <div className="grid grid-cols-3 gap-1 mb-4 bg-[#3e2723]/10 p-2 rounded border border-[#3e2723]/30">
-                          {[{i:'❤️',v:statsTotales?.vitalite},{i:'⚔️',v:statsTotales?.force},{i:'🧠',v:statsTotales?.intelligence},{i:'💨',v:statsTotales?.agilite},{i:'🍀',v:statsTotales?.chance},{i:'📜',v:statsTotales?.sagesse}].map((s,i) => (
+                          {[{i:'❤️',v:statsTotales?.vitalite},{i:'⚔️',v:statsTotales?.force},{i:'🧠',v:statsTotales?.intelligence},{i:'🐈',v:statsTotales?.agilite},{i:'🍀',v:statsTotales?.chance},{i:'📜',v:statsTotales?.sagesse}].map((s,i) => (
                               <div key={i} className="p-1 text-center rounded hover:bg-[#3e2723]/20 cursor-help transition">
                                 <span className="text-xs block">{s.i}</span><span className="text-xs text-white font-bold">{s.v||0}</span>
                               </div>
