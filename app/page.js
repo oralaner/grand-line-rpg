@@ -999,13 +999,14 @@ useEffect(() => {
                                             'stats':      { i: "📊", t: "Statistiques" },
                                             'deck':       { i: "📘", t: "Compétences" },
                                             'arene':      { i: "⚔️", t: "Arène PvP" },
+                                            'equipage':   { i: "🏴‍☠️", t: "Équipage" },
                                             'boutique':   { i: "🏪", t: "Boutique" },
                                             'marche':     { i: "⚖️", t: "Hôtel des Ventes" },
                                             'expeditions':{ i: "🧭", t: "Expéditions" },
                                             'atelier':    { i: "🔨", t: "Atelier" },
                                             'classement': { i: "🏆", t: "Classement" },
-                                            'casino':     { i: "🎰", t: "Casino" },
-                                            'equipage':   { i: "🏴‍☠️", t: "Équipage" }
+                                            'casino':     { i: "🎰", t: "Casino" }
+                                            
                                         };
                                         const current = tabDetails[activeTab] || { i: "❓", t: activeTab };
                                         return (<><span className="text-2xl md:text-3xl drop-shadow-md">{current.i}</span><span className="truncate">{current.t}</span></>);
