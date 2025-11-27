@@ -1391,10 +1391,7 @@ useEffect(() => {
                                                                                 <div>
                                                                                     <p className={`font-bold text-sm ${theme.textMain}`}>{dest.nom}</p>
                                                                                     <p className="text-[10px] text-slate-400">Difficulté: <span className="text-red-400 font-mono">{difficulte}</span> (Basée sur {membresEquipage.length} membres)</p>
-                                                                                    <div className="flex gap-2 mt-1 text-[10px]">
-                                                                                        <span className="text-yellow-500">💰 {dest.gain_estime * 5} /membre</span>
-                                                                                        <span className="text-green-400">✨ {dest.gain_estime * 3} /membre</span>
-                                                                                    </div>
+                                                                                   
                                                                                 </div>
                                                                                 <button onClick={() => preparerRaid(dest.id)} className={`text-xs font-bold px-3 py-1.5 rounded-lg ${theme.btnPrimary}`}>PRÉPARER</button>
                                                                             </div>
