@@ -324,21 +324,21 @@ useEffect(() => {
   const chargerEquipage = async () => {
       if (!joueur.equipage_id) {
           setMonEquipage(null);
-          // Charger la liste des équipages rejoignables (même faction)
           const { data } = await supabase.from('equipages').select('*').eq('faction', joueur.faction).limit(10);
           setListeEquipages(data || []);
-          const { data: mb } = await supabase.from('joueurs').select('id, pseudo, avatar_url, niveau, elo_pvp, xp_donnee_equipage').eq('equipage_id', joueur.equipage_id);
-      setMembresEquipage(mb || []);
           return;
-          
       }
       
-      // Charger mon équipage
       const { data: eq } = await supabase.from('equipages').select('*').eq('id', joueur.equipage_id).single();
       setMonEquipage(eq);
       
-      // Charger les membres
-      const { data: mb } = await supabase.from('joueurs').select('id, pseudo, avatar_url, niveau, elo_pvp').eq('equipage_id', joueur.equipage_id);
+      // C'EST ICI : Vérifie que 'xp_donnee_equipage' est bien dans la liste !
+      const { data: mb } = await supabase
+          .from('joueurs')
+          .select('id, pseudo, avatar_url, niveau, elo_pvp, xp_donnee_equipage') // <--- IMPORTANT
+          .eq('equipage_id', joueur.equipage_id)
+          .order('xp_donnee_equipage', { ascending: false }); // On trie par plus gros donneur !
+          
       setMembresEquipage(mb || []);
   };
   const chargerBanque = async () => {
