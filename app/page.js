@@ -2118,7 +2118,7 @@ const handleLogin = async () => {
                                          if (!monArme) { armeOk = false; armeManquante = skill.arme_requise; } 
                                          else {
                                              if (skill.arme_requise === 'Sabre' && !nomArme.includes('sabre') && !nomArme.includes('katana') && !nomArme.includes('lame') && !nomArme.includes('hache')) { armeOk = false; armeManquante = "Sabre"; }
-                                             if (skill.arme_requise === 'Pistolet' && !nomArme.includes('pistolet') && !nomArme.includes('fusil')) { armeOk = false; armeManquante = "Pistolet"; }
+                                             if (skill.arme_requise === 'Pistolet' && !nomArme.includes('pistolet') && !nomArme.includes('mousquet') && !nomArme.includes('fusil')) { armeOk = false; armeManquante = "Pistolet"; }
                                          }
                                      }
                                      const targetTurn = combatSession.cooldowns?.[skill.id] || 0;
