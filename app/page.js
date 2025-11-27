@@ -992,12 +992,13 @@ useEffect(() => {
                             
                             {/* HEADER TAB MOBILE OPTIMISÉ */}
                             {/* === BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
+            {/* === BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
             {activeTab !== 'combat_actif' && (
                 <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 z-50 px-2 py-2 safe-area-bottom shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
                     <div className="flex justify-between items-center overflow-x-auto gap-1 no-scrollbar">
                          {[
                             { id: null, icon: '🏠', label: 'Moi' },
-                            { id: 'equipage', icon: '🏴‍☠️', label: 'Team' }, // <--- AJOUTÉ ICI
+                            { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
                             { id: 'inventaire', icon: '🎒', label: 'Sac' },
                             { id: 'stats', icon: '📊', label: 'Stats', alert: joueur.points_carac > 0 },
                             { id: 'deck', icon: '📘', label: 'Skills' },
