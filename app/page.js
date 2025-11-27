@@ -1959,29 +1959,63 @@ const handleLogin = async () => {
                 </div>
             )}
             
-            {/* MODALE TRANSACTION */}
+            {/* MODALE TRANSACTION (AVEC CHOIX DU PRIX) */}
             {transaction && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                    <div className="bg-slate-900 w-full max-w-sm p-6 rounded-2xl border border-slate-700 shadow-2xl text-center">
-                        <h3 className="text-xl font-bold text-white mb-1 uppercase">{transaction.type === 'VENTE' ? 'Vente Marché' : 'Achat'}</h3>
-                        <p className="text-slate-400 text-sm mb-6">{transaction.item.nom || transaction.item.objets.nom}</p>
+                    <div className="bg-slate-900 w-full max-w-sm p-6 rounded-2xl border border-slate-700 shadow-2xl text-center relative animate-zoomIn">
+                        <h3 className="text-xl font-black text-white mb-1 uppercase tracking-widest">
+                            {transaction.type === 'VENTE' ? 'Mise en Vente' : 'Confirmation'}
+                        </h3>
+                        <p className="text-slate-400 text-sm mb-6 font-medium">
+                            {transaction.item.nom || transaction.item.objets.nom}
+                        </p>
                         
-                        <div className="flex items-center justify-center gap-4 mb-6">
-                            <button onClick={() => setQteTransaction(Math.max(1, qteTransaction - 1))} className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg text-white font-bold text-xl">-</button>
-                            <span className="text-3xl font-black text-white w-16">{qteTransaction}</span>
-                            <button onClick={() => setQteTransaction(Math.min(transaction.max, qteTransaction + 1))} className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-lg text-white font-bold text-xl">+</button>
+                        {/* SÉLECTEUR QUANTITÉ */}
+                        <div className="bg-slate-800/50 p-4 rounded-xl mb-4 border border-slate-700">
+                            <p className="text-xs text-slate-500 uppercase font-bold mb-2">Quantité</p>
+                            <div className="flex items-center justify-center gap-4">
+                                <button onClick={() => setQteTransaction(Math.max(1, qteTransaction - 1))} className="w-10 h-10 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-bold text-xl transition">-</button>
+                                <span className="text-3xl font-black text-white w-16">{qteTransaction}</span>
+                                <button onClick={() => setQteTransaction(Math.min(transaction.max, qteTransaction + 1))} className="w-10 h-10 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-bold text-xl transition">+</button>
+                            </div>
                         </div>
 
-                        <div className="bg-slate-800 p-4 rounded-xl mb-6">
-                             <p className="text-xs text-slate-500 uppercase font-bold mb-1">Total</p>
-                             <p className="text-3xl font-black text-yellow-400">
-                                 {transaction.type === 'VENTE' ? (qteTransaction * prixVente).toLocaleString() : (qteTransaction * (transaction.item.prix_achat || transaction.item.prix_unitaire)).toLocaleString()} ฿
-                             </p>
+                        {/* SÉLECTEUR PRIX (UNIQUEMENT POUR LA VENTE) */}
+                        {transaction.type === 'VENTE' && (
+                            <div className="bg-slate-800/50 p-4 rounded-xl mb-4 border border-slate-700">
+                                <p className="text-xs text-yellow-500/80 uppercase font-bold mb-2">Prix Unitaire (Berrys)</p>
+                                <div className="flex items-center justify-center gap-2">
+                                    <input 
+                                        type="number" 
+                                        value={prixVente} 
+                                        onChange={(e) => setPrixVente(Math.max(1, parseInt(e.target.value) || 0))} 
+                                        className="bg-slate-900 border border-yellow-500/30 text-yellow-400 text-center font-black text-2xl py-2 rounded-lg w-32 focus:border-yellow-500 outline-none transition"
+                                    />
+                                    <span className="text-xl font-bold text-yellow-600">฿</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TOTAL */}
+                        <div className="bg-slate-800 p-4 rounded-xl mb-6 border border-slate-700">
+                            <p className="text-xs text-slate-500 uppercase font-bold mb-1">Total de la transaction</p>
+                            <p className="text-3xl font-black text-white">
+                                {transaction.type === 'VENTE' 
+                                    ? (qteTransaction * prixVente).toLocaleString() 
+                                    : (qteTransaction * (transaction.item.prix_achat || transaction.item.prix_unitaire)).toLocaleString()
+                                } 
+                                <span className="text-yellow-500 ml-1">฿</span>
+                            </p>
                         </div>
 
+                        {/* BOUTONS */}
                         <div className="flex gap-3">
-                            <button onClick={() => setTransaction(null)} className="flex-1 py-3 font-bold text-slate-400 hover:bg-slate-800 rounded-xl transition">Annuler</button>
-                            <button onClick={validerTransaction} className="flex-1 py-3 font-bold text-white bg-cyan-600 hover:bg-cyan-500 rounded-xl shadow-lg shadow-cyan-900/20 transition">VALIDER</button>
+                            <button onClick={() => setTransaction(null)} className="flex-1 py-3 font-bold text-slate-400 hover:bg-slate-800 rounded-xl transition border border-transparent hover:border-slate-600">
+                                Annuler
+                            </button>
+                            <button onClick={validerTransaction} className={`flex-1 py-3 font-bold text-white rounded-xl shadow-lg transition transform active:scale-95 ${theme.btnPrimary}`}>
+                                VALIDER
+                            </button>
                         </div>
                     </div>
                 </div>
