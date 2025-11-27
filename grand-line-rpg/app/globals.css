@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset basique pour éviter les bords blancs */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a120b; /* Couleur de fond de secours */
+}
