@@ -70,25 +70,41 @@ const EquipSlot = ({ type, item, onUnequip }) => (
 );
 
 // Ligne de stat (Avec Coût Progressif)
-const StatRow = ({ label, val, statCode, icon, desc, pointsDispo, onInvest, theme }) => {
-    const cost = getStatCost(val);
+// Ligne de stat (Avec Bonus Equipement + Description visible)
+const StatRow = ({ label, base, total, statCode, icon, desc, pointsDispo, onInvest, theme }) => {
+    const cost = getStatCost(base); // Le coût dépend de la stat de BASE (pas du total)
     const canAfford = pointsDispo >= cost;
+    const bonus = (total || base) - base; // Calcul du bonus d'équipement
 
     return (
-        <div className={`flex justify-between items-center border-b ${theme.borderLow} py-2 hover:bg-white/5 transition px-2`} title={desc}>
-            <div className="flex flex-col">
-                <div className={`flex items-center gap-2 text-sm font-bold ${theme.textMain} font-[Pirata One]`}><span>{icon}</span> {label}</div>
-                <span className={`text-[9px] ${theme.textDim}`}>Coût: {cost} pts</span>
+        <div className={`flex justify-between items-start border-b ${theme.borderLow} py-3 hover:bg-white/5 transition px-3`}>
+            {/* GAUCHE : Icone, Nom, Description */}
+            <div className="flex flex-col max-w-[60%]">
+                <div className={`flex items-center gap-2 text-lg font-bold ${theme.textMain} font-[Pirata One]`}>
+                    <span>{icon}</span> {label}
+                </div>
+                <p className={`text-[10px] ${theme.textDim} italic leading-tight mt-0.5`}>{desc}</p>
+                <p className={`text-[9px] mt-1 font-bold uppercase tracking-wider ${canAfford ? 'text-green-500' : 'text-red-500/60'}`}>
+                    Coût amélioration : {cost} pts
+                </p>
             </div>
-            <div className="flex items-center gap-2">
-                <span className={`font-bold text-xl font-[Pirata One] text-white`}>{val}</span>
+
+            {/* DROITE : Valeur, Bonus, Bouton */}
+            <div className="flex flex-col items-end gap-1">
+                <div className="flex items-baseline gap-1">
+                    <span className={`font-black text-2xl font-[Pirata One] text-white`}>{total || base}</span>
+                    {bonus > 0 && (
+                        <span className="text-xs font-bold text-green-400 animate-pulse">(+{bonus})</span>
+                    )}
+                </div>
+                
                 <button 
                     onClick={() => canAfford && onInvest(statCode)} 
                     disabled={!canAfford}
-                    className={`h-6 px-2 rounded text-[10px] font-bold shadow-inner transition flex items-center gap-1
+                    className={`h-7 px-3 rounded-lg text-[10px] font-black shadow-lg transition border border-white/10 flex items-center justify-center
                     ${canAfford ? theme.btnSmall : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
                 >
-                    +{cost}
+                    UP +1
                 </button>
             </div>
         </div>
@@ -869,19 +885,72 @@ useEffect(() => {
                             <div className="max-w-5xl mx-auto">
                                 
                                 {/* STATS */}
+                                {/* STATS (AVEC BONUS VISIBLES) */}
                                 {activeTab === 'stats' && (
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-                                        <div className="bg-slate-800/50 p-4 md:p-8 rounded-2xl border border-slate-700 text-center flex flex-col justify-center items-center">
-                                            <p className="text-xs md:text-sm text-slate-400 font-bold uppercase mb-2 tracking-widest">Points disponibles</p>
-                                            <p className="text-6xl md:text-8xl font-black text-white drop-shadow-lg">{joueur.points_carac}</p>
+                                        {/* Compteur */}
+                                        <div className="bg-black/20 p-4 md:p-8 rounded-2xl border border-white/10 text-center flex flex-col justify-center items-center">
+                                            <p className={`text-xs md:text-sm font-bold uppercase mb-2 tracking-widest ${theme.textDim}`}>Points à distribuer</p>
+                                            <p className={`text-6xl md:text-8xl font-black drop-shadow-lg ${theme.highlight}`}>{joueur.points_carac}</p>
+                                            <p className="text-[10px] text-slate-500 mt-2 italic">Gagnez des niveaux pour en obtenir plus !</p>
                                         </div>
-                                        <div className="space-y-2">
-                                        <StatRow label="Vitalité" val={joueur.vitalite} statCode="vitalite" icon="❤️" desc="PV Max (+5) & Régène" pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} />
-                                        <StatRow label="Force" val={joueur.force_brute} statCode="force_brute" icon="⚔️" desc="Dégâts Physiques" pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} />
-                                        <StatRow label="Intelligence" val={joueur.intelligence} statCode="intelligence" icon="🧠" desc="Défense & Soins" pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} />
-                                        <StatRow label="Agilité" val={joueur.agilite} statCode="agilite" icon="💨" desc="Esquive & Gain Or" pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} />
-                                        <StatRow label="Chance" val={joueur.chance} statCode="chance" icon="🍀" desc="Critique & Loot" pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} />
-                                        <StatRow label="Sagesse" val={joueur.sagesse} statCode="sagesse" icon="📜" desc="Gain XP" pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} />
+
+                                        {/* Liste */}
+                                        <div className="space-y-1">
+                                            <StatRow 
+                                                label="Vitalité" 
+                                                base={joueur.vitalite} 
+                                                total={statsTotales?.vitalite} 
+                                                statCode="vitalite" 
+                                                icon="❤️" 
+                                                desc="Augmente vos PV Max (+5 par point). Indispensable pour survivre." 
+                                                pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
+                                            />
+                                            <StatRow 
+                                                label="Force" 
+                                                base={joueur.force_brute} 
+                                                total={statsTotales?.force} 
+                                                statCode="force_brute" 
+                                                icon="⚔️" 
+                                                desc="Augmente les dégâts de vos attaques physiques (Sabres, Poings)." 
+                                                pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
+                                            />
+                                            <StatRow 
+                                                label="Intelligence" 
+                                                base={joueur.intelligence} 
+                                                total={statsTotales?.intelligence} 
+                                                statCode="intelligence" 
+                                                icon="🧠" 
+                                                desc="Réduit les dégâts reçus (Défense) et améliore l'efficacité des soins." 
+                                                pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
+                                            />
+                                            <StatRow 
+                                                label="Agilité" 
+                                                base={joueur.agilite} 
+                                                total={statsTotales?.agilite} 
+                                                statCode="agilite" 
+                                                icon="💨" 
+                                                desc="Augmente les dégâts des armes à feu et vos chances d'esquive." 
+                                                pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
+                                            />
+                                            <StatRow 
+                                                label="Chance" 
+                                                base={joueur.chance} 
+                                                total={statsTotales?.chance} 
+                                                statCode="chance" 
+                                                icon="🍀" 
+                                                desc="Augmente les chances de Coup Critique et la réussite des Expéditions." 
+                                                pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
+                                            />
+                                            <StatRow 
+                                                label="Sagesse" 
+                                                base={joueur.sagesse} 
+                                                total={statsTotales?.sagesse} 
+                                                statCode="sagesse" 
+                                                icon="📜" 
+                                                desc="Augmente le gain d'expérience gagné à chaque combat ou activité." 
+                                                pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
+                                            />
                                         </div>
                                     </div>
                                 )}
