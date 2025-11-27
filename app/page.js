@@ -145,6 +145,8 @@ export default function Home() {
   const [combatRewards, setCombatRewards] = useState(null);
   const [areneFilter, setAreneFilter] = useState('PVE'); // 'PVP' (Humains) ou 'PVE' (Bots)
 
+  const [selectedDest, setSelectedDest] = useState(null); // Pour la pop-up d'île
+
   const [monEquipage, setMonEquipage] = useState(null);
   const [membresEquipage, setMembresEquipage] = useState([]);
   const [listeEquipages, setListeEquipages] = useState([]); // Pour la recherche
@@ -1558,68 +1560,116 @@ const handleLogin = async () => {
                                     )}
                                 </div>
                             )}
-                                {/* EXPEDITIONS */}
-                                {activeTab === 'expeditions' && (
-                        <div className="space-y-4">
-                            {joueur?.expedition_fin ? (
-                                <div className="bg-indigo-900 text-white p-6 rounded-xl text-center shadow-xl border-2 border-indigo-500">
-                                    <div className="text-5xl mb-4 animate-bounce">⛵</div><h3 className="text-xl font-bold mb-2">En voyage...</h3>
-                                    <div className="text-2xl md:text-3xl font-mono font-bold bg-black/30 rounded-lg py-2 border border-white/10 mb-4">{formatChronoLong(expeditionChrono)}</div>
-                                    {(expeditionChrono === 0 || expeditionChrono === "PRÊT !") ? (<button onClick={recolterExpedition} className="w-full bg-yellow-500 hover:bg-yellow-400 text-indigo-900 font-black py-3 rounded-lg shadow-lg animate-pulse uppercase tracking-wider transform active:scale-95 transition">RÉCOLTER LE BUTIN</button>) : (<div className="text-xs italic opacity-50 font-bold mt-2">Voyage en cours...</div>)}
-                                </div>
-                            ) : destinations.map((dest, i) => {
-                                const baseForce = joueur.force_brute || 0;
-                                const baseAgi = joueur.agilite || 0;
-                                const baseIntel = joueur.intelligence || 0;
-                                const baseChance = joueur.chance || 0;
-                                const getBonus = (stat) => {
-                                    let total = 0;
-                                    if (equipement.arme?.stats_bonus?.[stat]) total += parseInt(equipement.arme.stats_bonus[stat]);
-                                    if (equipement.tete?.stats_bonus?.[stat]) total += parseInt(equipement.tete.stats_bonus[stat]);
-                                    if (equipement.corps?.stats_bonus?.[stat]) total += parseInt(equipement.corps.stats_bonus[stat]);
-                                    return total;
-                                };
-                                const force = baseForce + getBonus('force');
-                                const agi = baseAgi + getBonus('agilite');
-                                const intel = baseIntel + getBonus('intelligence');
-                                const chance = baseChance + getBonus('chance');
-                                const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
-                                const difficulte = dest.niveau_requis * 25;
-                                let pourcentageReussite = 50 + (puissance - difficulte) + (chance / 2);
-                                pourcentageReussite = Math.max(5, Math.min(100, Math.floor(pourcentageReussite)));
-                                let jaugeDifficulte = 50 + (difficulte - puissance);
-                                jaugeDifficulte = Math.max(0, Math.min(100, jaugeDifficulte));
-                                const riskColor = pourcentageReussite >= 80 ? 'text-green-600' : pourcentageReussite >= 50 ? 'text-orange-500' : 'text-red-600';
-                                
-                                return (
-                                <div key={i} className={`relative overflow-hidden rounded-xl border-2 transition-all ${joueur.niveau >= dest.niveau_requis ? "border-stone-200 bg-white" : "border-stone-100 bg-stone-100 opacity-70 grayscale"}`}>
-                                    <div className="absolute inset-0 opacity-10 bg-cover bg-center" style={{ backgroundImage: `url('${dest.image_url}')` }}></div>
-                                    <div className="relative p-3 md:p-4">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <h4 className="font-bold text-sm md:text-lg text-indigo-900">{dest.nom}</h4>
-                                                <span className="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold">Requis: Niv {dest.niveau_requis}</span>
-                                            </div>
-                                            {joueur.niveau >= dest.niveau_requis ? (<button onClick={() => partirExpeditionV2(dest)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-3 md:px-4 rounded-lg shadow-md active:scale-95 transition text-xs z-10">PARTIR</button>) : (<div className="text-stone-400 font-bold text-xs px-2 z-10">🔒 Trop bas niveau</div>)}
+                                {/* CARTE DU MONDE INTERACTIVE */}
+                            {activeTab === 'expeditions' && (
+                                <div className="space-y-4 h-full flex flex-col">
+                                    {joueur?.expedition_fin ? (
+                                        // MODE : EN VOYAGE (Reste affiché si une expédition est en cours)
+                                        <div className="bg-indigo-900/80 text-white p-8 rounded-xl text-center border-2 border-indigo-500 shadow-2xl my-auto animate-fadeIn">
+                                            <div className="text-6xl mb-4 animate-bounce">⛵</div>
+                                            <h3 className="text-2xl font-bold mb-2 text-white">En voyage...</h3>
+                                            <div className="text-4xl font-mono font-black text-white mb-6 bg-black/30 py-2 rounded-lg">{formatChronoLong(expeditionChrono)}</div>
+                                            {(expeditionChrono === 0 || expeditionChrono === "PRÊT !") && 
+                                                <button onClick={recolterExpedition} className={`w-full font-black py-4 rounded-lg shadow-lg animate-pulse uppercase tracking-wider transform active:scale-95 transition ${theme.btnPrimary}`}>
+                                                    RÉCOLTER LE BUTIN
+                                                </button>
+                                            }
                                         </div>
-                                        <div className="flex flex-col gap-2 mt-2 bg-white/60 p-2 rounded backdrop-blur-sm border border-white/50">
-                                            <div className="flex justify-between text-xs font-bold">
-                                                <span className="text-stone-600 flex items-center gap-1">⏱️ {dest.duree_minutes} min</span>
-                                                <span className="text-yellow-700 flex items-center gap-1">💰 {dest.gain_estime}</span>
+                                    ) : (
+                                        // MODE : CARTE
+                                        <div className="relative w-full h-full bg-[#1a4c6e] rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl group">
+                                            {/* IMAGE DE FOND (Remplace l'URL par '/map.jpg' quand tu as l'image) */}
+                                            <div className="absolute inset-0 bg-[url('https://www.reddit.com/media?url=https%3A%2F%2Fi.redd.it%2Fphf7wbld54zc1.jpeg')] bg-cover bg-center opacity-60 hover:opacity-100 transition-opacity duration-700"></div>
+                                            
+                                            {/* TITRE DISCRET */}
+                                            <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10">
+                                                🗺️ GRAND LINE
                                             </div>
-                                            <div className="w-full h-1.5 bg-stone-300 rounded-full overflow-hidden relative">
-                                                <div className="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500" style={{ width: `${jaugeDifficulte}%` }}></div>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-bold text-stone-500 uppercase">CHANCE SUCCÈS</span>
-                                                <span className={`text-sm font-black ${riskColor}`}>{pourcentageReussite}%</span>
-                                            </div>
+
+                                            {/* PINS (POINTS) SUR LA CARTE */}
+                                            {destinations.map((dest, i) => {
+                                                const isLocked = joueur.niveau < dest.niveau_requis;
+                                                const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
+                                                
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => setSelectedDest(dest)}
+                                                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20
+                                                        ${isLocked ? 'grayscale opacity-70' : 'cursor-pointer'}`}
+                                                        style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
+                                                    >
+                                                        {/* PIN ICON */}
+                                                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-lg md:text-xl shadow-lg border-2 
+                                                            ${isLocked ? 'bg-slate-700 border-slate-500' : selectedDest?.id === dest.id ? 'bg-yellow-400 border-white animate-bounce' : 'bg-white border-blue-500'}`}>
+                                                            {isLocked ? '🔒' : typeIcon}
+                                                        </div>
+                                                        
+                                                        {/* ETIQUETTE NOM */}
+                                                        <span className={`mt-1 px-2 py-0.5 rounded text-[8px] md:text-[10px] font-bold uppercase tracking-wide shadow-md whitespace-nowrap
+                                                            ${selectedDest?.id === dest.id ? 'bg-yellow-400 text-black' : 'bg-black/70 text-white backdrop-blur-sm'}`}>
+                                                            {dest.nom}
+                                                        </span>
+                                                    </button>
+                                                )
+                                            })}
+
+                                            {/* POP-UP DÉTAILS ÎLE (S'affiche par dessus la carte si une île est sélectionnée) */}
+                                            {selectedDest && (
+                                                <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-30 flex flex-col md:flex-row gap-4 items-center md:items-start">
+                                                    {/* Info Gauche */}
+                                                    <div className="flex-1 text-center md:text-left">
+                                                        <h3 className="text-xl font-black text-white uppercase">{selectedDest.nom}</h3>
+                                                        <p className="text-xs text-slate-400 mb-2">Niveau Requis : <span className={joueur.niveau >= selectedDest.niveau_requis ? "text-green-400" : "text-red-400"}>{selectedDest.niveau_requis}</span></p>
+                                                        
+                                                        <div className="flex justify-center md:justify-start gap-3 text-[10px] font-bold uppercase">
+                                                            <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-slate-300">⏱️ {selectedDest.duree_minutes} min</span>
+                                                            <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-yellow-400">💰 ~{selectedDest.gain_estime}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Calculs Chances (Dynamique) */}
+                                                    <div className="flex-1 w-full md:w-auto">
+                                                        {(() => {
+                                                             // On refait le calcul de chance ici pour l'affichage
+                                                             const force = (joueur.force_brute || 0) + (equipement.arme?.stats_bonus?.force || 0);
+                                                             const intel = (joueur.intelligence || 0) + (equipement.tete?.stats_bonus?.intelligence || 0);
+                                                             const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); // Simplifié
+                                                             const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
+                                                             const diff = selectedDest.niveau_requis * 25;
+                                                             let chance = 50 + (puissance - diff) + ((joueur.chance || 0)/2);
+                                                             chance = Math.max(5, Math.min(100, Math.floor(chance)));
+                                                             
+                                                             let color = chance > 80 ? 'text-green-400' : chance > 50 ? 'text-yellow-400' : 'text-red-500';
+                                                             
+                                                             return (
+                                                                 <div className="text-center">
+                                                                     <p className="text-[10px] text-slate-500 mb-1">PROBABILITÉ DE SUCCÈS</p>
+                                                                     <p className={`text-3xl font-black ${color}`}>{chance}%</p>
+                                                                 </div>
+                                                             )
+                                                        })()}
+                                                    </div>
+
+                                                    {/* Boutons Action */}
+                                                    <div className="flex flex-col gap-2 w-full md:w-auto">
+                                                        {joueur.niveau >= selectedDest.niveau_requis ? (
+                                                            <button onClick={() => partirExpeditionV2(selectedDest)} className={`w-full md:w-32 py-3 rounded-lg font-bold shadow-lg text-sm ${theme.btnPrimary}`}>
+                                                                PARTIR
+                                                            </button>
+                                                        ) : (
+                                                            <button disabled className="w-full md:w-32 py-3 rounded-lg font-bold bg-slate-700 text-slate-500 cursor-not-allowed text-sm">
+                                                                BLOQUÉ
+                                                            </button>
+                                                        )}
+                                                        <button onClick={() => setSelectedDest(null)} className="text-xs text-slate-500 underline hover:text-white">Fermer</button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
-                            )})}
-                        </div>
-                    )}
+                            )}
                     
                     {/* MARCHÉ */}
                     {activeTab === 'marche' && (
