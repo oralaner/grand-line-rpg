@@ -198,10 +198,12 @@ export default function Home() {
   const DELAI_COOLDOWN = 60 * 1000;
   
   const getRareteConfig = (rarete) => {
-      if (rarete === 'Légendaire') return { border: 'border-l-4 border-yellow-500', bg: 'bg-yellow-50', text: 'text-yellow-700' };
-      if (rarete === 'Épique') return { border: 'border-l-4 border-purple-500', bg: 'bg-purple-50', text: 'text-purple-700' };
-      if (rarete === 'Rare') return { border: 'border-l-4 border-blue-500', bg: 'bg-blue-50', text: 'text-blue-700' };
-      return { border: 'border-l-4 border-slate-300', bg: 'bg-white', text: 'text-slate-600' };
+      if (rarete === 'Mythique') return { border: 'border-l-4 border-red-600', bg: 'bg-red-900/20', text: 'text-red-500 animate-pulse' };
+      if (rarete === 'Légendaire') return { border: 'border-l-4 border-yellow-500', bg: 'bg-yellow-500/10', text: 'text-yellow-400' };
+      if (rarete === 'Épique') return { border: 'border-l-4 border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-400' };
+      if (rarete === 'Rare') return { border: 'border-l-4 border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' };
+      // Commun (Défaut)
+      return { border: 'border-l-4 border-slate-500', bg: 'bg-slate-800', text: 'text-slate-400' };
   };
 
   const notify = (msg, type = "info", duration = 5000) => {
