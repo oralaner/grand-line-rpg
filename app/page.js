@@ -594,9 +594,14 @@ const validerTransaction = async () => {
       if (!transaction) return; 
       
       let rpc = '', p = {}; 
+      
       if (transaction.type === 'ACHAT_BOUTIQUE') { 
           rpc = 'acheter_objet'; 
-          p = { objet_id_achat: transaction.item.id }; // Pas besoin de qte pour le shop (toujours 1 par 1 pour l'instant ou géré par le stock)
+          // CORRECTION ICI : On envoie bien la quantité choisie
+          p = { 
+              objet_id_achat: transaction.item.id, 
+              qte_achat: qteTransaction 
+          }; 
       } 
       else if (transaction.type === 'VENTE') { 
           rpc = 'vendre_au_marche'; 
@@ -613,16 +618,17 @@ const validerTransaction = async () => {
           notify(data.message, "success"); 
           fetchJoueur(session.user.id); 
           
-          // RECHARGEMENT DES DONNÉES SELON L'ONGLET ACTIF
           if (activeTab === 'inventaire') chargerInventaire();
           if (activeTab === 'marche') chargerMarche();
-          if (activeTab === 'boutique') chargerBoutique(); // <--- C'EST CETTE LIGNE QUI MANQUAIT !
+          if (activeTab === 'boutique') chargerBoutique();
           
           setTransaction(null); 
       } else {
           notify(data?.message || error?.message || "Erreur transaction", "error");
       }
-  };  const confirmerVenteDirecte = async () => { if (!confirmVente) return; const { data } = await supabase.rpc('vendre_objet_instantane', { objet_id_vente: confirmVente.objet_id, qte_vente: 1 }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify("Erreur", "error"); setConfirmVente(null); };
+  };
+  
+  const confirmerVenteDirecte = async () => { if (!confirmVente) return; const { data } = await supabase.rpc('vendre_objet_instantane', { objet_id_vente: confirmVente.objet_id, qte_vente: 1 }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify("Erreur", "error"); setConfirmVente(null); };
   const crafterItem = async (recette) => { const { data } = await supabase.rpc('crafter_objet', { recette_id_input: recette.id }); if (data && data.success) { notify(`Fabriqué : ${data.nom} !`, "success"); chargerInventaire(); } else notify(data?.message || "Erreur", "error"); };
   const choisirFaction = async (f) => { const { data } = await supabase.rpc('choisir_faction', { nouvelle_faction: f }); if (data && data.success) { setJoueur(prev => ({ ...prev, faction: f })); notify(`Bienvenue chez les ${f}s !`, "success"); } };
   const acheterCompetence = async (cid) => { const { data, error } = await supabase.rpc('acheter_competence', { _comp_id: cid }); if (data && data.success) { notify(data.message, "success"); chargerCompetences(); fetchJoueur(session.user.id); } else notify(data?.message || error?.message, "error"); };
