@@ -329,14 +329,23 @@ export default function Home() {
         if (stats) setStatsTotales(stats);
         
         // Equipement
-        const ids = [j.equip_arme_id, j.equip_tete_id, j.equip_corps_id].filter(Boolean);
-        let newEquip = { arme: null, tete: null, corps: null };
+       const ids = [
+            j.equip_arme_id, j.equip_tete_id, j.equip_corps_id, 
+            j.equip_navire_id, j.equip_bottes_id, j.equip_bague_id, j.equip_collier_id
+        ].filter(Boolean);
+        
+        let newEquip = { arme: null, tete: null, corps: null, navire: null, bottes: null, bague: null, collier: null };
+        
         if (ids.length > 0) {
             const { data: items } = await supabase.from('objets').select('*').in('id', ids);
             if (items) {
                 newEquip.arme = items.find(i => i.id === j.equip_arme_id) || null;
                 newEquip.tete = items.find(i => i.id === j.equip_tete_id) || null;
                 newEquip.corps = items.find(i => i.id === j.equip_corps_id) || null;
+                newEquip.bottes = items.find(i => i.id === j.equip_bottes_id) || null;
+                newEquip.bague = items.find(i => i.id === j.equip_bague_id) || null;
+                newEquip.collier = items.find(i => i.id === j.equip_collier_id) || null;
+                newEquip.navire = items.find(i => i.id === j.equip_navire_id) || null;
             }
         }
         setEquipement(newEquip);
@@ -1271,11 +1280,17 @@ const handleLogin = async () => {
                           ))}
                     </div>
                     
-                    {/* EQUIPEMENT */}
-                    <div className="flex justify-between gap-2 mb-4 md:mb-6 px-2">
-                        <EquipSlot type="Tête" item={equipement.tete} onUnequip={desequiperSlot} />
-                        <EquipSlot type="Corps" item={equipement.corps} onUnequip={desequiperSlot} />
-                        <EquipSlot type="Arme" item={equipement.arme} onUnequip={desequiperSlot} />
+                    {/* EQUIPEMENT (6 SLOTS + NAVIRE) */}
+                    <div className="grid grid-cols-4 gap-2 mb-4 md:mb-6 px-1">
+                        <EquipSlot type="Tête" item={equipement.tete} onUnequip={desequiperSlot} theme={theme} />
+                        <EquipSlot type="Corps" item={equipement.corps} onUnequip={desequiperSlot} theme={theme} />
+                        <EquipSlot type="Arme" item={equipement.arme} onUnequip={desequiperSlot} theme={theme} />
+                        <EquipSlot type="Bottes" item={equipement.bottes} onUnequip={desequiperSlot} theme={theme} />
+                        <EquipSlot type="Bague" item={equipement.bague} onUnequip={desequiperSlot} theme={theme} />
+                        <EquipSlot type="Collier" item={equipement.collier} onUnequip={desequiperSlot} theme={theme} />
+                        <EquipSlot type="Navire" item={equipement.navire} onUnequip={desequiperSlot} theme={theme} />
+                        {/* Slot vide pour équilibrer la grille ou futur usage */}
+                        <div className="w-16 h-16 bg-black/20 rounded-xl border border-white/5"></div>
                     </div>
 
                     <div className="text-center py-3 border-t border-slate-700/50">
@@ -1569,7 +1584,7 @@ const handleLogin = async () => {
                                                                      </button>
                                                                  )}
                                                                  
-                                                                 {['Arme', 'Tête', 'Corps'].includes(item.objets.type_equipement) && (
+                                                                 {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement) && (
                                                                      <button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}>Équiper</button>
                                                                  )}
                                                                  
@@ -1625,9 +1640,10 @@ const handleLogin = async () => {
                                             
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {boutiqueItems.filter(i => 
-                                                    i.type_equipement === viewShopCategory || 
-                                                    (viewShopCategory === 'Protection' && ['Tête','Corps'].includes(i.type_equipement)) || 
-                                                    (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Consommable','Fruit'].includes(i.type_equipement))
+                                                 i.type_equipement === viewShopCategory || 
+                                                     (viewShopCategory === 'Protection' && ['Tête','Corps','Bottes'].includes(i.type_equipement)) || 
+                                                     (viewShopCategory === 'Bijoux' && ['Bague','Collier'].includes(i.type_equipement)) || // <--- NOUVELLE CATEGORIE
+                                                     (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))
                                                 ).map((item, i) => {
                                                     // Gestion du Stock
                                                     const isSoldOut = item.stock !== null && item.stock <= 0;
