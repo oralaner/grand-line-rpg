@@ -606,53 +606,41 @@ const handleLogin = async () => {
       
       return "Ingrédient inconnu"; 
     }
-// --- LOGIQUE DRAG & SCROLL (CARTE AMÉLIORÉE) ---
+// --- LOGIQUE DRAG & SCROLL (FLUIDE) ---
   const mapRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+  const [pos, setPos] = useState({ top: 0, left: 0, x: 0, y: 0 });
 
   const onMouseDown = (e) => {
-      if(!mapRef.current) return;
+      if (!mapRef.current) return;
       setIsDragging(true);
-      setStartPos({
-          x: e.pageX,
-          y: e.pageY,
-          scrollLeft: mapRef.current.scrollLeft,
-          scrollTop: mapRef.current.scrollTop
+      setPos({
+          // Position actuelle du scroll
+          left: mapRef.current.scrollLeft,
+          top: mapRef.current.scrollTop,
+          // Position de la souris au départ
+          x: e.clientX,
+          y: e.clientY,
       });
-      e.preventDefault(); // Empêche la sélection
+      e.preventDefault(); // Empêche la sélection de texte
   };
 
-  // On écoute le mouvement sur la fenêtre pour ne pas perdre le "focus"
-  useEffect(() => {
-      const onMouseMove = (e) => {
-          if (!isDragging || !mapRef.current) return;
-          e.preventDefault();
-          const x = e.pageX - startPos.x;
-          const y = e.pageY - startPos.y;
-          
-          // On déplace le scroll dans le sens inverse du mouvement de la souris (comme Google Maps)
-          mapRef.current.scrollLeft = startPos.scrollLeft - x;
-          mapRef.current.scrollTop = startPos.scrollTop - y;
-      };
+  const onMouseMove = (e) => {
+      if (!isDragging || !mapRef.current) return;
+      e.preventDefault();
+      
+      // Calcul de la distance parcourue par la souris
+      const dx = e.clientX - pos.x;
+      const dy = e.clientY - pos.y;
 
-      const onMouseUp = () => {
-          setIsDragging(false);
-      };
+      // On déplace le scroll dans le sens inverse (Drag naturel)
+      mapRef.current.scrollTop = pos.top - dy;
+      mapRef.current.scrollLeft = pos.left - dx;
+  };
 
-      if (isDragging) {
-          window.addEventListener('mousemove', onMouseMove);
-          window.addEventListener('mouseup', onMouseUp);
-      } else {
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
-      }
-
-      return () => {
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('mouseup', onMouseUp);
-      };
-  }, [isDragging, startPos]);
+  const onMouseUp = () => {
+      setIsDragging(false);
+  };
 
   
     // --- CONFIGURATION THEMES (DÉGRADÉS VIBRANTS) ---
@@ -1626,7 +1614,7 @@ const handleLogin = async () => {
                             )}
                                
                             {/* CARTE DU MONDE (NAVIGATION RÉGIONS + DEZOOM) */}
-                            {/* CARTE MONDE UNIQUE (SCROLLABLE) */}
+                            {/* CARTE MONDE (DRAG & DROP DANS UN CADRE) */}
                             {activeTab === 'expeditions' && (
                                 <div className="space-y-4 h-full flex flex-col">
                                     
@@ -1643,88 +1631,96 @@ const handleLogin = async () => {
                                             }
                                         </div>
                                     ) : (
-                                        // MODE : CARTE GLOBALE (DRAG & SCROLL)
-                                    <div className="relative w-full h-full rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl bg-[#1a4c6e]">
-                                        
-                                        {/* CONTENEUR SCROLLABLE (AVEC DRAG AMÉLIORÉ) */}
-                                        <div 
-                                            ref={mapRef}
-                                            className={`w-full h-full overflow-auto no-scrollbar relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                                            onMouseDown={onMouseDown}
-                                            // Plus besoin de onMouseMove/Up ici car c'est géré par le useEffect global
-                                        >
-                                            {/* On force une taille géante pour que ça dépasse de l'écran et active le scroll */}
-                                            {/* Ajuste min-w et min-h selon la taille réelle de ton image world_map.jpg */}
-                                            <div className="relative min-w-[2000px] min-h-[1200px]">
-                                                
-                                                {/* IMAGE CARTE */}
-                                                <img 
-                                                    src="/world_map.jpg" 
-                                                    alt="Carte du Monde One Piece"
-                                                    className="absolute inset-0 w-full h-full object-cover pointer-events-none" 
-                                                />
-                                                
-                                                {/* PINS (POINTS) */}
-                                                {destinations.map((dest, i) => {
-                                                    // ... (Le reste du code des pins reste identique) ...
-                                                    // Juste, assure-toi d'avoir e.stopPropagation() sur le onClick du pin
-                                                    const isLocked = joueur.niveau < dest.niveau_requis;
-                                                    const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
-                                                    
-                                                    return (
-                                                        <button
-                                                            key={i}
-                                                            onClick={(e) => { e.stopPropagation(); setSelectedDest(dest); }}
-                                                            onMouseDown={(e) => e.stopPropagation()} // Important : Clic sur pin ne déclenche pas le drag
-                                                            className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20 z-10
-                                                            ${isLocked ? 'grayscale opacity-70 scale-75' : 'cursor-pointer'}`}
-                                                            style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
-                                                        >
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg border-2 
-                                                                ${isLocked ? 'bg-slate-700 border-slate-500' : selectedDest?.id === dest.id ? 'bg-yellow-400 border-white animate-bounce scale-125' : 'bg-white border-blue-500'}`}>
-                                                                {isLocked ? '🔒' : typeIcon}
-                                                            </div>
-                                                        </button>
-                                                    )
-                                                })}
+                                        // MODE : CARTE INTERACTIVE
+                                        <div className="relative w-full h-[60vh] min-h-[400px] bg-[#1a4c6e] rounded-xl border-4 border-[#3e2723] shadow-2xl overflow-hidden">
+                                            
+                                            {/* TITRE FLOTTANT (Fixe) */}
+                                            <div className="absolute top-4 left-4 bg-black/60 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10 z-20 pointer-events-none shadow-lg">
+                                                🗺️ GRAND LINE
                                             </div>
-                                        </div>
 
-                                        {/* POP-UP DÉTAILS (FIXE EN BAS DE LA CARTE) */}
-                                        {selectedDest && (
-                                            // ... (Garde ton code de pop-up actuel, il est très bien) ...
-                                            <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-40 flex flex-col md:flex-row gap-4 items-center md:items-start shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-                                                <div className="flex-1 text-center md:text-left">
-                                                    <h3 className="text-xl font-black text-white uppercase leading-none mb-1">{selectedDest.nom}</h3>
-                                                    <p className="text-xs text-slate-400 mb-2 font-bold tracking-wider">{selectedDest.region}</p>
-                                                    <div className="flex justify-center md:justify-start gap-3 text-[10px] font-bold uppercase">
-                                                        <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-slate-300">⏱️ {selectedDest.duree_minutes}m</span>
-                                                        <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-yellow-400">💰 ~{selectedDest.gain_estime}</span>
-                                                        <span className={joueur.niveau >= selectedDest.niveau_requis ? "text-green-400" : "text-red-400"}>Niv {selectedDest.niveau_requis}</span>
+                                            {/* CONTENEUR SCROLLABLE (LA FENÊTRE) */}
+                                            <div 
+                                                ref={mapRef}
+                                                className={`w-full h-full overflow-auto no-scrollbar relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                                                onMouseDown={onMouseDown}
+                                                onMouseMove={onMouseMove}
+                                                onMouseUp={onMouseUp}
+                                                onMouseLeave={onMouseUp}
+                                            >
+                                                {/* CONTENU GÉANT (LA CARTE) */}
+                                                {/* min-w définit la taille réelle de la carte zoomée. Ajuste 1800px si besoin. */}
+                                                <div className="relative min-w-[1800px] min-h-[1000px]">
+                                                    
+                                                    {/* IMAGE */}
+                                                    <img 
+                                                        src="/world_map.jpg" 
+                                                        alt="Carte du Monde"
+                                                        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                                                        draggable="false"
+                                                    />
+                                                    
+                                                    {/* PINS (POINTS) */}
+                                                    {destinations.map((dest, i) => {
+                                                        const isLocked = joueur.niveau < dest.niveau_requis;
+                                                        const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
+                                                        
+                                                        return (
+                                                            <button
+                                                                key={i}
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedDest(dest); }}
+                                                                onMouseDown={(e) => e.stopPropagation()} // Empêche le drag quand on clique sur un point
+                                                                className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20 z-10
+                                                                ${isLocked ? 'grayscale opacity-70 scale-75' : 'cursor-pointer'}`}
+                                                                style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
+                                                            >
+                                                                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm md:text-lg shadow-lg border-2 
+                                                                    ${isLocked ? 'bg-slate-700 border-slate-500' : selectedDest?.id === dest.id ? 'bg-yellow-400 border-white animate-bounce scale-125' : 'bg-white border-blue-500'}`}>
+                                                                    {isLocked ? '🔒' : typeIcon}
+                                                                </div>
+                                                                
+                                                                <span className={`mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide shadow-md whitespace-nowrap
+                                                                    ${selectedDest?.id === dest.id ? 'bg-yellow-400 text-black z-30' : 'bg-black/70 text-white backdrop-blur-sm'}`}>
+                                                                    {dest.nom}
+                                                                </span>
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* POP-UP DÉTAILS (FIXE EN BAS) */}
+                                            {selectedDest && (
+                                                <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-30 flex flex-col md:flex-row gap-4 items-center md:items-start shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                                                    <div className="flex-1 text-center md:text-left">
+                                                        <h3 className="text-xl font-black text-white uppercase leading-none mb-1">{selectedDest.nom}</h3>
+                                                        <p className="text-xs text-slate-400 mb-2 font-bold tracking-wider">{selectedDest.region}</p>
+                                                        <div className="flex justify-center md:justify-start gap-3 text-[10px] font-bold uppercase">
+                                                            <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-slate-300">⏱️ {selectedDest.duree_minutes}m</span>
+                                                            <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-yellow-400">💰 ~{selectedDest.gain_estime}</span>
+                                                            <span className={joueur.niveau >= selectedDest.niveau_requis ? "text-green-400" : "text-red-400"}>Niv {selectedDest.niveau_requis}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 w-full md:w-auto text-center">
+                                                        {(() => {
+                                                             const force = (joueur.force_brute || 0) + (equipement.arme?.stats_bonus?.force || 0);
+                                                             const intel = (joueur.intelligence || 0) + (equipement.tete?.stats_bonus?.intelligence || 0);
+                                                             const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); 
+                                                             const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
+                                                             const diff = selectedDest.niveau_requis * 25;
+                                                             let chance = 50 + (puissance - diff) + ((joueur.chance || 0)/2);
+                                                             chance = Math.max(5, Math.min(100, Math.floor(chance)));
+                                                             let color = chance > 80 ? 'text-green-400' : chance > 50 ? 'text-yellow-400' : 'text-red-500';
+                                                             return (<div><p className="text-[10px] text-slate-500 mb-1 font-bold">SUCCÈS</p><p className={`text-3xl font-black ${color}`}>{chance}%</p></div>)
+                                                        })()}
+                                                    </div>
+                                                    <div className="flex flex-col gap-2 w-full md:w-auto">
+                                                        {joueur.niveau >= selectedDest.niveau_requis ? (<button onClick={() => partirExpeditionV2(selectedDest)} className={`w-full md:w-32 py-3 rounded-lg font-bold shadow-lg text-sm ${theme.btnPrimary}`}>PARTIR</button>) : (<button disabled className="w-full md:w-32 py-3 rounded-lg font-bold bg-slate-700 text-slate-500 cursor-not-allowed text-sm">BLOQUÉ</button>)}
+                                                        <button onClick={() => setSelectedDest(null)} className="text-xs text-slate-500 underline hover:text-white">Fermer</button>
                                                     </div>
                                                 </div>
-
-                                                <div className="flex-1 w-full md:w-auto text-center">
-                                                    {(() => {
-                                                         const force = (joueur.force_brute || 0) + (equipement.arme?.stats_bonus?.force || 0);
-                                                         const intel = (joueur.intelligence || 0) + (equipement.tete?.stats_bonus?.intelligence || 0);
-                                                         const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); 
-                                                         const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
-                                                         const diff = selectedDest.niveau_requis * 25;
-                                                         let chance = 50 + (puissance - diff) + ((joueur.chance || 0)/2);
-                                                         chance = Math.max(5, Math.min(100, Math.floor(chance)));
-                                                         let color = chance > 80 ? 'text-green-400' : chance > 50 ? 'text-yellow-400' : 'text-red-500';
-                                                         return (<div><p className="text-[10px] text-slate-500 mb-1 font-bold">CHANCE DE SUCCÈS</p><p className={`text-3xl font-black ${color}`}>{chance}%</p></div>)
-                                                    })()}
-                                                </div>
-
-                                                <div className="flex flex-col gap-2 w-full md:w-auto">
-                                                    {joueur.niveau >= selectedDest.niveau_requis ? (<button onClick={() => partirExpeditionV2(selectedDest)} className={`w-full md:w-32 py-3 rounded-lg font-bold shadow-lg text-sm ${theme.btnPrimary}`}>PARTIR</button>) : (<button disabled className="w-full md:w-32 py-3 rounded-lg font-bold bg-slate-700 text-slate-500 cursor-not-allowed text-sm">BLOQUÉ</button>)}
-                                                    <button onClick={() => setSelectedDest(null)} className="text-xs text-slate-500 underline hover:text-white">Fermer</button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}
