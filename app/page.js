@@ -1204,65 +1204,83 @@ const handleLogin = async () => {
                                 )}
 
                                 {/* INVENTAIRE */}
+                                {/* INVENTAIRE (CORRIGÉ POUR LES FRUITS) */}
                                 {activeTab === 'inventaire' && (
                                     <div className="space-y-4 md:space-y-6">
-                                            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                        
+                                        {/* FILTRES */}
+                                        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                             {['TOUT', 'EQUIPEMENT', 'CONSOMMABLE', 'RESSOURCE', 'AUTRE'].map(f => (
                                                 <button 
                                                     key={f} 
                                                     onClick={() => setInvFilter(f)} 
-                                                    className={`px-3 md:px-5 py-2 rounded-lg text-[10px] md:text-xs font-bold transition uppercase tracking-wider shrink-0 whitespace-nowrap
+                                                    className={`flex-shrink-0 px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition uppercase tracking-wider 
                                                     ${invFilter === f ? theme.btnPrimary : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                                                 >
                                                     {f}
                                                 </button>
                                             ))}
                                         </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
-                                                {inventaire.filter(item => {
-                                                    const type = item.objets.type_equipement;
-                                                    if (invFilter === 'TOUT') return true;
-                                                    if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps'].includes(type);
-                                                    if (invFilter === 'CONSOMMABLE') return type === 'Consommable';
-                                                    if (invFilter === 'RESSOURCE') return type === 'Ressource';
-                                                    if (invFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Consommable', 'Ressource'].includes(type);
-                                                    return true;
-                                                }).map((item, i) => {
-                                                    const cfg = getRareteConfig(item.objets.rarete);
-                                                    const isCoffre = item.objets.nom === "Coffre Commun";
-                                                    return (
-                                                        <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between bg-slate-800 p-3 md:p-4 rounded-xl border-l-4 ${cfg.border} hover:bg-slate-750 transition group gap-3 sm:gap-0`}>
-                                                            <div className="min-w-0 pr-2">
-                                                                <div className="flex justify-between items-start">
-                                                                     <p className="font-bold text-slate-200 text-sm md:text-lg truncate">{item.objets.nom}</p>
-                                                                     <span className="bg-slate-900 text-slate-400 px-2 py-0.5 rounded text-[10px] font-mono font-bold sm:hidden">x{item.quantite}</span>
-                                                                </div>
-                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-wider ${cfg.text}`}>{item.objets.rarete} • {item.objets.type_equipement || 'Autre'}</p>
-                                                                {item.objets.stats_bonus && <p className="text-[10px] text-emerald-400 mt-1 font-mono">{formatStatsItem(item.objets.stats_bonus)}</p>}
-                                                            </div>
-                                                            <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 shrink-0 border-t border-slate-700/50 pt-2 sm:border-0 sm:pt-0">
-                                                                <span className="hidden sm:block bg-slate-900 text-slate-400 px-3 py-1 rounded text-xs font-mono font-bold">x{item.quantite}</span>
-                                                                {/* ACTIONS TOUJOURS VISIBLES SUR MOBILE */}
-                                                                <div className="flex flex-wrap justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity w-full sm:w-auto">
-                                                                    {item.objets.type_equipement === 'Consommable' && (
-                                                                        <button 
-                                                                            onClick={() => gererObjet(item, 'UTILISER')} 
-                                                                            className={`flex-1 sm:flex-none text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
-                                                                        >
-                                                                            Utiliser
-                                                                        </button>
-                                                                    )}
-                                                                    {['Arme', 'Tête', 'Corps'].includes(item.objets.type_equipement) && <button onClick={() => gererObjet(item, 'EQUIPER')} className="flex-1 sm:flex-none text-[10px] md:text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1.5 rounded font-bold">Équiper</button>}
-                                                                    {isCoffre && <button onClick={() => gererObjet(item, 'UTILISER')} className="flex-1 sm:flex-none text-[10px] md:text-xs bg-yellow-600 hover:bg-yellow-500 text-white px-2 py-1.5 rounded font-bold animate-pulse">Ouvrir</button>}
-                                                                    <button onClick={() => ouvrirTransaction('VENTE', item, item.quantite)} className="flex-1 sm:flex-none text-[10px] md:text-xs bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white px-2 py-1.5 rounded font-bold border border-purple-500/50 transition">HDV</button>
-                                                                    <button onClick={() => gererObjet(item, 'VENDRE_INSTANT')} className="flex-1 sm:flex-none text-[10px] md:text-xs text-red-400 hover:text-red-200 px-2 py-1.5 underline font-bold" title="Vente Rapide">Vendre</button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                                {inventaire.length === 0 && <div className="col-span-1 md:col-span-2 text-center py-10 text-slate-500 italic">Sac vide...</div>}
-                                            </div>
+
+                                        {/* LISTE */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                             {inventaire.filter(item => {
+                                                 const type = item.objets.type_equipement;
+                                                 if (invFilter === 'TOUT') return true;
+                                                 if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps'].includes(type);
+                                                 // CORRECTION ICI : Les Fruits sont des consommables
+                                                 if (invFilter === 'CONSOMMABLE') return ['Consommable', 'Fruit'].includes(type);
+                                                 if (invFilter === 'RESSOURCE') return type === 'Ressource';
+                                                 if (invFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Consommable', 'Fruit', 'Ressource'].includes(type);
+                                                 return true;
+                                             }).map((item, i) => {
+                                                 const cfg = getRareteConfig(item.objets.rarete);
+                                                 const isCoffre = item.objets.nom === "Coffre Commun";
+                                                 const isFruit = item.objets.type_equipement === 'Fruit';
+
+                                                 return (
+                                                     <div key={i} className={`flex items-center justify-between bg-black/20 p-4 rounded-xl border ${theme.borderLow} border-l-4 ${cfg.border} hover:bg-black/30 transition group`}>
+                                                         <div>
+                                                             <div className="flex items-center gap-2">
+                                                                 <p className={`font-bold text-lg ${theme.textMain}`}>{item.objets.nom}</p>
+                                                                 {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
+                                                             </div>
+                                                             <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.textDim}`}>{item.objets.rarete} • {item.objets.type_equipement}</p>
+                                                             {item.objets.stats_bonus && <p className={`text-[10px] mt-1 font-mono ${theme.highlight}`}>{formatStatsItem(item.objets.stats_bonus)}</p>}
+                                                         </div>
+                                                         
+                                                         <div className="flex flex-col items-end gap-2">
+                                                             <span className="bg-black/40 text-slate-400 px-3 py-1 rounded text-xs font-mono font-bold border border-white/5">x{item.quantite}</span>
+                                                             
+                                                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                 
+                                                                 {/* CORRECTION ICI : Bouton pour Consommable OU Fruit */}
+                                                                 {(item.objets.type_equipement === 'Consommable' || isFruit) && (
+                                                                     <button 
+                                                                         onClick={() => gererObjet(item, 'UTILISER')} 
+                                                                         className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
+                                                                     >
+                                                                         {isFruit ? 'MANGER 🍎' : 'BOIRE 🧪'}
+                                                                     </button>
+                                                                 )}
+                                                                 
+                                                                 {['Arme', 'Tête', 'Corps'].includes(item.objets.type_equipement) && (
+                                                                     <button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}>Équiper</button>
+                                                                 )}
+                                                                 
+                                                                 {isCoffre && (
+                                                                     <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 animate-pulse`}>Ouvrir</button>
+                                                                 )}
+                                                                 
+                                                                 <button onClick={() => ouvrirTransaction('VENTE', item, item.quantite)} className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}>HDV</button>
+                                                                 <button onClick={() => gererObjet(item, 'VENDRE_INSTANT')} className="text-xs text-red-400 hover:text-red-200 px-2 underline font-bold transition" title="Vente Rapide">Vendre</button>
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                 )
+                                             })}
+                                             {inventaire.length === 0 && <div className="col-span-1 md:col-span-2 text-center py-10 text-slate-500 italic">Sac vide...</div>}
+                                        </div>
                                     </div>
                                 )}
 
