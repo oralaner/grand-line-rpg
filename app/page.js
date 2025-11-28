@@ -121,6 +121,9 @@ export default function Home() {
   const [quetes, setQuetes] = useState([]);
   const [showQuetes, setShowQuetes] = useState(false); // Pour ouvrir/fermer le journal
 
+  const [mesTitres, setMesTitres] = useState([]);
+  const [showTitresModal, setShowTitresModal] = useState(false); // Pour la pop-up de sélection
+
   const [meteoData, setMeteoData] = useState({}); // { "East Blue": "SOLEIL", ... }
 
   const [chatScope, setChatScope] = useState('GENERAL'); // GENERAL, FACTION, EQUIPAGE
@@ -212,21 +215,23 @@ export default function Home() {
   // --- INITIALISATION ---
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      if (session) await fetchGlobalData(session.user.id);
-      verifierQuetes();
-      const { data: allComp } = await supabase.from('competences').select('*').eq('exclusif_pnj', false).order('puissance');
-      setCompetences(allComp || []);
+    const { data: { session } } = await supabase.auth.getSession();
+    setSession(session);
+    if (session) await fetchGlobalData(session.user.id);
+    chargerTitres();
+    verifierQuetes();
+    const { data: allComp } = await supabase.from('competences').select('*').eq('exclusif_pnj', false).order('puissance');
+    setCompetences(allComp || []);
     };
     init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); if (session) fetchGlobalData(session.user.id); });
     return () => subscription.unsubscribe();
-  }, []);
-  useEffect(() => {
+    }, []);
+   useEffect(() => {
       scrollToBottom();
-  }, [messages]);
-useEffect(() => { 
+    }, [messages]);
+
+  useEffect(() => { 
       // ... (début inchangé)
       if (activeTab === 'arene') chargerArene();
   }, [activeTab, leaderboardType, areneFilter]);
@@ -335,6 +340,7 @@ useEffect(() => {
         setEquipement(newEquip);
     }
   };
+  
   const fetchRang = async (userId) => { const { data } = await supabase.rpc('get_rang_joueur', { target_id: userId }); if (data) setRangJoueur(data); };
 
   useEffect(() => { if (!session) return; if (activeTab === 'inventaire') chargerInventaire(); if (activeTab === 'deck') chargerCompetences(); if (activeTab === 'boutique') chargerBoutique(); if (activeTab === 'atelier') chargerAtelier(); if (activeTab === 'classement') chargerClassement(); if (activeTab === 'expeditions') chargerDestinations(); chargerMeteo(); if (activeTab === 'marche') chargerMarche(); if (activeTab === 'arene') chargerArene(); }, [activeTab, leaderboardType]);
@@ -726,6 +732,8 @@ const validerTransaction = async () => {
       setCombatLog(["Le combat commence !"]); 
       setActiveTab('combat_actif'); 
   };
+
+  
   const fuirCombat = async () => {
       if (!combatSession || combatSession.termine) return;
       
@@ -777,7 +785,25 @@ const validerTransaction = async () => {
   const jouerQuitteOuDouble = async (action) => { if (!miseCasino || miseCasino <= 0) return notify("Mise invalide", "error"); const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) }); if (data.success) { fetchJoueur(session.user.id); if (data.etat === 'GAGNE') notify(`GAGNÉ ! Gain: ${data.gain_en_cours}`, "success"); else if (data.etat === 'PERDU') notify("Perdu...", "error"); else notify(`Encaissé : ${data.gain_final}`, "success"); } else notify("Erreur", "error"); };
   const jouerPFC = async (choix) => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_pfc', { mise: parseInt(miseCasino), choix_joueur: choix }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat + " (IA: " + data.choix_ia + ")", data.resultat === 'VICTOIRE' ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
   const jouerDes = async () => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_des', { mise: parseInt(miseCasino) }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat, data.resultat.includes('VICTOIRE') ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
+const chargerTitres = async () => {
+      // Récupère les titres débloqués par le joueur
+      const { data } = await supabase
+          .from('joueur_titres')
+          .select('*, titres_ref(*)')
+          .eq('joueur_id', session.user.id);
+      setMesTitres(data || []);
+  };
 
+  const changerTitre = async (nomTitre) => {
+      const { data } = await supabase.rpc('equiper_titre', { _nouveau_titre: nomTitre });
+      if (data.success) { 
+          notify(data.message, "success"); 
+          fetchJoueur(session.user.id); 
+          setShowTitresModal(false); 
+      } else { 
+          notify(data.message, "error"); 
+      }
+  };
 const handleLogin = async () => { 
       setLoading(true); 
       await supabase.auth.signInWithOAuth({ 
@@ -1304,12 +1330,16 @@ const handleLogin = async () => {
                         // --- DASHBOARD ACCUEIL (Visible sur PC par défaut) ---
                         <div className="flex flex-col items-center justify-center w-full h-full animate-fadeIn p-4 overflow-y-auto">
                             
-                            <div className="text-center mb-6 md:mb-10">
-                                <h2 className={`text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r ${theme.textGradient} tracking-tighter drop-shadow-2xl pr-4 py-2 break-all`}>
-                                    {joueur.pseudo.toUpperCase()}
-                                </h2>
-                                <div className="h-1 w-32 bg-gradient-to-r from-transparent via-slate-500 to-transparent mx-auto mt-2"></div>
-                                <p className={`text-xs font-bold uppercase tracking-[0.5em] mt-2 opacity-60 ${theme.textMain}`}>Tableau de Bord</p>
+                            <div className="flex flex-col items-start">
+                                <h2 className={`text-xl md:text-2xl font-black truncate ${theme.textMain}`}>{joueur.pseudo}</h2>
+                                
+                                {/* TITRE CLIQUABLE */}
+                                <button 
+                                    onClick={() => { chargerTitres(); setShowTitresModal(true); }}
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded border border-dashed border-slate-600 hover:border-white hover:bg-white/10 transition mt-1 ${joueur.titre_actuel ? 'text-yellow-400 border-yellow-600/50' : 'text-slate-500'}`}
+                                >
+                                    {joueur.titre_actuel ? `« ${joueur.titre_actuel} »` : "+ Choisir un titre"}
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full max-w-3xl">
@@ -2973,7 +3003,50 @@ const handleLogin = async () => {
             </button>
         </div>
     </div>
+    
 )}
+{/* MODALE TITRES */}
+            {showTitresModal && (
+                <div className="fixed inset-0 bg-black/90 z-[150] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+                    <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl border relative overflow-hidden ${theme.panel} ${theme.border}`}>
+                        <button onClick={() => setShowTitresModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-xl">✕</button>
+                        
+                        <h2 className={`text-2xl font-black text-center mb-6 uppercase ${theme.textMain}`}>Mes Titres</h2>
+                        
+                        <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            <button 
+                                onClick={() => changerTitre(null)} 
+                                className={`w-full text-left p-3 rounded-lg border border-slate-700 hover:bg-white/5 transition flex justify-between items-center ${!joueur.titre_actuel ? 'bg-white/10 border-white/30' : 'text-slate-500'}`}
+                            >
+                                <span>(Aucun titre)</span>
+                            </button>
+
+                            {mesTitres.length === 0 ? (
+                                <p className="text-center text-slate-500 text-xs italic py-4">Aucun titre débloqué pour le moment.<br/>Jouez pour en gagner !</p>
+                            ) : (
+                                mesTitres.map(t => (
+                                    <button 
+                                        key={t.id} 
+                                        onClick={() => changerTitre(t.titres_ref.nom)} 
+                                        className={`w-full text-left p-3 rounded-lg border transition flex justify-between items-center group
+                                        ${joueur.titre_actuel === t.titres_ref.nom 
+                                            ? `bg-yellow-900/20 border-yellow-500/50` 
+                                            : `border-slate-700 hover:bg-white/5`}`}
+                                    >
+                                        <div>
+                                            <p className={`font-bold text-sm ${joueur.titre_actuel === t.titres_ref.nom ? 'text-yellow-400' : 'text-white'}`}>
+                                                « {t.titres_ref.nom} »
+                                            </p>
+                                            <p className="text-[10px] text-slate-500">{t.titres_ref.description}</p>
+                                        </div>
+                                        {joueur.titre_actuel === t.titres_ref.nom && <span className="text-yellow-400 text-xs">✔</span>}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
     </main>
   );
 }
