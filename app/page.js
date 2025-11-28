@@ -122,6 +122,7 @@ export default function Home() {
   const [chatScope, setChatScope] = useState('GENERAL'); // GENERAL, FACTION, EQUIPAGE
   const [messages, setMessages] = useState([]);
   const [inputChat, setInputChat] = useState("");
+  const messagesEndRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState(null); 
   const [notification, setNotification] = useState(null); 
@@ -197,7 +198,10 @@ export default function Home() {
     setNotification({ message: msg, type: type });
     setTimeout(() => setNotification(null), duration);
   };
-
+// Scroll automatique vers le bas
+  const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
   // --- INITIALISATION ---
   useEffect(() => {
     const init = async () => {
@@ -211,6 +215,9 @@ export default function Home() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); if (session) fetchGlobalData(session.user.id); });
     return () => subscription.unsubscribe();
   }, []);
+  useEffect(() => {
+      scrollToBottom();
+  }, [messages]);
 useEffect(() => { 
       // ... (début inchangé)
       if (activeTab === 'arene') chargerArene();
@@ -1527,6 +1534,7 @@ const handleLogin = async () => {
 
                                                 return (
                                                     <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                                        
                                                         <div className="flex items-baseline gap-2 mb-0.5">
                                                             <span className={`text-[10px] font-bold ${nameColor}`}>{msg.pseudo}</span>
                                                             <span className="text-[8px] text-slate-600">{new Date(msg.date_envoi).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -1534,6 +1542,7 @@ const handleLogin = async () => {
                                                         <div className={`px-3 py-2 rounded-lg text-sm max-w-[80%] break-words ${isMe ? 'bg-slate-700 text-white rounded-tr-none' : 'bg-black/60 text-slate-200 rounded-tl-none border border-white/10'}`}>
                                                             {msg.contenu}
                                                         </div>
+                                                        <div ref={messagesEndRef} />
                                                     </div>
                                                 )
                                             })
