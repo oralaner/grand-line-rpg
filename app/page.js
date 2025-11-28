@@ -1232,40 +1232,85 @@ const handleLogin = async () => {
                                     </div>
                                 )}
 
-                                {/* BOUTIQUE */}
-                                {activeTab === 'boutique' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                                        {!viewShopCategory ? (
-                                            ['Arme', 'Protection', 'Consommable', 'Autre'].map(cat => (
-                                                <button key={cat} onClick={() => setViewShopCategory(cat)} className="h-24 md:h-40 border-2 border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-cyan-500 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 transition group">
-                                                    <span className="text-3xl md:text-5xl group-hover:scale-110 transition-transform">{cat === 'Arme' ? '⚔️' : cat === 'Protection' ? '🛡️' : cat === 'Consommable' ? '🧪' : '📦'}</span>
-                                                    <span className="font-black text-slate-300 uppercase text-sm md:text-lg tracking-widest group-hover:text-white">{cat}</span>
-                                                </button>
-                                            ))
-                                        ) : (
-                                            <div className="col-span-1 md:col-span-2">
-                                                <button onClick={() => setViewShopCategory(null)} className="mb-4 md:mb-6 flex items-center gap-2 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-widest">⬅ Retour aux catégories</button>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                                    {boutiqueItems.filter(i => i.type_equipement === viewShopCategory || (viewShopCategory === 'Protection' && ['Tête','Corps'].includes(i.type_equipement)) || (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Consommable'].includes(i.type_equipement))).map((item, i) => (
-                                                        <div key={i} className={`border ${theme.borderLow} bg-black/20 p-3 md:p-4 rounded-xl flex justify-between items-center hover:bg-black/30 transition`}>
+                                {/* BOUTIQUE (AVEC FRUITS UNIQUES) */}
+                            {activeTab === 'boutique' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                    
+                                    {/* MENU CATÉGORIES */}
+                                    {!viewShopCategory ? (
+                                        ['Arme', 'Protection', 'Consommable', 'Fruit', 'Autre'].map(cat => (
+                                            <button 
+                                                key={cat} 
+                                                onClick={() => setViewShopCategory(cat)} 
+                                                className={`h-28 md:h-40 border-2 ${theme.border} ${theme.panel} hover:bg-black/40 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 transition group shadow-lg relative overflow-hidden`}
+                                            >
+                                                {/* Effet spécial pour les Fruits */}
+                                                {cat === 'Fruit' && <div className="absolute inset-0 bg-purple-500/10 animate-pulse"></div>}
+                                                
+                                                <span className="text-4xl md:text-5xl group-hover:scale-110 transition-transform drop-shadow-md">
+                                                    {cat === 'Arme' ? '⚔️' : cat === 'Protection' ? '🛡️' : cat === 'Consommable' ? '🧪' : cat === 'Fruit' ? '🍎' : '📦'}
+                                                </span>
+                                                <span className={`font-black uppercase text-sm md:text-lg tracking-widest ${theme.textMain}`}>
+                                                    {cat === 'Fruit' ? 'Fruits du Démon' : cat}
+                                                </span>
+                                                {cat === 'Fruit' && <span className="text-[8px] text-purple-300 font-bold uppercase tracking-widest border border-purple-500/50 px-2 rounded">Unique</span>}
+                                            </button>
+                                        ))
+                                    ) : (
+                                        /* LISTE DES OBJETS */
+                                        <div className="col-span-1 md:col-span-2">
+                                            <button 
+                                                onClick={() => setViewShopCategory(null)} 
+                                                className={`mb-4 md:mb-6 flex items-center gap-2 font-bold text-xs uppercase tracking-widest ${theme.textDim} hover:text-white transition`}
+                                            >
+                                                ⬅ Retour aux catégories
+                                            </button>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {boutiqueItems.filter(i => 
+                                                    i.type_equipement === viewShopCategory || 
+                                                    (viewShopCategory === 'Protection' && ['Tête','Corps'].includes(i.type_equipement)) || 
+                                                    (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Consommable','Fruit'].includes(i.type_equipement))
+                                                ).map((item, i) => {
+                                                    // Gestion du Stock
+                                                    const isSoldOut = item.stock !== null && item.stock <= 0;
+                                                    const isUnique = item.stock !== null;
+
+                                                    return (
+                                                        <div key={i} className={`relative border ${theme.borderLow} bg-black/20 p-3 md:p-4 rounded-xl flex justify-between items-center transition group ${isSoldOut ? 'opacity-60 grayscale' : 'hover:bg-black/30'}`}>
                                                             <div className="min-w-0 pr-2">
-                                                                <p className={`font-bold text-sm md:text-lg truncate ${theme.textMain}`}>{item.nom}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className={`font-bold text-sm md:text-lg truncate ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
+                                                                    {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
+                                                                </div>
                                                                 <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
-                                                                <p className={`text-[10px] font-bold uppercase ${theme.highlight}`}>{formatStatsItem(item.stats_bonus)}</p>
+                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}>{formatStatsItem(item.stats_bonus)}</p>
                                                             </div>
-                                                            <button 
-                                                                onClick={() => ouvrirTransaction('ACHAT_BOUTIQUE', item, 99)} 
-                                                                className={`ml-2 font-bold py-2 px-3 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary}`}
-                                                            >
-                                                                {item.prix_achat} ฿
-                                                            </button>
+                                                            
+                                                            {isSoldOut ? (
+                                                                <div className="ml-2 px-4 py-2 rounded-lg border border-red-900/50 bg-red-950/30 text-red-500 font-black text-xs uppercase -rotate-12 border-2">
+                                                                    ÉPUISÉ
+                                                                </div>
+                                                            ) : (
+                                                                <button 
+                                                                    onClick={() => ouvrirTransaction('ACHAT_BOUTIQUE', item, 1)} // Max 1 pour le shop
+                                                                    className={`ml-2 font-bold py-2 px-3 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary}`}
+                                                                >
+                                                                    {item.prix_achat.toLocaleString()} ฿
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                    )
+                                                })}
                                             </div>
-                                        )}
-                                    </div>
-                                )}
+                                            
+                                            {boutiqueItems.filter(i => i.type_equipement === viewShopCategory).length === 0 && (
+                                                <div className="text-center py-10 text-slate-500 italic">Rien à vendre ici pour le moment...</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                                 
                                 {/* DECK */}
                                 {activeTab === 'deck' && (
