@@ -1548,11 +1548,18 @@ const handleLogin = async () => {
                                                                 </div>
                                                             ) : (
                                                                 <button 
-                                                                    onClick={() => ouvrirTransaction('ACHAT_BOUTIQUE', item, 1)} // Max 1 pour le shop
-                                                                    className={`ml-2 font-bold py-2 px-3 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary}`}
-                                                                >
-                                                                    {item.prix_achat.toLocaleString()} ฿
-                                                                </button>
+                                                                onClick={() => {
+                                                                    // CORRECTION : Calcul de la limite d'achat
+                                                                    // Si c'est un Fruit ou un Equipement -> Max 1
+                                                                    // Si c'est une Potion/Ressource -> Max 99
+                                                                    const maxAchat = ['Consommable', 'Ressource', 'Autre'].includes(item.type_equipement) ? 99 : 1;
+                                                                    
+                                                                    ouvrirTransaction('ACHAT_BOUTIQUE', item, maxAchat);
+                                                                }} 
+                                                                className={`ml-2 font-bold py-2 px-3 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary}`}
+                                                            >
+                                                                {item.prix_achat} ฿
+                                                            </button>
                                                             )}
                                                         </div>
                                                     )
