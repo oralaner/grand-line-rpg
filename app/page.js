@@ -140,7 +140,7 @@ export default function Home() {
   const [shopFilter, setShopFilter] = useState('TOUT');
   const [leaderboardType, setLeaderboardType] = useState('NIVEAU');
   const [viewShopCategory, setViewShopCategory] = useState(null);
-  
+  const [craftCategory, setCraftCategory] = useState(null); // 'Forge', 'Cuisine', etc.
   const [inventaire, setInventaire] = useState([]);
   const [boutiqueItems, setBoutiqueItems] = useState([]);
   const [recettes, setRecettes] = useState([]);
@@ -2332,38 +2332,91 @@ const handleLogin = async () => {
                         </div>
                     )}
 
-                    {/* ATELIER */}
-                    {activeTab === 'atelier' && (
-                        <div className="space-y-4">
-                             {recettes.length === 0 ? <div className="text-center opacity-50 py-10">Aucune recette...</div> : recettes.map((recette, i) => (
-                                <div key={i} className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-stone-200">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <p className="font-bold text-base md:text-lg text-stone-900">{recette.nom}</p>
-                                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold">
-                                                Résultat : {recette.objets?.nom || "Objet inconnu"}
-                                            </span>
+                    {/* ATELIER DE CRAFT (CATÉGORISÉ) */}
+                            {activeTab === 'atelier' && (
+                                <div className="space-y-6 animate-fadeIn">
+                                    
+                                    {/* Header Atelier */}
+                                    <div className={`p-4 rounded-xl shadow-lg border-b-4 text-center ${theme.btnPrimary}`}>
+                                        <h2 className="text-xl font-black uppercase tracking-widest text-white">Atelier d'Artisanat</h2>
+                                        <p className="text-xs opacity-90">Fabriquez vos équipements et consommables.</p>
+                                    </div>
+
+                                    {!craftCategory ? (
+                                        // --- VUE 1 : CHOIX DU MÉTIER ---
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {[
+                                                { id: 'Forge', icon: '🔨', label: 'Forge', desc: 'Métaux & Armes' },
+                                                { id: 'Menuiserie', icon: '🪚', label: 'Menuiserie', desc: 'Bois & Coffres' },
+                                                { id: 'Alchimie', icon: '⚗️', label: 'Alchimie', desc: 'Potions & Magie' },
+                                                { id: 'Cuisine', icon: '🍳', label: 'Cuisine', desc: 'Plats & Bonus' },
+                                                { id: 'Tissage', icon: '🧵', label: 'Tissage', desc: 'Tissus & Voiles' },
+                                            ].map((metier) => (
+                                                <button 
+                                                    key={metier.id}
+                                                    onClick={() => setCraftCategory(metier.id)}
+                                                    className={`p-6 rounded-xl border-2 bg-slate-800/50 hover:bg-slate-800 transition group flex flex-col items-center gap-2 shadow-lg
+                                                    ${theme.border} hover:border-white`}
+                                                >
+                                                    <span className="text-4xl group-hover:scale-110 transition-transform">{metier.icon}</span>
+                                                    <span className={`font-black uppercase text-sm md:text-lg ${theme.textMain}`}>{metier.label}</span>
+                                                    <span className="text-[10px] text-slate-400">{metier.desc}</span>
+                                                </button>
+                                            ))}
                                         </div>
-                                    </div>
-                                    <div className="bg-stone-50 p-3 rounded-lg mb-3 border border-stone-100">
-                                        <p className="text-xs text-stone-400 uppercase font-bold mb-2">Ingrédients requis</p>
-                                        {Object.entries(recette.ingredients).map(([idItem, qteReq]) => {
-                                            const possede = getQtePossedee(idItem); 
-                                            const nomIngredient = getNomIngredient(idItem); 
-                                            const aAssez = possede >= qteReq;
-                                            return (
-                                                <div key={idItem} className={`flex justify-between text-sm ${aAssez ? "text-emerald-600 font-bold" : "text-red-400"}`}>
-                                                    <span>• {nomIngredient}</span>
-                                                    <span>{possede} / {qteReq}</span>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                    <button onClick={() => crafterItem(recette)} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition">Fabriquer</button>
+                                    ) : (
+                                        // --- VUE 2 : LISTE DES RECETTES ---
+                                        <div className="space-y-4">
+                                            <button 
+                                                onClick={() => setCraftCategory(null)} 
+                                                className={`mb-2 flex items-center gap-2 font-bold text-xs uppercase tracking-widest ${theme.textDim} hover:text-white transition`}
+                                            >
+                                                ⬅ Retour aux métiers
+                                            </button>
+
+                                            {recettes.filter(r => r.categorie === craftCategory).length === 0 ? (
+                                                <div className="text-center py-10 italic opacity-50">Aucune recette connue dans ce métier...</div>
+                                            ) : (
+                                                recettes.filter(r => r.categorie === craftCategory).map((recette, i) => (
+                                                    <div key={i} className="bg-slate-900/80 p-4 rounded-xl shadow-sm border border-slate-700 relative overflow-hidden">
+                                                        {/* Titre Recette */}
+                                                        <div className="flex justify-between items-start mb-4 z-10 relative">
+                                                            <div>
+                                                                <p className={`font-black text-lg ${theme.textMain}`}>{recette.nom}</p>
+                                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">Résultat : {recette.objets?.nom || "???"}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Ingrédients */}
+                                                        <div className="grid grid-cols-2 gap-2 mb-4">
+                                                            {Object.entries(recette.ingredients).map(([idItem, qteReq]) => {
+                                                                const possede = getQtePossedee(idItem);
+                                                                const nomIngredient = getNomIngredient(idItem);
+                                                                const aAssez = possede >= qteReq;
+                                                                
+                                                                return (
+                                                                    <div key={idItem} className={`flex justify-between items-center text-xs p-2 rounded border ${aAssez ? 'bg-green-900/20 border-green-500/30 text-green-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
+                                                                        <span className="truncate pr-2">{nomIngredient}</span>
+                                                                        <span className="font-mono font-bold whitespace-nowrap">{possede}/{qteReq}</span>
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                        </div>
+
+                                                        {/* Bouton Action */}
+                                                        <button 
+                                                            onClick={() => crafterItem(recette)} 
+                                                            className={`w-full py-3 rounded-lg font-black uppercase shadow-lg transition transform active:scale-95 ${theme.btnPrimary}`}
+                                                        >
+                                                            Fabriquer
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
-                             ))}
-                        </div>
-                    )}
+                            )}
 
                     {/* CASINO */}
                     {activeTab === 'casino' && (
