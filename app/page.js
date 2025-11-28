@@ -637,7 +637,7 @@ const chargerBoutique = async () => {
               } else notify(result?.data?.message || "Erreur", "error"); 
           
           // 3. CAS CLASSIQUE : COFFRES (TOUS TYPES)
-          } else if (item.objets.type_equipement === "Coffre") } else if (item.objets.type_equipement === "Coffre") { 
+          } else if (item.objets.type_equipement === "Coffre") { 
               const { data } = await supabase.rpc('ouvrir_coffre', { nom_coffre: item.objets.nom }); 
               
               if(data && data.success) { 
