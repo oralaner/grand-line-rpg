@@ -128,6 +128,9 @@ export default function Home() {
   const [inputChat, setInputChat] = useState("");
   const messagesEndRef = useRef(null);
 
+  const [infosNavire, setInfosNavire] = useState(null); // Infos du navire actuel (vitesse, type)
+  const [nextNavire, setNextNavire] = useState(null);   // Coûts du prochain niveau
+
   const [activeTab, setActiveTab] = useState(null); 
   const [notification, setNotification] = useState(null); 
   const [invFilter, setInvFilter] = useState('TOUT');
@@ -239,6 +242,12 @@ useEffect(() => {
       }
   }, [activeTab, crewTab, joueur]);
 
+  useEffect(() => {
+      // ...
+      if (activeTab === 'chantier') chargerChantier();
+      // ...
+  }, [activeTab, joueur]);
+
   const verifierQuetes = async () => {
       // 1. Générer si pas encore fait aujourd'hui
       await supabase.rpc('generer_quetes_journalieres');
@@ -349,6 +358,35 @@ const chargerBoutique = async () => {
           
           const { data } = await query.limit(20); 
           if (data) setTopJoueurs(data); 
+      }
+  };
+  const chargerChantier = async () => {
+      if (!joueur) return;
+      
+      // Navire Actuel
+      const { data: actuel } = await supabase.from('navires_ref').select('*').eq('niveau', joueur.niveau_navire).single();
+      setInfosNavire(actuel);
+
+      // Prochain Niveau
+      if (joueur.niveau_navire < 10) {
+          const { data: prochain } = await supabase.from('navires_ref').select('*').eq('niveau', joueur.niveau_navire + 1).single();
+          setNextNavire(prochain);
+      } else {
+          setNextNavire(null);
+      }
+      
+      // On charge l'inventaire pour voir si on a le bois/fer
+      chargerInventaire(); 
+  };
+
+  const lancerAmeliorationNavire = async () => {
+      const { data } = await supabase.rpc('ameliorer_navire');
+      if (data.success) { 
+          notify(data.message, "success"); 
+          fetchJoueur(session.user.id); // Met à jour le niveau_navire dans le state joueur
+          setTimeout(chargerChantier, 500); // Rafraîchit les coûts
+      } else { 
+          notify(data.message, "error"); 
       }
   };
   const chargerDestinations = async () => { const { data } = await supabase.from('destinations').select('*').order('niveau_requis'); if (data) setDestinations(data); }
@@ -1222,6 +1260,7 @@ const handleLogin = async () => {
                         { id: 'boutique', icon: '🏪', label: 'Shop', color: 'hover:bg-emerald-600/20 hover:text-emerald-400 hover:border-emerald-600' },
                         { id: 'marche', icon: '⚖️', label: 'HDV', color: 'hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-600' },
                         { id: 'expeditions', icon: '🧭', label: 'Voyage', color: 'hover:bg-blue-600/20 hover:text-blue-400 hover:border-blue-600' },
+                        { id: 'chantier', icon: '⛵', label: 'Navire', color: 'hover:bg-orange-600/20 hover:text-orange-400 hover:border-orange-600' },
                         { id: 'atelier', icon: '🔨', label: 'Craft', color: 'hover:bg-slate-600/20 hover:text-slate-400 hover:border-slate-600' },
                         { id: 'casino', icon: '🎰', label: 'Jeux', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' },
                         { id: 'classement', icon: '🏆', label: 'Top', color: 'hover:bg-yellow-600/20 hover:text-yellow-400 hover:border-yellow-600' },
@@ -1309,6 +1348,7 @@ const handleLogin = async () => {
                             { id: 'deck', icon: '📘', label: 'Skills' },
                             { id: 'arene', icon: '⚔️', label: 'PvP' },
                             { id: 'expeditions', icon: '🧭', label: 'Voyage' },
+                            { id: 'chantier', icon: '⛵', label: 'Navire', color: 'hover:bg-orange-600/20 hover:text-orange-400 hover:border-orange-600' },
                             { id: 'boutique', icon: '🏪', label: 'Shop' },
                             { id: 'marche', icon: '⚖️', label: 'HDV' },
                             { id: 'casino', icon: '🎰', label: 'Jeux' },
@@ -1438,7 +1478,7 @@ const handleLogin = async () => {
                                                  return true;
                                              }).map((item, i) => {
                                                  const cfg = getRareteConfig(item.objets.rarete);
-                                                 const isCoffre = item.objets.nom === "Coffre Commun";
+                                                 const isCoffre = item.objets.type_equipement === "Coffre";
                                                  const isFruit = item.objets.type_equipement === 'Fruit';
 
                                                  return (
@@ -2433,7 +2473,104 @@ const handleLogin = async () => {
                                     )}
                                 </div>
                             )}
+                    {/* CHANTIER NAVAL */}
+                            {activeTab === 'chantier' && (
+                                <div className="space-y-6 animate-fadeIn">
+                                    
+                                    {/* HEADER NAVIRE */}
+                                    <div className="bg-[#1a4c6e] border-4 border-[#3e2723] rounded-xl p-6 text-center relative overflow-hidden shadow-2xl">
+                                        {/* Fond Océan */}
+                                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                                        
+                                        <div className="relative z-10">
+                                            <h2 className="text-3xl font-[Pirata One] text-white uppercase drop-shadow-md mb-1">
+                                                {joueur.nom_navire}
+                                            </h2>
+                                            <p className="text-yellow-400 text-sm font-bold uppercase tracking-widest mb-4">
+                                                Niveau {joueur.niveau_navire} • {infosNavire?.nom_type || 'Radeau'}
+                                            </p>
+                                            
+                                            {/* Icône Géante */}
+                                            <div className="w-32 h-32 mx-auto bg-black/30 rounded-full border-4 border-white/20 flex items-center justify-center mb-4 backdrop-blur-sm animate-bounce-slow">
+                                                <span className="text-6xl">⛵</span>
+                                            </div>
+                                            
+                                            {/* Stats Actuelles */}
+                                            <div className="flex justify-center gap-4 text-xs font-bold">
+                                                <div className="bg-black/40 px-4 py-2 rounded-lg border border-white/10">
+                                                    <span className="text-cyan-300 block uppercase text-[9px]">Vitesse</span>
+                                                    <span className="text-white text-lg">x{infosNavire?.vitesse}</span>
+                                                </div>
+                                                <div className="bg-black/40 px-4 py-2 rounded-lg border border-white/10">
+                                                    <span className="text-purple-300 block uppercase text-[9px]">Chance Loot</span>
+                                                    <span className="text-white text-lg">+{infosNavire?.bonus_chance}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
+                                    {/* ZONE D'AMÉLIORATION */}
+                                    {nextNavire ? (
+                                        <div className={`bg-black/20 border ${theme.borderLow} p-6 rounded-xl`}>
+                                            <h3 className={`text-center font-bold uppercase text-sm tracking-widest mb-6 ${theme.textMain}`}>
+                                                Projet : {nextNavire.nom_type}
+                                            </h3>
+                                            
+                                            {/* Coûts */}
+                                            <div className="flex justify-center gap-4 mb-6">
+                                                {/* Berrys */}
+                                                <div className={`flex flex-col items-center p-3 rounded-xl border min-w-[80px] ${joueur.berrys >= nextNavire.cout_berrys ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
+                                                    <span className="text-xl mb-1">💰</span>
+                                                    <span className={`text-xs font-black ${joueur.berrys >= nextNavire.cout_berrys ? 'text-green-400' : 'text-red-400'}`}>
+                                                        {nextNavire.cout_berrys.toLocaleString()}
+                                                    </span>
+                                                </div>
+
+                                                {/* Bois (ID 1 - Vérifie ton ID réel si besoin) */}
+                                                {(() => {
+                                                    const bois = inventaire.find(i => i.objets.nom === 'Bois Flotté')?.quantite || 0;
+                                                    const requis = nextNavire.cout_bois;
+                                                    return (
+                                                        <div className={`flex flex-col items-center p-3 rounded-xl border min-w-[80px] ${bois >= requis ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
+                                                            <span className="text-xl mb-1">🪵</span>
+                                                            <span className={`text-xs font-black ${bois >= requis ? 'text-green-400' : 'text-red-400'}`}>
+                                                                {bois} / {requis}
+                                                            </span>
+                                                        </div>
+                                                    )
+                                                })()}
+
+                                                {/* Fer (ID 2) */}
+                                                {(() => {
+                                                    const fer = inventaire.find(i => i.objets.nom === 'Lingot de Fer')?.quantite || 0;
+                                                    const requis = nextNavire.cout_fer;
+                                                    return (
+                                                        <div className={`flex flex-col items-center p-3 rounded-xl border min-w-[80px] ${fer >= requis ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
+                                                            <span className="text-xl mb-1">⛓️</span>
+                                                            <span className={`text-xs font-black ${fer >= requis ? 'text-green-400' : 'text-red-400'}`}>
+                                                                {fer} / {requis}
+                                                            </span>
+                                                        </div>
+                                                    )
+                                                })()}
+                                            </div>
+                                            
+                                            <button 
+                                                onClick={lancerAmeliorationNavire} 
+                                                className={`w-full py-4 rounded-xl font-black uppercase shadow-lg transition transform active:scale-95 ${theme.btnPrimary}`}
+                                            >
+                                                Lancer la Construction 🔨
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-10 bg-black/20 rounded-xl border border-yellow-500/30">
+                                            <p className="text-4xl mb-2">👑</p>
+                                            <p className="text-yellow-400 font-bold">Niveau Maximum Atteint !</p>
+                                            <p className="text-xs text-slate-400 mt-2">Vous possédez le navire ultime.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                     {/* ARENE */}
                     {activeTab === 'arene' && (
                                 <div className="space-y-4 animate-fadeIn">
@@ -2521,6 +2658,7 @@ const handleLogin = async () => {
                             { id: 'deck', icon: '📘', label: 'Skills' },
                             { id: 'arene', icon: '⚔️', label: 'PvP' },
                             { id: 'expeditions', icon: '🧭', label: 'Voy.' }, // Label raccourci
+                            { id: 'chantier', icon: '⛵', label: 'Navire', color: 'hover:bg-orange-600/20 hover:text-orange-400 hover:border-orange-600' },
                             { id: 'boutique', icon: '🏪', label: 'Shop' },
                             { id: 'marche', icon: '⚖️', label: 'HDV' },
                             { id: 'casino', icon: '🎰', label: 'Jeux' },
