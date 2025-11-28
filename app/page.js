@@ -2708,11 +2708,6 @@ const handleLogin = async () => {
                                                                 <p className={`font-bold text-sm ${theme.textMain}`}>{adv.pseudo}</p>
                                                                 
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
-                                                                    
-                                                                    <span className="text-[9px] md:text-[10px] text-yellow-500/90 italic truncate max-w-[120px]">
-                                                                        « {j.titre_actuel} »
-                                                                    </span>
-                                                                
                                                                     <span className={`font-black uppercase ${factionColor}`}>{adv.faction || 'Neutre'}</span>
                                                                     <span className="text-slate-600">•</span>
                                                                     <span className={`font-mono font-bold ${theme.textDim}`}>Niv {adv.niveau}</span>
