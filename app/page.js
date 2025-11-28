@@ -864,33 +864,49 @@ const handleLogin = async () => {
                 <div className="bg-slate-800/80 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-slate-700 shadow-xl relative overflow-hidden group shrink-0">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${theme.appBg}"></div>
                     
-                    <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
-                         <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full p-[3px] border-2 ${theme.border} shadow-lg relative shrink-0`}>
-                             <div className="w-full h-full rounded-full overflow-hidden bg-slate-900">
-                                {joueur.avatar_url ? <img src={joueur.avatar_url} className="w-full h-full object-cover transition group-hover:scale-110"/> : <div className="flex items-center justify-center h-full text-3xl">👤</div>}
-                             </div>
-                             <div className={`absolute -bottom-2 -right-2 bg-black ${theme.textMain} text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/20`}>#{rangJoueur}</div>                         
-                         </div>
-                        <div className="flex-1 min-w-0">
-                            <h2 className={`text-xl md:text-2xl font-black truncate ${theme.textMain}`}>{joueur.pseudo}</h2>
-                            <div className={`flex items-center gap-2 text-xs font-bold ${theme.textDim} tracking-widest`}>
-                                <span className={theme.textMain}>{joueur.faction}</span>
-                                <span className="opacity-50">•</span>
-                                <span>Lvl {joueur.niveau}</span>
+                    {/* AFFICHE WANTED / PROFIL */}
+                    <div className="mb-6 relative group perspective-1000">
+                        {/* CADRE WANTED (Papier jauni) */}
+                        <div className="bg-[#f4e4bc] p-3 pb-8 text-center shadow-xl transform transition-transform duration-500 hover:rotate-1 relative overflow-hidden border-2 border-[#d7ccc8]">
+                            
+                            {/* Clou en haut */}
+                            <div className="absolute top-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-red-900 shadow-inner border border-black"></div>
+                            
+                            {/* Titre WANTED */}
+                            <h2 className="font-[Pirata One] text-4xl md:text-5xl text-[#3e2723] tracking-widest mb-2 mt-2" style={{ textShadow: '1px 1px 0px rgba(0,0,0,0.2)' }}>
+                                {joueur.faction === 'Marine' ? 'MARINE' : 'WANTED'}
+                            </h2>
+                            <p className="text-[8px] md:text-[10px] text-[#3e2723] uppercase font-bold -mt-3 mb-2 opacity-80">
+                                {joueur.faction === 'Marine' ? 'OFFICIAL OFFICER' : 'DEAD OR ALIVE'}
+                            </p>
+
+                            {/* Image Joueur */}
+                            <div className="w-full aspect-square bg-slate-800 border-4 border-[#3e2723] relative overflow-hidden mb-2 grayscale-[20%] contrast-125">
+                                {joueur.avatar_url ? (
+                                    <img src={joueur.avatar_url} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-6xl text-slate-600">?</div>
+                                )}
                             </div>
 
-                            {(() => {
-                                const rank = getRankInfo(joueur.elo_pvp);
-                                return (
-                                    <div className="flex items-center gap-2 md:gap-3 bg-black/40 px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-white/10 w-fit mt-2 backdrop-blur-sm">
-                                        <img src={rank.img} className="w-6 h-6 md:w-8 md:h-8 object-contain drop-shadow-md" />
-                                        <div className="flex flex-col leading-none">
-                                            <span className={`text-[10px] md:text-[11px] font-black uppercase tracking-wider ${rank.color}`}>{rank.label}</span>
-                                            <span className="text-[8px] md:text-[9px] text-slate-400 font-mono mt-0.5">{rank.lp} Points</span>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
+                            {/* Nom */}
+                            <h3 className="font-[Pirata One] text-3xl text-[#3e2723] uppercase leading-none mb-4">{joueur.pseudo}</h3>
+
+                            {/* Montant Prime */}
+                            <div className="absolute bottom-2 left-0 right-0 px-4">
+                                <div className="flex items-center justify-between border-t-2 border-[#3e2723] pt-1">
+                                    <span className="font-black text-[#3e2723] text-xl md:text-2xl font-[Rye] flex items-center gap-1">
+                                        <span className="text-sm align-top">฿</span> 
+                                        {joueur.prime ? joueur.prime.toLocaleString() : '0'}
+                                        <span className="text-xs align-baseline ml-1">-</span>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {/* Tampon Faction (Absolu) */}
+                            <div className="absolute top-1/2 right-2 transform rotate-[-15deg] opacity-60 pointer-events-none border-4 border-red-800 rounded-full w-20 h-20 flex items-center justify-center">
+                                <span className="text-red-800 font-black text-xs uppercase text-center leading-none">{joueur.faction || 'PIRATE'}</span>
+                            </div>
                         </div>
                     </div>
 
