@@ -2383,7 +2383,6 @@ const handleLogin = async () => {
                                                         <div className="flex justify-between items-start mb-4 z-10 relative">
                                                             <div>
                                                                 <p className={`font-black text-lg ${theme.textMain}`}>{recette.nom}</p>
-                                                                <p className="text-[10px] text-slate-400 uppercase tracking-widest">Résultat : {recette.objets?.nom || "???"}</p>
                                                             </div>
                                                         </div>
 
