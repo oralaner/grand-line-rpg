@@ -1288,9 +1288,6 @@ const handleLogin = async () => {
                         <EquipSlot type="Bottes" item={equipement.bottes} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Bague" item={equipement.bague} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Collier" item={equipement.collier} onUnequip={desequiperSlot} theme={theme} />
-                        <EquipSlot type="Navire" item={equipement.navire} onUnequip={desequiperSlot} theme={theme} />
-                        {/* Slot vide pour équilibrer la grille ou futur usage */}
-                        <div className="w-16 h-16 bg-black/20 rounded-xl border border-white/5"></div>
                     </div>
 
                     <div className="text-center py-3 border-t border-slate-700/50">
