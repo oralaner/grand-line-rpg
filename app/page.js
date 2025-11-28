@@ -644,21 +644,23 @@ const chargerBoutique = async () => {
   const desequiperSlot = async (slot) => { const { data } = await supabase.rpc('desequiper_objet', { slot_nom: slot }); if (data && data.success) { notify("Déséquipé.", "info"); fetchJoueur(session.user.id); chargerInventaire(); } }
   const partirExpeditionV2 = async (dest) => { const { data, error } = await supabase.rpc('partir_expedition_v2', { dest_id: dest.id }); if (!error && data.success) { notify(data.message, "success"); fetchJoueur(session.user.id); } else notify(data?.message || "Erreur", "error"); }
   const recolterExpedition = async () => { 
-    const { data, error } = await supabase.rpc('revenir_expedition'); 
-    if (!error && data.success) { 
-        // On stocke le résultat complet (Texte + Chiffres)
-        setExpeditionResult({
-            message: data.message,
-            success: data.is_win,
-            xp: data.xp,
-            berrys: data.berrys
-        });
-        fetchJoueur(session.user.id); 
-        setExpeditionChrono(null); 
-    } else { 
-        notify(error?.message || data?.message, "error"); 
-    }
-};
+      const { data, error } = await supabase.rpc('revenir_expedition'); 
+      
+      if (!error && data.success !== undefined) { // On accepte success true ou false
+          setExpeditionResult({ 
+              message: data.message, 
+              success: data.success, // true = win, false = loose
+              xp: data.xp, 
+              berrys: data.berrys 
+          });
+          
+          // On force le rafraîchissement pour dire au site "C'est fini, affiche la carte"
+          await fetchJoueur(session.user.id); 
+          setExpeditionChrono(null); 
+      } else { 
+          notify(error?.message || data?.message || "Erreur inconnue", "error"); 
+      }
+  };
   const ouvrirTransaction = (type, item, maxVal = 99) => { setTransaction({ type, item, max: maxVal }); setQteTransaction(1); setPrixVente(item.objets?.prix_vente || 100); };
 const validerTransaction = async () => { 
       if (!transaction) return; 
@@ -3053,8 +3055,11 @@ const handleLogin = async () => {
             )}
 
             <button 
-                onClick={() => setExpeditionResult(null)} 
-                className={`font-black text-base md:text-lg py-3 px-10 rounded-xl shadow-lg hover:scale-105 transition uppercase w-full ${theme.btnPrimary}`}
+                onClick={() => {
+                    setExpeditionResult(null); // Ferme la modale
+                    fetchJoueur(session.user.id); // Re-vérifie que le joueur est bien "libre"
+                }} 
+                className={`font-black text-lg py-3 px-10 rounded-xl shadow-lg hover:scale-105 transition uppercase w-full ${theme.btnPrimary}`}
             >
                 Empocher
             </button>
