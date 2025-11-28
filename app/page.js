@@ -1614,7 +1614,7 @@ const handleLogin = async () => {
                             )}
                                
                             {/* CARTE DU MONDE (NAVIGATION RÉGIONS + DEZOOM) */}
-                            {/* CARTE MONDE (DRAG & DROP DANS UN CADRE) */}
+                            {/* CARTE MONDE (CORRIGÉE : BORDS VISIBLES) */}
                             {activeTab === 'expeditions' && (
                                 <div className="space-y-4 h-full flex flex-col">
                                     
@@ -1634,7 +1634,7 @@ const handleLogin = async () => {
                                         // MODE : CARTE INTERACTIVE
                                         <div className="relative w-full h-[60vh] min-h-[400px] bg-[#1a4c6e] rounded-xl border-4 border-[#3e2723] shadow-2xl overflow-hidden">
                                             
-                                            {/* TITRE FLOTTANT (Fixe) */}
+                                            {/* TITRE FLOTTANT */}
                                             <div className="absolute top-4 left-4 bg-black/60 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10 z-20 pointer-events-none shadow-lg">
                                                 🗺️ GRAND LINE
                                             </div>
@@ -1649,14 +1649,14 @@ const handleLogin = async () => {
                                                 onMouseLeave={onMouseUp}
                                             >
                                                 {/* CONTENU GÉANT (LA CARTE) */}
-                                                {/* min-w définit la taille réelle de la carte zoomée. Ajuste 1800px si besoin. */}
-                                                <div className="relative min-w-[1800px] min-h-[1000px]">
+                                                {/* Ratio 2:1 forcé (2000x1000) pour voir les bords */}
+                                                <div className="relative min-w-[2000px] min-h-[1000px]">
                                                     
-                                                    {/* IMAGE */}
+                                                    {/* IMAGE (object-fill pour tout afficher sans rogner) */}
                                                     <img 
                                                         src="/world_map.jpg" 
                                                         alt="Carte du Monde"
-                                                        className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                                                        className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none"
                                                         draggable="false"
                                                     />
                                                     
@@ -1669,7 +1669,7 @@ const handleLogin = async () => {
                                                             <button
                                                                 key={i}
                                                                 onClick={(e) => { e.stopPropagation(); setSelectedDest(dest); }}
-                                                                onMouseDown={(e) => e.stopPropagation()} // Empêche le drag quand on clique sur un point
+                                                                onMouseDown={(e) => e.stopPropagation()} 
                                                                 className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20 z-10
                                                                 ${isLocked ? 'grayscale opacity-70 scale-75' : 'cursor-pointer'}`}
                                                                 style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
@@ -1689,9 +1689,9 @@ const handleLogin = async () => {
                                                 </div>
                                             </div>
 
-                                            {/* POP-UP DÉTAILS (FIXE EN BAS) */}
+                                            {/* POP-UP DÉTAILS */}
                                             {selectedDest && (
-                                                <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-30 flex flex-col md:flex-row gap-4 items-center md:items-start shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                                                <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-40 flex flex-col md:flex-row gap-4 items-center md:items-start shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
                                                     <div className="flex-1 text-center md:text-left">
                                                         <h3 className="text-xl font-black text-white uppercase leading-none mb-1">{selectedDest.nom}</h3>
                                                         <p className="text-xs text-slate-400 mb-2 font-bold tracking-wider">{selectedDest.region}</p>
