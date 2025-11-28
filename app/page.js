@@ -118,6 +118,11 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [explorationLoading, setExplorationLoading] = useState(false);
 
+
+  const [chatScope, setChatScope] = useState('GENERAL'); // GENERAL, FACTION, EQUIPAGE
+  const [messages, setMessages] = useState([]);
+  const [inputChat, setInputChat] = useState("");
+
   const [activeTab, setActiveTab] = useState(null); 
   const [notification, setNotification] = useState(null); 
   const [invFilter, setInvFilter] = useState('TOUT');
@@ -360,6 +365,70 @@ const chargerBoutique = async () => {
           
       setMembresEquipage(mb || []);
   };
+  // --- LOGIQUE TCHAT ---
+  
+  // Calcul du nom technique du canal pour la base de données
+  const getCanalID = () => {
+      if (chatScope === 'GENERAL') return 'GLOBAL';
+      if (chatScope === 'FACTION') return `FACTION_${joueur.faction}`;
+      if (chatScope === 'EQUIPAGE') return `EQUIPAGE_${joueur.equipage_id}`;
+      return 'GLOBAL';
+  };
+
+  // Charger les anciens messages
+  const chargerMessages = async () => {
+      const canal = getCanalID();
+      // On ne charge rien si on n'a pas accès (ex: pas d'équipage)
+      if (chatScope === 'EQUIPAGE' && !joueur.equipage_id) { setMessages([]); return; }
+      
+      const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('canal', canal)
+          .order('date_envoi', { ascending: false }) // Plus récents en premier
+          .limit(50);
+      
+      setMessages(data ? data.reverse() : []); // On inverse pour afficher du haut vers le bas
+  };
+
+  // Envoyer un message
+  const envoyerMessage = async (e) => {
+      e.preventDefault();
+      if (!inputChat.trim()) return;
+      
+      const { data } = await supabase.rpc('envoyer_chat', { _contenu: inputChat, _scope: chatScope });
+      
+      if (data.success) {
+          setInputChat(""); // Vider le champ
+          // Le message apparaîtra grâce au Realtime, pas besoin de recharger manuellement
+      } else {
+          notify(data.message, "error");
+      }
+  };
+
+  // Abonnement Temps Réel (Dès qu'on change d'onglet de tchat)
+  useEffect(() => {
+      if (activeTab !== 'tchat') return;
+
+      chargerMessages(); // Charger l'historique
+
+      const canal = getCanalID();
+      console.log("Abonnement au canal :", canal);
+
+      const channel = supabase
+          .channel('tchat_room')
+          .on(
+              'postgres_changes',
+              { event: 'INSERT', schema: 'public', table: 'messages', filter: `canal=eq.${canal}` },
+              (payload) => {
+                  // Nouveau message reçu en direct !
+                  setMessages((current) => [...current, payload.new]);
+              }
+          )
+          .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+  }, [activeTab, chatScope, joueur]); // Se relance si on change de canal ou de joueur
   const chargerBanque = async () => {
       const { data } = await supabase.from('banque_logs').select('*').eq('equipage_id', joueur.equipage_id).order('date_log', { ascending: false }).limit(20);
       setBanqueLogs(data || []);
@@ -1031,6 +1100,7 @@ const handleLogin = async () => {
                         { id: 'atelier', icon: '🔨', label: 'Craft', color: 'hover:bg-slate-600/20 hover:text-slate-400 hover:border-slate-600' },
                         { id: 'casino', icon: '🎰', label: 'Jeux', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' },
                         { id: 'classement', icon: '🏆', label: 'Top', color: 'hover:bg-yellow-600/20 hover:text-yellow-400 hover:border-yellow-600' },
+                        { id: 'tchat', icon: '💬', label: 'Tchat', color: 'hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500' },
                     ].map(btn => (
                         <button key={btn.id} onClick={() => setActiveTab(btn.id)} className={`h-20 w-20 rounded-xl border bg-slate-800/50 backdrop-blur flex flex-col items-center justify-center gap-1 transition-all active:scale-95 group relative ${activeTab === btn.id ? `${theme.btnPrimary} border-white/50 shadow-lg` : `border-slate-700 ${theme.textDim} ${btn.color}`}`}>
                             <span className="text-2xl lg:group-hover:scale-110 transition-transform">{btn.icon}</span>
@@ -1118,6 +1188,7 @@ const handleLogin = async () => {
                             { id: 'casino', icon: '🎰', label: 'Jeux' },
                             { id: 'atelier', icon: '🔨', label: 'Craft' },
                             { id: 'classement', icon: '🏆', label: 'Top' },
+                            { id: 'tchat', icon: '💬', label: 'Tchat', color: 'hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500' },
                         ].map((btn, index) => (
                             <button 
                                 key={index}
@@ -1425,6 +1496,70 @@ const handleLogin = async () => {
                                             )
                                         })}
                                     </div>
+                                </div>
+                            )}
+                            {/* TCHAT MULTI-CANAUX */}
+                            {activeTab === 'tchat' && (
+                                <div className="space-y-4 h-full flex flex-col">
+                                    
+                                    {/* Onglets Canaux */}
+                                    <div className="flex p-1 bg-black/30 rounded-lg shrink-0">
+                                        <button onClick={() => setChatScope('GENERAL')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${chatScope === 'GENERAL' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}>🌍 Général</button>
+                                        <button onClick={() => setChatScope('FACTION')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${chatScope === 'FACTION' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}>🏴 Faction</button>
+                                        <button onClick={() => setChatScope('EQUIPAGE')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${chatScope === 'EQUIPAGE' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}>⚓ Équipage</button>
+                                    </div>
+
+                                    {/* Zone des Messages */}
+                                    <div className="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 overflow-y-auto custom-scrollbar flex flex-col gap-3 min-h-[300px]">
+                                        {/* Message de bienvenue ou d'erreur si pas accès */}
+                                        {chatScope === 'EQUIPAGE' && !joueur.equipage_id ? (
+                                            <div className="text-center text-slate-500 my-auto italic">Rejoignez un équipage pour accéder à ce canal.</div>
+                                        ) : messages.length === 0 ? (
+                                            <div className="text-center text-slate-600 my-auto text-xs">Aucun message... Soyez le premier !</div>
+                                        ) : (
+                                            messages.map((msg) => {
+                                                const isMe = msg.joueur_id === session.user.id;
+                                                // Couleur pseudo selon faction
+                                                let nameColor = "text-slate-400";
+                                                if(msg.faction === 'Pirate') nameColor = "text-red-400";
+                                                if(msg.faction === 'Marine') nameColor = "text-cyan-400";
+                                                if(msg.faction === 'Révolutionnaire') nameColor = "text-emerald-400";
+
+                                                return (
+                                                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                                        <div className="flex items-baseline gap-2 mb-0.5">
+                                                            <span className={`text-[10px] font-bold ${nameColor}`}>{msg.pseudo}</span>
+                                                            <span className="text-[8px] text-slate-600">{new Date(msg.date_envoi).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                        </div>
+                                                        <div className={`px-3 py-2 rounded-lg text-sm max-w-[80%] break-words ${isMe ? 'bg-slate-700 text-white rounded-tr-none' : 'bg-black/60 text-slate-200 rounded-tl-none border border-white/10'}`}>
+                                                            {msg.contenu}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })
+                                        )}
+                                        {/* Ancre pour scroll automatique en bas (optionnel) */}
+                                        <div id="chat-bottom"></div>
+                                    </div>
+
+                                    {/* Zone de Saisie */}
+                                    <form onSubmit={envoyerMessage} className="flex gap-2 shrink-0">
+                                        <input 
+                                            type="text" 
+                                            value={inputChat}
+                                            onChange={(e) => setInputChat(e.target.value)}
+                                            placeholder={`Message ${chatScope === 'GENERAL' ? 'au monde' : chatScope === 'FACTION' ? 'à la faction' : 'à l\'équipage'}...`}
+                                            className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-white outline-none"
+                                            disabled={chatScope === 'EQUIPAGE' && !joueur.equipage_id}
+                                        />
+                                        <button 
+                                            type="submit" 
+                                            disabled={!inputChat.trim() || (chatScope === 'EQUIPAGE' && !joueur.equipage_id)}
+                                            className={`px-4 rounded-lg font-bold text-xl ${theme.btnPrimary}`}
+                                        >
+                                            ➤
+                                        </button>
+                                    </form>
                                 </div>
                             )}
                             {/* ENTRAINEMENT HAKI (DANS LE DASHBOARD) */}
@@ -2224,6 +2359,7 @@ const handleLogin = async () => {
                             { id: 'casino', icon: '🎰', label: 'Jeux' },
                             { id: 'atelier', icon: '🔨', label: 'Craft' },
                             { id: 'classement', icon: '🏆', label: 'Top' },
+                            { id: 'tchat', icon: '💬', label: 'Tchat', color: 'hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500' },
                         ].map((btn, index) => (
                             <button 
                                 key={index}
