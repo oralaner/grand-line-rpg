@@ -118,6 +118,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [explorationLoading, setExplorationLoading] = useState(false);
 
+  const [quetes, setQuetes] = useState([]);
+  const [showQuetes, setShowQuetes] = useState(false); // Pour ouvrir/fermer le journal
 
   const [chatScope, setChatScope] = useState('GENERAL'); // GENERAL, FACTION, EQUIPAGE
   const [messages, setMessages] = useState([]);
@@ -208,6 +210,7 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       if (session) await fetchGlobalData(session.user.id);
+      verifierQuetes();
       const { data: allComp } = await supabase.from('competences').select('*').eq('exclusif_pnj', false).order('puissance');
       setCompetences(allComp || []);
     };
@@ -235,6 +238,7 @@ useEffect(() => {
           if (crewTab === 'MEMBERS') chargerCandidatures();
       }
   }, [activeTab, crewTab, joueur]);
+  
   useEffect(() => {
       if (activeTab === 'equipage') {
           chargerEquipage();
@@ -243,6 +247,23 @@ useEffect(() => {
           if (crewTab === 'MEMBERS') chargerCandidatures();
       }
   }, [activeTab, crewTab, joueur]);
+
+  const verifierQuetes = async () => {
+      // 1. Générer si pas encore fait aujourd'hui
+      await supabase.rpc('generer_quetes_journalieres');
+      // 2. Charger
+      const { data } = await supabase.from('joueur_quetes').select('*, quetes_ref(*)').eq('joueur_id', session.user.id);
+      setQuetes(data || []);
+  };
+
+  const recolterRecompense = async (id) => {
+      const { data } = await supabase.rpc('recolter_quete', { _quete_id: id });
+      if (data.success) { 
+          notify(data.message, "success"); 
+          fetchJoueur(session.user.id); 
+          verifierQuetes(); 
+      } else { notify(data.message, "error"); }
+  };
   // --- CREATION AUTOMATIQUE COTE CLIENT ---
   // --- CREATION AUTOMATIQUE COTE CLIENT (CORRIGÉE) ---
   const creerNouveauJoueur = async (user) => {
@@ -909,7 +930,68 @@ const handleLogin = async () => {
             <span className="text-sm md:text-base">{notification.message}</span>
         </div>
       )}
+{/* BOUTON NEWS COO (QUOTIDIENNES) */}
+      {session && (
+          <button 
+              onClick={() => setShowQuetes(!showQuetes)}
+              className="fixed top-4 right-4 z-[90] bg-white text-black p-2 rounded-full shadow-xl border-2 border-slate-900 hover:scale-110 transition flex items-center justify-center w-12 h-12"
+              title="Journal de Quêtes"
+          >
+              <span className="text-2xl">🐦</span>
+              {/* Badge si récompense dispo */}
+              {quetes.some(q => q.est_terminee && !q.est_recoltee) && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-bounce border border-white"></span>
+              )}
+          </button>
+      )}
 
+      {/* MODALE JOURNAL DE QUÊTES */}
+      {showQuetes && (
+          <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-[#f4e4bc] w-full max-w-md p-6 rounded-xl shadow-2xl border-4 border-[#3e2723] relative rotate-1">
+                  <button onClick={() => setShowQuetes(false)} className="absolute top-2 right-2 text-[#3e2723] font-bold text-xl hover:scale-110">✕</button>
+                  
+                  <h2 className="text-3xl font-[Pirata One] text-[#3e2723] text-center mb-2 uppercase border-b-2 border-[#3e2723] pb-2">
+                      News Coo
+                  </h2>
+                  <p className="text-center text-xs text-[#5d4037] italic mb-4">L'actualité du jour !</p>
+
+                  <div className="space-y-3">
+                      {quetes.map(q => (
+                          <div key={q.id} className={`p-3 border-2 border-[#8d6e63] rounded-lg bg-[#fff8e1] relative ${q.est_recoltee ? 'opacity-50 grayscale' : ''}`}>
+                              <div className="flex justify-between items-start mb-1">
+                                  <span className="font-bold text-[#3e2723] text-sm">{q.quetes_ref.description}</span>
+                                  <span className="text-xs font-mono text-[#5d4037]">{q.avancement} / {q.quetes_ref.objectif_qte}</span>
+                              </div>
+                              
+                              {/* Barre de progression */}
+                              <div className="w-full h-2 bg-[#d7ccc8] rounded-full overflow-hidden mb-2">
+                                  <div className="h-full bg-green-600" style={{ width: `${Math.min(100, (q.avancement / q.quetes_ref.objectif_qte) * 100)}%` }}></div>
+                              </div>
+
+                              {/* Récompenses & Action */}
+                              <div className="flex justify-between items-center">
+                                  <div className="text-[10px] font-bold text-[#5d4037] flex gap-2">
+                                      <span>✨ {q.quetes_ref.gain_xp} XP</span>
+                                      <span>💰 {q.quetes_ref.gain_berrys} B</span>
+                                  </div>
+                                  
+                                  {q.est_terminee && !q.est_recoltee ? (
+                                      <button onClick={() => recolterRecompense(q.id)} className="bg-[#e65100] text-white text-xs font-bold px-3 py-1 rounded shadow hover:bg-[#bf360c] animate-pulse">
+                                          RÉCOLTER
+                                      </button>
+                                  ) : q.est_recoltee ? (
+                                      <span className="text-green-700 text-xs font-bold">✓ FAIT</span>
+                                  ) : (
+                                      <span className="text-slate-400 text-xs">En cours...</span>
+                                  )}
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      )}
       {/* ECRAN DE CONNEXION */}
       {!session ? (
         <div className="z-10 text-center bg-slate-800/80 p-6 md:p-10 rounded-3xl border border-slate-700 backdrop-blur-xl shadow-2xl max-w-md w-[90%] mx-4">
