@@ -930,68 +930,99 @@ const handleLogin = async () => {
             <span className="text-sm md:text-base">{notification.message}</span>
         </div>
       )}
-{/* BOUTON NEWS COO (QUOTIDIENNES) */}
-      {session && (
-          <button 
-              onClick={() => setShowQuetes(!showQuetes)}
-              className="fixed top-4 right-4 z-[90] bg-white text-black p-2 rounded-full shadow-xl border-2 border-slate-900 hover:scale-110 transition flex items-center justify-center w-12 h-12"
-              title="Journal de Quêtes"
-          >
-              <span className="text-2xl">🐦</span>
-              {/* Badge si récompense dispo */}
-              {quetes.some(q => q.est_terminee && !q.est_recoltee) && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-bounce border border-white"></span>
-              )}
-          </button>
-      )}
+            {/* BOUTON NEWS COO (QUOTIDIENNES) */}
+            {session && (
+                <button 
+                    onClick={() => { setShowQuetes(!showQuetes); verifierQuetes(); }}
+                    className={`fixed top-4 right-4 z-[90] p-2 rounded-full shadow-xl border-2 transition flex items-center justify-center w-12 h-12 group
+                    ${theme.panel} ${theme.border} hover:scale-110`}
+                    title="Journal de Quêtes"
+                >
+                    <span className="text-2xl filter drop-shadow-md group-hover:-translate-y-1 transition-transform">🐦</span>
+                    {/* Badge si récompense dispo */}
+                    {quetes.some(q => q.est_terminee && !q.est_recoltee) && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-bounce border border-slate-900 shadow-lg"></span>
+                    )}
+                </button>
+            )}
 
-      {/* MODALE JOURNAL DE QUÊTES */}
-      {showQuetes && (
-          <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 animate-fadeIn">
-              <div className="bg-[#f4e4bc] w-full max-w-md p-6 rounded-xl shadow-2xl border-4 border-[#3e2723] relative rotate-1">
-                  <button onClick={() => setShowQuetes(false)} className="absolute top-2 right-2 text-[#3e2723] font-bold text-xl hover:scale-110">✕</button>
-                  
-                  <h2 className="text-3xl font-[Pirata One] text-[#3e2723] text-center mb-2 uppercase border-b-2 border-[#3e2723] pb-2">
-                      News Coo
-                  </h2>
-                  <p className="text-center text-xs text-[#5d4037] italic mb-4">L'actualité du jour !</p>
+            {/* MODALE JOURNAL DE QUÊTES (THEME FACTION) */}
+            {showQuetes && (
+                <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+                    <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl border-2 relative overflow-hidden ${theme.panel} ${theme.border}`}>
+                        
+                        {/* Fond décoratif */}
+                        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
 
-                  <div className="space-y-3">
-                      {quetes.map(q => (
-                          <div key={q.id} className={`p-3 border-2 border-[#8d6e63] rounded-lg bg-[#fff8e1] relative ${q.est_recoltee ? 'opacity-50 grayscale' : ''}`}>
-                              <div className="flex justify-between items-start mb-1">
-                                  <span className="font-bold text-[#3e2723] text-sm">{q.quetes_ref.description}</span>
-                                  <span className="text-xs font-mono text-[#5d4037]">{q.avancement} / {q.quetes_ref.objectif_qte}</span>
-                              </div>
-                              
-                              {/* Barre de progression */}
-                              <div className="w-full h-2 bg-[#d7ccc8] rounded-full overflow-hidden mb-2">
-                                  <div className="h-full bg-green-600" style={{ width: `${Math.min(100, (q.avancement / q.quetes_ref.objectif_qte) * 100)}%` }}></div>
-                              </div>
+                        <button onClick={() => setShowQuetes(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-xl transition z-10">✕</button>
+                        
+                        <div className="text-center mb-6 relative z-10">
+                            <h2 className={`text-3xl font-black uppercase tracking-widest drop-shadow-lg ${theme.textMain}`}>
+                                News Coo
+                            </h2>
+                            <p className={`text-xs italic mt-1 ${theme.textDim}`}>L'actualité du jour !</p>
+                        </div>
 
-                              {/* Récompenses & Action */}
-                              <div className="flex justify-between items-center">
-                                  <div className="text-[10px] font-bold text-[#5d4037] flex gap-2">
-                                      <span>✨ {q.quetes_ref.gain_xp} XP</span>
-                                      <span>💰 {q.quetes_ref.gain_berrys} B</span>
-                                  </div>
-                                  
-                                  {q.est_terminee && !q.est_recoltee ? (
-                                      <button onClick={() => recolterRecompense(q.id)} className="bg-[#e65100] text-white text-xs font-bold px-3 py-1 rounded shadow hover:bg-[#bf360c] animate-pulse">
-                                          RÉCOLTER
-                                      </button>
-                                  ) : q.est_recoltee ? (
-                                      <span className="text-green-700 text-xs font-bold">✓ FAIT</span>
-                                  ) : (
-                                      <span className="text-slate-400 text-xs">En cours...</span>
-                                  )}
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              </div>
-          </div>
-      )}
+                        <div className="space-y-3 relative z-10 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                            {quetes.length === 0 ? (
+                                <div className="text-center py-8 text-slate-500">
+                                    <p className="mb-4">Aucune mission pour le moment...</p>
+                                    <button onClick={verifierQuetes} className={`px-4 py-2 rounded-lg text-xs font-bold ${theme.btnSecondary}`}>
+                                        🔄 Forcer l'arrivée du Journal
+                                    </button>
+                                </div>
+                            ) : (
+                                quetes.map(q => {
+                                    const progress = Math.min(100, (q.avancement / q.quetes_ref.objectif_qte) * 100);
+                                    const isFinished = q.avancement >= q.quetes_ref.objectif_qte;
+
+                                    return (
+                                        <div key={q.id} className={`p-4 border rounded-xl relative transition group hover:bg-white/5 ${q.est_recoltee ? 'border-slate-700 bg-black/20 opacity-50' : `${theme.borderLow} bg-black/40`}`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={`font-bold text-sm ${q.est_recoltee ? 'text-slate-500 line-through' : 'text-white'}`}>
+                                                    {q.quetes_ref.description}
+                                                </span>
+                                                <span className={`text-xs font-mono font-bold ${isFinished ? 'text-green-400' : theme.textDim}`}>
+                                                    {q.avancement} / {q.quetes_ref.objectif_qte}
+                                                </span>
+                                            </div>
+                                            
+                                            {/* Barre de progression */}
+                                            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden mb-3 border border-white/5">
+                                                <div 
+                                                    className={`h-full transition-all duration-500 ${isFinished ? 'bg-green-500' : theme.barFill}`} 
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
+                                            </div>
+
+                                            {/* Récompenses & Action */}
+                                            <div className="flex justify-between items-center border-t border-white/5 pt-2 mt-2">
+                                                <div className="text-[10px] font-bold flex gap-3">
+                                                    <span className="text-emerald-400">✨ {q.quetes_ref.gain_xp} XP</span>
+                                                    <span className="text-yellow-400">💰 {q.quetes_ref.gain_berrys} B</span>
+                                                </div>
+                                                
+                                                {q.est_terminee && !q.est_recoltee ? (
+                                                    <button 
+                                                        onClick={() => recolterRecompense(q.id)} 
+                                                        className="bg-yellow-500 hover:bg-yellow-400 text-black text-[10px] font-black px-3 py-1.5 rounded shadow-lg animate-pulse uppercase tracking-wider"
+                                                    >
+                                                        RÉCOLTER
+                                                    </button>
+                                                ) : q.est_recoltee ? (
+                                                    <span className="text-slate-500 text-[10px] font-bold border border-slate-700 px-2 py-1 rounded bg-black/20">TERMINÉ</span>
+                                                ) : (
+                                                    <span className={`text-[10px] italic ${theme.textDim}`}>En cours...</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
       {/* ECRAN DE CONNEXION */}
       {!session ? (
         <div className="z-10 text-center bg-slate-800/80 p-6 md:p-10 rounded-3xl border border-slate-700 backdrop-blur-xl shadow-2xl max-w-md w-[90%] mx-4">
