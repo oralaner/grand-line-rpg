@@ -591,14 +591,14 @@ const chargerBoutique = async () => {
   const investirStat = async (statNom) => { const { data, error } = await supabase.rpc('investir_stat', { stat_nom: statNom, points_investis: 1 }); if (!error && data.success) { notify("Stat +1 !", "success"); fetchJoueur(session.user.id); } else notify("Erreur stat", "error"); }
   const gererObjet = async (item, action) => {
       if (action === 'UTILISER') {
-          // CAS SPÉCIAL : FRUIT DU DÉMON
+          
+          // 1. CAS SPÉCIAL : FRUIT DU DÉMON
           if (item.objets.nom.endsWith("no Mi")) {
               const { data, error } = await supabase.rpc('manger_fruit_demon', { _objet_id_inventaire: item.objet_id });
               if (data?.success) { 
                   notify(data.message, "success"); 
                   chargerInventaire(); 
                   fetchJoueur(session.user.id); 
-                  // On recharge les compétences pour voir la nouvelle
                   const { data: mesComp } = await supabase.from('joueur_competences').select('competence_id').eq('joueur_id', session.user.id);
                   setMesCompetences(mesComp ? mesComp.map(c => c.competence_id) : []);
               } else {
@@ -607,7 +607,7 @@ const chargerBoutique = async () => {
               return;
           }
 
-          // CAS CLASSIQUE : POTIONS & COFFRES
+          // 2. CAS CLASSIQUE : POTIONS
           if (item.objets.type_equipement === 'Consommable') { 
               const result = await supabase.rpc('utiliser_consommable', { _objet_id_input: item.objet_id }); 
               if (result?.data?.success) { 
@@ -615,10 +615,18 @@ const chargerBoutique = async () => {
                   await chargerInventaire(); 
                   await fetchJoueur(session.user.id); 
               } else notify(result?.data?.message || "Erreur", "error"); 
-          } else if (item.objets.nom === "Coffre Commun") { 
+          
+          // 3. CAS CLASSIQUE : COFFRES (TOUS TYPES)
+          } else if (item.objets.type_equipement === "Coffre") {  // <--- C'EST ICI QUE J'AI CHANGÉ
               const { data } = await supabase.rpc('ouvrir_coffre', { nom_coffre: item.objets.nom }); 
-              if(data && data.success) { notify(`🎁 Trouvé: ${data.nom_objet}`, "success", 6000); chargerInventaire(); } 
-              else notify(data?.message || "Erreur", "error"); 
+              
+              if(data && data.success) { 
+                  // Notification détaillée avec le butin
+                  notify(`🎁 BUTIN !\nObjet : ${data.loot} (${data.rarete})\nBonus : +${data.xp} XP | +${data.berrys} ฿`, "success", 8000); 
+                  chargerInventaire(); 
+                  fetchJoueur(session.user.id); // Met à jour l'argent et l'XP en haut
+              } 
+              else notify(data?.message || "Erreur coffre", "error"); 
           } 
       }
       else if (action === 'EQUIPER') { const { data } = await supabase.rpc('equiper_objet', { objet_id_input: item.objet_id }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify(data?.message || "Erreur", "error"); }
