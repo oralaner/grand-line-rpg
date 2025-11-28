@@ -146,6 +146,20 @@ export default function Home() {
   const [areneFilter, setAreneFilter] = useState('PVE'); // 'PVP' (Humains) ou 'PVE' (Bots)
 
   const [selectedDest, setSelectedDest] = useState(null); // Pour la pop-up d'île
+  // Pour l'instant, on commence sur East Blue par défaut. 
+  // Plus tard, on pourra sauvegarder ça dans la table 'joueurs'.
+  const [currentMapRegion, setCurrentMapRegion] = useState('East Blue');
+
+  // Configuration des images de cartes (adapte les chemins si besoin)
+  const mapImages = {
+      'East Blue': '/maps/east_blue.jpg',
+      'West Blue': '/maps/west_blue.jpg',
+      'North Blue': '/maps/north_blue.jpg',
+      'South Blue': '/maps/south_blue.jpg',
+      'Paradise': '/maps/paradise.jpg',
+      'New World': '/maps/new_world.jpg',
+  };
+
 
   const [monEquipage, setMonEquipage] = useState(null);
   const [membresEquipage, setMembresEquipage] = useState([]);
@@ -1578,23 +1592,29 @@ const handleLogin = async () => {
                                         </div>
                                     ) : (
                                         // MODE : CARTE (Hauteur forcée ici avec h-[60vh])
-                                        <div className="relative w-full h-[60vh] min-h-[400px] bg-[#1a4c6e] rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl group">
-                                            
+                                            <div className="relative w-full h-[60vh] min-h-[400px] bg-[#1a4c6e] rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl group">                                            
                                             {/* IMAGE DE FOND */}
                                             <img 
-                                                src="" 
-                                                alt="Carte du Monde"
-                                                className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-700"
-                                                onError={(e) => { e.target.style.display = 'none'; }} // Cache l'image si elle plante pour voir le fond bleu
+                                            src={mapImages[currentMapRegion] || "/map.jpg"} 
+                                            alt={`Carte de ${currentMapRegion}`}
+                                            className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-700"
+                                            onError={(e) => { e.target.style.display = 'none'; }}
                                             />
                                             
                                             {/* TITRE */}
-                                            <div className="absolute top-4 left-4 bg-black/50 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10 z-10 pointer-events-none">
-                                                🗺️ GRAND LINE
+                                            <div className="absolute top-4 left-4 bg-black/60 px-4 py-2 rounded-lg text-white backdrop-blur-md border border-white/10 z-10 pointer-events-none">
+                                            <span className="text-xs text-slate-400 font-bold uppercase block mb-1">Région Actuelle</span>
+                                            <span className="text-xl font-black uppercase text-yellow-400">🗺️ {currentMapRegion}</span>
                                             </div>
 
+                                            <div className="absolute top-4 right-4 flex flex-col gap-1 z-20">
+                                            <button onClick={() => setCurrentMapRegion('East Blue')} className="bg-blue-600 text-[8px] px-2 py-1 rounded text-white">East</button>
+                                            <button onClick={() => setCurrentMapRegion('Paradise')} className="bg-red-600 text-[8px] px-2 py-1 rounded text-white">Paradise</button>
+                                            </div>
                                             {/* PINS */}
-                                            {destinations.map((dest, i) => {
+                                            {destinations
+                                            .filter(dest => dest.region === currentMapRegion) // <--- LE FILTRE EST ICI
+                                            .map((dest, i) => {
                                                 const isLocked = joueur.niveau < dest.niveau_requis;
                                                 const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
                                                 
