@@ -1577,13 +1577,13 @@ const handleLogin = async () => {
                                                                  
                                                                  {/* CORRECTION ICI : Bouton pour Consommable OU Fruit */}
                                                                  {(item.objets.type_equipement === 'Consommable' || isFruit) && (
-                                                                     <button 
-                                                                         onClick={() => gererObjet(item, 'UTILISER')} 
-                                                                         className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
-                                                                     >
-                                                                         {isFruit ? 'MANGER 🍎' : 'BOIRE 🧪'}
-                                                                     </button>
-                                                                 )}
+                                                                 <button 
+                                                                     onClick={() => gererObjet(item, 'UTILISER')} 
+                                                                     className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
+                                                                 >
+                                                                     {isFruit ? 'MANGER 🍎' : item.objets.nom.includes('Parchemin') ? 'LIRE 📜' : 'BOIRE 🧪'}
+                                                                 </button>
+                                                             )}
                                                                  
                                                                  {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement) && (
                                                                      <button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}>Équiper</button>
