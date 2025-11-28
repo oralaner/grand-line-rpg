@@ -1515,7 +1515,6 @@ const handleLogin = async () => {
                                         <button onClick={() => setChatScope('GENERAL')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${chatScope === 'GENERAL' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}>🌍 Général</button>
                                         <button onClick={() => setChatScope('FACTION')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${chatScope === 'FACTION' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}>🏴 Faction</button>
                                         <button onClick={() => setChatScope('EQUIPAGE')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${chatScope === 'EQUIPAGE' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}>⚓ Équipage</button>
-                                        <button onClick={() => supabase.rpc('admin_purger_chat')} className="text-red-500 text-xs">🗑️ Purger le Chat</button>
                                     </div>
 
                                     {/* Zone des Messages */}
