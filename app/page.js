@@ -2783,7 +2783,48 @@ const handleLogin = async () => {
                       </div>
                   </div>
             )}
+{/* MODALE TITRES */}
+            {showTitresModal && (
+                <div className="fixed inset-0 bg-black/90 z-[150] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+                    <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl border relative overflow-hidden ${theme.panel} ${theme.border}`}>
+                        <button onClick={() => setShowTitresModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-xl">✕</button>
+                        
+                        <h2 className={`text-2xl font-black text-center mb-6 uppercase ${theme.textMain}`}>Mes Titres</h2>
+                        
+                        <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            <button 
+                                onClick={() => changerTitre(null)} 
+                                className={`w-full text-left p-3 rounded-lg border border-slate-700 hover:bg-white/5 transition flex justify-between items-center ${!joueur.titre_actuel ? 'bg-white/10 border-white/30' : 'text-slate-500'}`}
+                            >
+                                <span>(Aucun titre)</span>
+                            </button>
 
+                            {mesTitres.length === 0 ? (
+                                <p className="text-center text-slate-500 text-xs italic py-4">Aucun titre débloqué pour le moment.<br/>Jouez pour en gagner !</p>
+                            ) : (
+                                mesTitres.map(t => (
+                                    <button 
+                                        key={t.id} 
+                                        onClick={() => changerTitre(t.titres_ref.nom)} 
+                                        className={`w-full text-left p-3 rounded-lg border transition flex justify-between items-center group
+                                        ${joueur.titre_actuel === t.titres_ref.nom 
+                                            ? `bg-yellow-900/20 border-yellow-500/50` 
+                                            : `border-slate-700 hover:bg-white/5`}`}
+                                    >
+                                        <div>
+                                            <p className={`font-bold text-sm ${joueur.titre_actuel === t.titres_ref.nom ? 'text-yellow-400' : 'text-white'}`}>
+                                                « {t.titres_ref.nom} »
+                                            </p>
+                                            <p className="text-[10px] text-slate-500">{t.titres_ref.description}</p>
+                                        </div>
+                                        {joueur.titre_actuel === t.titres_ref.nom && <span className="text-yellow-400 text-xs">✔</span>}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
       {/* --- INTERFACE DE COMBAT (RESPONSIVE: Stacked on mobile) --- */}
       {activeTab === 'combat_actif' && combatSession && (
         <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-fadeIn h-full w-full">
