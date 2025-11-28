@@ -1427,6 +1427,81 @@ const handleLogin = async () => {
                                     </div>
                                 </div>
                             )}
+                            {/* ENTRAINEMENT HAKI (DANS LE DASHBOARD) */}
+                            {activeTab === 'haki' && (
+                                <div className="space-y-6 animate-fadeIn">
+                                    
+                                    {/* HEADER */}
+                                    <div className={`p-6 rounded-xl text-center border-b-4 shadow-lg ${theme.btnPrimary}`}>
+                                        <h2 className="text-2xl md:text-3xl font-black text-white uppercase drop-shadow-md">Maîtrise du Haki</h2>
+                                        <p className="text-xs md:text-sm opacity-90 mt-1 font-medium">Éveillez votre potentiel latent.</p>
+                                    </div>
+
+                                    {/* LISTE DES HAKI */}
+                                    <div className="grid grid-cols-1 gap-4">
+                                        
+                                        {/* OBSERVATION */}
+                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden transition-all hover:scale-[1.01] ${joueur.haki_observation ? 'border-cyan-500 bg-cyan-900/20' : 'border-slate-700 bg-black/40'}`}>
+                                            <div className="flex justify-between items-center relative z-10">
+                                                <div>
+                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_observation ? 'text-cyan-400' : 'text-slate-400'}`}>Kenbunshoku</h3>
+                                                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Haki de l'Observation</p>
+                                                    <p className="text-xs mt-2 text-slate-300">
+                                                        <span className="text-cyan-400 font-bold">Effet :</span> Voir les PV exacts + Bonus Esquive (Agilité x1.5)
+                                                    </p>
+                                                </div>
+                                                {joueur.haki_observation ? (
+                                                    <span className="text-4xl filter drop-shadow-lg">👁️</span>
+                                                ) : (
+                                                    <button onClick={() => eveillerHaki('OBSERVATION')} className="bg-slate-800 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600 shadow-lg active:scale-95 transition">
+                                                        ÉVEILLER<br/><span className="text-yellow-500">20k ฿</span> • Niv 20
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* ARMEMENT */}
+                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden transition-all hover:scale-[1.01] ${joueur.haki_armement ? 'border-purple-500 bg-purple-900/20' : 'border-slate-700 bg-black/40'}`}>
+                                            <div className="flex justify-between items-center relative z-10">
+                                                <div>
+                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_armement ? 'text-purple-400' : 'text-slate-400'}`}>Busoshoku</h3>
+                                                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Haki de l'Armement</p>
+                                                    <p className="text-xs mt-2 text-slate-300">
+                                                        <span className="text-purple-400 font-bold">Effet :</span> Bonus Dégâts & Défense + Touche les Logias
+                                                    </p>
+                                                </div>
+                                                {joueur.haki_armement ? (
+                                                    <span className="text-4xl filter drop-shadow-lg">🛡️</span>
+                                                ) : (
+                                                    <button onClick={() => eveillerHaki('ARMEMENT')} className="bg-slate-800 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600 shadow-lg active:scale-95 transition">
+                                                        ÉVEILLER<br/><span className="text-yellow-500">50k ฿</span> • Niv 40
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* ROIS */}
+                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden transition-all hover:scale-[1.01] ${joueur.haki_rois ? 'border-red-500 bg-red-900/20' : 'border-slate-700 bg-black/40'}`}>
+                                            <div className="flex justify-between items-center relative z-10">
+                                                <div>
+                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_rois ? 'text-red-500' : 'text-slate-400'}`}>Haoshoku</h3>
+                                                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Haki des Rois</p>
+                                                    <p className="text-xs mt-2 text-slate-300">
+                                                        <span className="text-red-400 font-bold">Effet :</span> Chance d'étourdir l'ennemi à chaque tour.
+                                                    </p>
+                                                </div>
+                                                {joueur.haki_rois ? (
+                                                    <span className="text-4xl filter drop-shadow-lg">👑</span>
+                                                ) : (
+                                                    <button onClick={() => eveillerHaki('ROIS')} className="bg-slate-800 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600 shadow-lg active:scale-95 transition">
+                                                        ÉVEILLER<br/><span className="text-yellow-500">1M ฿</span> • Niv 80
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 {/* EQUIPAGE (GUILDE) */}
                             {/* ONGLET EQUIPAGE V2 */}
                             {activeTab === 'equipage' && (
@@ -2166,77 +2241,7 @@ const handleLogin = async () => {
                     </div>
                 </div>
             )}
-            {/* ENTRAINEMENT HAKI */}
-                            {activeTab === 'haki' && (
-                                <div className="space-y-6 animate-fadeIn">
-                                    <div className={`p-6 rounded-xl text-center border-b-4 ${theme.btnPrimary}`}>
-                                        <h2 className="text-3xl font-black text-white uppercase drop-shadow-md">Maîtrise du Haki</h2>
-                                        <p className="text-xs opacity-80 mt-1">Éveillez votre potentiel latent.</p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {/* OBSERVATION */}
-                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden ${joueur.haki_observation ? 'border-cyan-500 bg-cyan-900/20' : 'border-slate-700 bg-black/40'}`}>
-                                            <div className="flex justify-between items-center relative z-10">
-                                                <div>
-                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_observation ? 'text-cyan-400' : 'text-slate-400'}`}>Kenbunshoku</h3>
-                                                    <p className="text-[10px] text-slate-300">Haki de l'Observation</p>
-                                                    <p className="text-xs mt-2 text-slate-400">
-                                                        <span className="text-cyan-300">Effet :</span> Voir les PV/Stats ennemis + Bonus Esquive (Agilité x1.5)
-                                                    </p>
-                                                </div>
-                                                {joueur.haki_observation ? (
-                                                    <span className="text-3xl">👁️</span>
-                                                ) : (
-                                                    <button onClick={() => eveillerHaki('OBSERVATION')} className="bg-slate-800 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600">
-                                                        ÉVEILLER<br/><span className="text-yellow-500">20k ฿</span> • Niv 20
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* ARMEMENT */}
-                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden ${joueur.haki_armement ? 'border-purple-500 bg-purple-900/20' : 'border-slate-700 bg-black/40'}`}>
-                                            <div className="flex justify-between items-center relative z-10">
-                                                <div>
-                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_armement ? 'text-purple-400' : 'text-slate-400'}`}>Busoshoku</h3>
-                                                    <p className="text-[10px] text-slate-300">Haki de l'Armement</p>
-                                                    <p className="text-xs mt-2 text-slate-400">
-                                                        <span className="text-purple-300">Effet :</span> Bonus Dégâts & Défense + Touche les Logias
-                                                    </p>
-                                                </div>
-                                                {joueur.haki_armement ? (
-                                                    <span className="text-3xl">🛡️</span>
-                                                ) : (
-                                                    <button onClick={() => eveillerHaki('ARMEMENT')} className="bg-slate-800 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600">
-                                                        ÉVEILLER<br/><span className="text-yellow-500">50k ฿</span> • Niv 40
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* ROIS */}
-                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden ${joueur.haki_rois ? 'border-red-500 bg-red-900/20' : 'border-slate-700 bg-black/40'}`}>
-                                            <div className="flex justify-between items-center relative z-10">
-                                                <div>
-                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_rois ? 'text-red-500' : 'text-slate-400'}`}>Haoshoku</h3>
-                                                    <p className="text-[10px] text-slate-300">Haki des Rois</p>
-                                                    <p className="text-xs mt-2 text-slate-400">
-                                                        <span className="text-red-300">Effet :</span> Chance d'étourdir l'ennemi à chaque tour.
-                                                    </p>
-                                                </div>
-                                                {joueur.haki_rois ? (
-                                                    <span className="text-3xl">👑</span>
-                                                ) : (
-                                                    <button onClick={() => eveillerHaki('ROIS')} className="bg-slate-800 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600">
-                                                        ÉVEILLER<br/><span className="text-yellow-500">1M ฿</span> • Niv 80
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+            
             {/* MODALE TRANSACTION (AVEC CHOIX DU PRIX) */}
             {transaction && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
