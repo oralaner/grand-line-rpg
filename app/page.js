@@ -2509,8 +2509,15 @@ const handleLogin = async () => {
                                                             {j.avatar_url ? <img src={j.avatar_url} className="w-full h-full object-cover"/> : <div className="bg-slate-800 w-full h-full"></div>}
                                                         </div>
                                                         <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                            <p className={`font-bold text-xs md:text-sm truncate ${isMe ? "text-white" : "text-slate-300"}`}>{j.pseudo}</p>
-                                                            <p className="text-[10px] text-slate-500">{j.faction || "Neutre"}</p>
+                                                            <div className="flex flex-col md:flex-row md:items-baseline gap-0 md:gap-2">
+                                                                <p className={`font-bold text-xs md:text-sm truncate ${isMe ? "text-white" : "text-slate-300"}`}>{j.pseudo}</p>
+                                                                {j.titre_actuel && (
+                                                                    <span className="text-[9px] md:text-[10px] text-yellow-500/90 italic truncate max-w-[120px]">
+                                                                        « {j.titre_actuel} »
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[9px] md:text-[10px] text-slate-500 mt-0.5">{j.faction || "Neutre"}</p>
                                                         </div>
                                                         <div className="text-right">
                                                             {leaderboardType === 'PVP' ? (
@@ -2600,23 +2607,27 @@ const handleLogin = async () => {
                                 </div>
                             )}
                     {/* ARENE */}
-                    {activeTab === 'arene' && (
+                    {/* ARENE */}
+                            {activeTab === 'arene' && (
                                 <div className="space-y-4 animate-fadeIn">
                                     <div className={`p-4 rounded-xl shadow-lg mb-4 border-b-4 ${theme.btnPrimary}`}>
                                         <h2 className="text-lg md:text-xl font-black italic uppercase">Bienvenue au Colisée !</h2>
                                         <p className="opacity-90 text-xs">Choisissez vos adversaires !</p>
                                     </div>
+
                                     <div className="flex p-1 bg-black/30 rounded-lg mb-4">
                                         <button onClick={() => setAreneFilter('PVE')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${areneFilter === 'PVE' ? theme.btnPrimary : `${theme.textDim} hover:text-white`}`}>🤖 PNJs (PvE)</button>
                                         <button onClick={() => setAreneFilter('PVP')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${areneFilter === 'PVP' ? theme.btnPrimary : `${theme.textDim} hover:text-white`}`}>⚔️ JOUEURS (PvP)</button>
                                     </div>
+
                                     <div className={`border ${theme.border} p-3 rounded-xl text-center mb-2 bg-black/20`}>
                                         <p className={`font-bold text-sm ${theme.textMain}`}>Combats restants : {10 - (joueur.combats_journaliers || 0)} / 10</p>
-                                        <div className="flex justify-center gap-4 text-[14px] mt-1 font-mono">
+                                        <div className="flex justify-center gap-4 text-[10px] mt-1 font-mono">
                                             <span className="text-green-400">V: {joueur.victoires_pve + joueur.victoires_pvp}</span>
                                             <span className="text-red-400">D: {joueur.defaites_pve + joueur.defaites_pvp}</span>
                                         </div>
                                     </div>
+
                                     <div className="space-y-2">
                                         {areneJoueurs.length === 0 ? (
                                             <div className={`text-center py-10 opacity-50 ${theme.textDim}`}>
@@ -2624,7 +2635,7 @@ const handleLogin = async () => {
                                             </div>
                                         ) : (
                                             areneJoueurs.map((adv, i) => {
-                                                const rank = getRankInfo(adv.elo_pvp); 
+                                                const rank = getRankInfo(adv.elo_pvp);
                                                 let factionColor = "text-slate-500";
                                                 if (adv.faction === 'Pirate') factionColor = "text-red-500";
                                                 if (adv.faction === 'Marine') factionColor = "text-cyan-400";
@@ -2641,7 +2652,7 @@ const handleLogin = async () => {
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
                                                                     <span className={`font-black uppercase ${factionColor}`}>{adv.faction || 'Neutre'}</span>
                                                                     <span className="text-slate-600">•</span>
-                                                                    <span className={`font-mono text-[12px] font-bold ${theme.textDim}`}>Niv {adv.niveau}</span>
+                                                                    <span className={`font-mono font-bold ${theme.textDim}`}>Niv {adv.niveau}</span>
                                                                     {(areneFilter === 'PVP' || adv.elo_pvp > 0) && (
                                                                         <>
                                                                             <span className="text-slate-600">•</span>
