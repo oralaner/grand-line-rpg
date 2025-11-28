@@ -1192,6 +1192,12 @@ const handleLogin = async () => {
                          </div>
                         <div className="flex-1 min-w-0">
                             <h2 className={`text-xl md:text-2xl font-black truncate ${theme.textMain}`}>{joueur.pseudo}</h2>
+                            <button 
+                                    onClick={() => { chargerTitres(); setShowTitresModal(true); }}
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded border border-dashed border-slate-600 hover:border-white hover:bg-white/10 transition mt-1 ${joueur.titre_actuel ? 'text-yellow-400 border-yellow-600/50' : 'text-slate-500'}`}
+                                >
+                                    {joueur.titre_actuel ? `« ${joueur.titre_actuel} »` : "+ Choisir un titre"}
+                                </button>
                             <div className={`flex items-center gap-2 text-xs font-bold ${theme.textDim} tracking-widest`}>
                                 <span className={theme.textMain}>{joueur.faction}</span>
                                 <span className="opacity-50">•</span>
@@ -1330,16 +1336,12 @@ const handleLogin = async () => {
                         // --- DASHBOARD ACCUEIL (Visible sur PC par défaut) ---
                         <div className="flex flex-col items-center justify-center w-full h-full animate-fadeIn p-4 overflow-y-auto">
                             
-                            <div className="flex flex-col items-start">
-                                <h2 className={`text-xl md:text-2xl font-black truncate ${theme.textMain}`}>{joueur.pseudo}</h2>
-                                
-                                {/* TITRE CLIQUABLE */}
-                                <button 
-                                    onClick={() => { chargerTitres(); setShowTitresModal(true); }}
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded border border-dashed border-slate-600 hover:border-white hover:bg-white/10 transition mt-1 ${joueur.titre_actuel ? 'text-yellow-400 border-yellow-600/50' : 'text-slate-500'}`}
-                                >
-                                    {joueur.titre_actuel ? `« ${joueur.titre_actuel} »` : "+ Choisir un titre"}
-                                </button>
+                            <div className="text-center mb-6 md:mb-10">
+                                <h2 className={`text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r ${theme.textGradient} tracking-tighter drop-shadow-2xl pr-4 py-2 break-all`}>
+                                    {joueur.pseudo.toUpperCase()}
+                                </h2>
+                                <div className="h-1 w-32 bg-gradient-to-r from-transparent via-slate-500 to-transparent mx-auto mt-2"></div>
+                                <p className={`text-xs font-bold uppercase tracking-[0.5em] mt-2 opacity-60 ${theme.textMain}`}>Tableau de Bord</p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full max-w-3xl">
@@ -2781,48 +2783,7 @@ const handleLogin = async () => {
                       </div>
                   </div>
             )}
-{/* MODALE TITRES */}
-            {showTitresModal && (
-                <div className="fixed inset-0 bg-black/90 z-[150] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
-                    <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl border relative overflow-hidden ${theme.panel} ${theme.border}`}>
-                        <button onClick={() => setShowTitresModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-xl">✕</button>
-                        
-                        <h2 className={`text-2xl font-black text-center mb-6 uppercase ${theme.textMain}`}>Mes Titres</h2>
-                        
-                        <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                            <button 
-                                onClick={() => changerTitre(null)} 
-                                className={`w-full text-left p-3 rounded-lg border border-slate-700 hover:bg-white/5 transition flex justify-between items-center ${!joueur.titre_actuel ? 'bg-white/10 border-white/30' : 'text-slate-500'}`}
-                            >
-                                <span>(Aucun titre)</span>
-                            </button>
 
-                            {mesTitres.length === 0 ? (
-                                <p className="text-center text-slate-500 text-xs italic py-4">Aucun titre débloqué pour le moment.<br/>Jouez pour en gagner !</p>
-                            ) : (
-                                mesTitres.map(t => (
-                                    <button 
-                                        key={t.id} 
-                                        onClick={() => changerTitre(t.titres_ref.nom)} 
-                                        className={`w-full text-left p-3 rounded-lg border transition flex justify-between items-center group
-                                        ${joueur.titre_actuel === t.titres_ref.nom 
-                                            ? `bg-yellow-900/20 border-yellow-500/50` 
-                                            : `border-slate-700 hover:bg-white/5`}`}
-                                    >
-                                        <div>
-                                            <p className={`font-bold text-sm ${joueur.titre_actuel === t.titres_ref.nom ? 'text-yellow-400' : 'text-white'}`}>
-                                                « {t.titres_ref.nom} »
-                                            </p>
-                                            <p className="text-[10px] text-slate-500">{t.titres_ref.description}</p>
-                                        </div>
-                                        {joueur.titre_actuel === t.titres_ref.nom && <span className="text-yellow-400 text-xs">✔</span>}
-                                    </button>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
       {/* --- INTERFACE DE COMBAT (RESPONSIVE: Stacked on mobile) --- */}
       {activeTab === 'combat_actif' && combatSession && (
         <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-fadeIn h-full w-full">
@@ -3044,9 +3005,7 @@ const handleLogin = async () => {
             </button>
         </div>
     </div>
-    
 )}
-
     </main>
   );
 }
