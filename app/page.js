@@ -2702,9 +2702,15 @@ const handleLogin = async () => {
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border border-slate-600 bg-slate-800 shrink-0">
                                                                 {adv.avatar_url ? <img src={adv.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full text-2xl">👤</div>}
+                                                                
                                                             </div>
                                                             <div>
                                                                 <p className={`font-bold text-sm ${theme.textMain}`}>{adv.pseudo}</p>
+                                                                {j.titre_actuel && (
+                                                                    <span className="text-[9px] md:text-[10px] text-yellow-500/90 italic truncate max-w-[120px]">
+                                                                        « {j.titre_actuel} »
+                                                                    </span>
+                                                                )}
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
                                                                     <span className={`font-black uppercase ${factionColor}`}>{adv.faction || 'Neutre'}</span>
                                                                     <span className="text-slate-600">•</span>
