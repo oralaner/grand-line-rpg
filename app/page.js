@@ -370,12 +370,27 @@ const chargerBoutique = async () => {
       // Prochain Niveau
       if (joueur.niveau_navire < 10) {
           const { data: prochain } = await supabase.from('navires_ref').select('*').eq('niveau', joueur.niveau_navire + 1).single();
-          setNextNavire(prochain);
+          
+          // Récupérer les noms des matériaux requis
+          // 'prochain.materiaux' est { "12": 5, "4": 10 }
+          const matIds = Object.keys(prochain.materiaux);
+          const { data: matsDetails } = await supabase.from('objets').select('id, nom').in('id', matIds);
+          
+          // On construit une liste propre pour l'affichage
+          const materiauxRequis = matIds.map(id => {
+              const detail = matsDetails.find(d => d.id == id);
+              return {
+                  id: id,
+                  nom: detail ? detail.nom : "Objet Inconnu",
+                  qte: prochain.materiaux[id]
+              };
+          });
+
+          setNextNavire({ ...prochain, listeMateriaux: materiauxRequis });
       } else {
           setNextNavire(null);
       }
       
-      // On charge l'inventaire pour voir si on a le bois/fer
       chargerInventaire(); 
   };
 
@@ -2473,100 +2488,70 @@ const handleLogin = async () => {
                                     )}
                                 </div>
                             )}
-                    {/* CHANTIER NAVAL */}
+                            {/* CHANTIER NAVAL V2 (MULTI-MATÉRIAUX) */}
                             {activeTab === 'chantier' && (
                                 <div className="space-y-6 animate-fadeIn">
                                     
-                                    {/* HEADER NAVIRE */}
+                                    {/* VISUEL NAVIRE */}
                                     <div className="bg-[#1a4c6e] border-4 border-[#3e2723] rounded-xl p-6 text-center relative overflow-hidden shadow-2xl">
-                                        {/* Fond Océan */}
                                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-                                        
                                         <div className="relative z-10">
-                                            <h2 className="text-3xl font-[Pirata One] text-white uppercase drop-shadow-md mb-1">
-                                                {joueur.nom_navire}
-                                            </h2>
-                                            <p className="text-yellow-400 text-sm font-bold uppercase tracking-widest mb-4">
-                                                Niveau {joueur.niveau_navire} • {infosNavire?.nom_type || 'Radeau'}
-                                            </p>
-                                            
-                                            {/* Icône Géante */}
-                                            <div className="w-32 h-32 mx-auto bg-black/30 rounded-full border-4 border-white/20 flex items-center justify-center mb-4 backdrop-blur-sm animate-bounce-slow">
-                                                <span className="text-6xl">⛵</span>
+                                            <h2 className="text-3xl font-[Pirata One] text-white uppercase drop-shadow-md mb-1">{joueur.nom_navire}</h2>
+                                            <p className="text-yellow-400 text-sm font-bold uppercase tracking-widest mb-4">Niveau {joueur.niveau_navire} • {infosNavire?.nom_type || 'Radeau'}</p>
+                                            <div className="w-32 h-32 md:w-40 md:h-40 mx-auto bg-black/30 rounded-full border-4 border-white/20 flex items-center justify-center mb-4 backdrop-blur-sm animate-bounce-slow">
+                                                <span className="text-6xl md:text-7xl">⛵</span>
                                             </div>
-                                            
-                                            {/* Stats Actuelles */}
-                                            <div className="flex justify-center gap-4 text-xs font-bold">
-                                                <div className="bg-black/40 px-4 py-2 rounded-lg border border-white/10">
-                                                    <span className="text-cyan-300 block uppercase text-[9px]">Vitesse</span>
-                                                    <span className="text-white text-lg">x{infosNavire?.vitesse}</span>
-                                                </div>
-                                                <div className="bg-black/40 px-4 py-2 rounded-lg border border-white/10">
-                                                    <span className="text-purple-300 block uppercase text-[9px]">Chance Loot</span>
-                                                    <span className="text-white text-lg">+{infosNavire?.bonus_chance}%</span>
-                                                </div>
+                                            <div className="flex justify-center gap-4 md:gap-6 text-xs font-bold">
+                                                <div className="bg-black/40 px-3 py-1.5 rounded border border-white/10"><span className="text-cyan-300 block uppercase text-[9px]">Vitesse</span><span className="text-white text-lg">x{infosNavire?.vitesse}</span></div>
+                                                <div className="bg-black/40 px-3 py-1.5 rounded border border-white/10"><span className="text-purple-300 block uppercase text-[9px]">Chance Loot</span><span className="text-white text-lg">+{infosNavire?.bonus_chance}%</span></div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* ZONE D'AMÉLIORATION */}
-                                    {nextNavire ? (
-                                        <div className={`bg-black/20 border ${theme.borderLow} p-6 rounded-xl`}>
-                                            <h3 className={`text-center font-bold uppercase text-sm tracking-widest mb-6 ${theme.textMain}`}>
-                                                Projet : {nextNavire.nom_type}
-                                            </h3>
+                                    {/* AMÉLIORATION */}
+                                    {joueur.niveau_navire < 10 ? (
+                                        <div className={`bg-black/20 border ${theme.borderLow} p-4 md:p-6 rounded-xl`}>
+                                            <h3 className={`text-center font-bold uppercase text-sm tracking-widest mb-6 ${theme.textMain}`}>Projet : {nextNavire?.nom_type}</h3>
                                             
-                                            {/* Coûts */}
-                                            <div className="flex justify-center gap-4 mb-6">
-                                                {/* Berrys */}
-                                                <div className={`flex flex-col items-center p-3 rounded-xl border min-w-[80px] ${joueur.berrys >= nextNavire.cout_berrys ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
+                                            {/* GRILLE DES COÛTS */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                                {/* Coût Berrys */}
+                                                <div className={`flex flex-col items-center p-3 rounded-xl border ${joueur.berrys >= nextNavire?.cout_berrys ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
                                                     <span className="text-xl mb-1">💰</span>
-                                                    <span className={`text-xs font-black ${joueur.berrys >= nextNavire.cout_berrys ? 'text-green-400' : 'text-red-400'}`}>
-                                                        {nextNavire.cout_berrys.toLocaleString()}
-                                                    </span>
+                                                    <span className={`text-xs font-black ${joueur.berrys >= nextNavire?.cout_berrys ? 'text-green-400' : 'text-red-400'}`}>{nextNavire?.cout_berrys.toLocaleString()}</span>
                                                 </div>
 
-                                                {/* Bois (ID 1 - Vérifie ton ID réel si besoin) */}
-                                                {(() => {
-                                                    const bois = inventaire.find(i => i.objets.nom === 'Bois Flotté')?.quantite || 0;
-                                                    const requis = nextNavire.cout_bois;
+                                                {/* Coût Matériaux Dynamiques */}
+                                                {nextNavire?.listeMateriaux.map((mat, idx) => {
+                                                    const possede = getQtePossedee(mat.id);
+                                                    const aAssez = possede >= mat.qte;
                                                     return (
-                                                        <div className={`flex flex-col items-center p-3 rounded-xl border min-w-[80px] ${bois >= requis ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
-                                                            <span className="text-xl mb-1">🪵</span>
-                                                            <span className={`text-xs font-black ${bois >= requis ? 'text-green-400' : 'text-red-400'}`}>
-                                                                {bois} / {requis}
+                                                        <div key={idx} className={`flex flex-col items-center p-3 rounded-xl border text-center ${aAssez ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
+                                                            {/* On affiche une icone générique ou le nom */}
+                                                            <span className="text-[10px] text-slate-300 mb-1 h-8 flex items-center justify-center leading-tight">{mat.nom}</span>
+                                                            <span className={`text-xs font-black ${aAssez ? 'text-green-400' : 'text-red-400'}`}>
+                                                                {possede} / {mat.qte}
                                                             </span>
                                                         </div>
                                                     )
-                                                })()}
-
-                                                {/* Fer (ID 2) */}
-                                                {(() => {
-                                                    const fer = inventaire.find(i => i.objets.nom === 'Lingot de Fer')?.quantite || 0;
-                                                    const requis = nextNavire.cout_fer;
-                                                    return (
-                                                        <div className={`flex flex-col items-center p-3 rounded-xl border min-w-[80px] ${fer >= requis ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
-                                                            <span className="text-xl mb-1">⛓️</span>
-                                                            <span className={`text-xs font-black ${fer >= requis ? 'text-green-400' : 'text-red-400'}`}>
-                                                                {fer} / {requis}
-                                                            </span>
-                                                        </div>
-                                                    )
-                                                })()}
+                                                })}
                                             </div>
                                             
-                                            <button 
-                                                onClick={lancerAmeliorationNavire} 
-                                                className={`w-full py-4 rounded-xl font-black uppercase shadow-lg transition transform active:scale-95 ${theme.btnPrimary}`}
-                                            >
-                                                Lancer la Construction 🔨
+                                            <button onClick={lancerAmeliorationNavire} className={`w-full py-4 rounded-xl font-black uppercase shadow-lg transition transform active:scale-95 ${theme.btnPrimary}`}>
+                                                CONSTRUIRE LE {nextNavire?.nom_type} 🔨
                                             </button>
                                         </div>
                                     ) : (
                                         <div className="text-center py-10 bg-black/20 rounded-xl border border-yellow-500/30">
                                             <p className="text-4xl mb-2">👑</p>
                                             <p className="text-yellow-400 font-bold">Niveau Maximum Atteint !</p>
-                                            <p className="text-xs text-slate-400 mt-2">Vous possédez le navire ultime.</p>
+                                            <div className="mt-4 flex gap-2 justify-center p-4">
+                                                <input type="text" placeholder="Nouveau nom..." className="bg-slate-900 px-3 py-2 rounded border border-slate-700 text-white outline-none" id="inputRename" />
+                                                <button onClick={() => {
+                                                    const val = document.getElementById('inputRename').value;
+                                                    supabase.rpc('renommer_navire', { _nouveau_nom: val }).then(({data}) => { if(data.success) { notify(data.message, "success"); fetchJoueur(session.user.id); } else notify(data.message, "error"); });
+                                                }} className="bg-blue-600 text-white px-4 rounded font-bold hover:bg-blue-500">Baptiser</button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
