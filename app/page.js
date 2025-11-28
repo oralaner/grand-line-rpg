@@ -637,17 +637,17 @@ const chargerBoutique = async () => {
               } else notify(result?.data?.message || "Erreur", "error"); 
           
           // 3. CAS CLASSIQUE : COFFRES (TOUS TYPES)
-          } else if (item.objets.type_equipement === "Coffre") {  // <--- C'EST ICI QUE J'AI CHANGÉ
+          } else if (item.objets.type_equipement === "Coffre") } else if (item.objets.type_equipement === "Coffre") { 
               const { data } = await supabase.rpc('ouvrir_coffre', { nom_coffre: item.objets.nom }); 
               
               if(data && data.success) { 
-                  // Notification détaillée avec le butin
-                  notify(`🎁 BUTIN !\nObjet : ${data.loot} (${data.rarete})\nBonus : +${data.xp} XP | +${data.berrys} ฿`, "success", 8000); 
+                  // Notification détaillée - Durée augmentée à 15000ms (15 secondes)
+                  notify(`🎁 BUTIN !\nObjet : ${data.loot} (${data.rarete})\nBonus : +${data.xp} XP | +${data.berrys} ฿`, "success", 15000); 
                   chargerInventaire(); 
-                  fetchJoueur(session.user.id); // Met à jour l'argent et l'XP en haut
+                  fetchJoueur(session.user.id);
               } 
               else notify(data?.message || "Erreur coffre", "error"); 
-          } 
+          }
       }
       else if (action === 'EQUIPER') { const { data } = await supabase.rpc('equiper_objet', { objet_id_input: item.objet_id }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify(data?.message || "Erreur", "error"); }
       else if (action === 'VENDRE_INSTANT') setConfirmVente(item);
