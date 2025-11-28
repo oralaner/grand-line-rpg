@@ -307,8 +307,11 @@ useEffect(() => {
   useEffect(() => { if (!session) return; if (activeTab === 'inventaire') chargerInventaire(); if (activeTab === 'deck') chargerCompetences(); if (activeTab === 'boutique') chargerBoutique(); if (activeTab === 'atelier') chargerAtelier(); if (activeTab === 'classement') chargerClassement(); if (activeTab === 'expeditions') chargerDestinations(); if (activeTab === 'marche') chargerMarche(); if (activeTab === 'arene') chargerArene(); }, [activeTab, leaderboardType]);
  
   const chargerInventaire = async () => { const { data } = await supabase.from('inventaire').select('quantite, objet_id, objets(nom, rarete, description, type_equipement, stats_bonus, prix_achat)').eq('joueur_id', session.user.id); if (data) setInventaire(data); };
-  const chargerBoutique = async () => { const { data } = await supabase.from('objets').select('*').eq('en_boutique', true).order('prix_achat'); if (data) setBoutiqueItems(data); };
-  const chargerAtelier = async () => { await chargerInventaire(); const { data } = await supabase.from('recettes').select('*, objets:objet_resultat_id(nom, rarete)'); if (data) setRecettes(data); };
+const chargerBoutique = async () => { 
+      // On récupère tout (*), donc le stock est inclus
+      const { data } = await supabase.from('objets').select('*').eq('en_boutique', true).order('prix_achat'); 
+      if (data) setBoutiqueItems(data); 
+  };  const chargerAtelier = async () => { await chargerInventaire(); const { data } = await supabase.from('recettes').select('*, objets:objet_resultat_id(nom, rarete)'); if (data) setRecettes(data); };
   const chargerCompetences = async () => { const { data: allComp } = await supabase.from('competences').select('*').eq('exclusif_pnj', false).order('puissance'); setCompetences(allComp || []); const { data: mesComp } = await supabase.from('joueur_competences').select('competence_id').eq('joueur_id', session.user.id); setMesCompetences(mesComp ? mesComp.map(c => c.competence_id) : []); };
   const chargerClassement = async () => { 
       if (leaderboardType === 'EQUIPAGE') {
@@ -491,8 +494,39 @@ useEffect(() => {
     }
 };
   const ouvrirTransaction = (type, item, maxVal = 99) => { setTransaction({ type, item, max: maxVal }); setQteTransaction(1); setPrixVente(item.objets?.prix_vente || 100); };
-  const validerTransaction = async () => { if (!transaction) return; let rpc = '', p = {}; if (transaction.type === 'ACHAT_BOUTIQUE') { rpc = 'acheter_objet'; p = { objet_id_achat: transaction.item.id, qte_achat: qteTransaction }; } else if (transaction.type === 'VENTE') { rpc = 'vendre_au_marche'; p = { objet_id_vente: transaction.item.objet_id, qte_vente: qteTransaction, prix_unitaire_vente: prixVente }; } else if (transaction.type === 'ACHAT_MARCHE') { rpc = 'acheter_du_marche'; p = { annonce_id: transaction.item.id, qte_achat: qteTransaction }; } const { data } = await supabase.rpc(rpc, p); if (data && data.success) { notify("Succès", "success"); fetchJoueur(session.user.id); if (activeTab === 'inventaire') chargerInventaire(); if (activeTab === 'marche') chargerMarche(); setTransaction(null); } else notify(data?.message || "Erreur", "error"); };
-  const confirmerVenteDirecte = async () => { if (!confirmVente) return; const { data } = await supabase.rpc('vendre_objet_instantane', { objet_id_vente: confirmVente.objet_id, qte_vente: 1 }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify("Erreur", "error"); setConfirmVente(null); };
+const validerTransaction = async () => { 
+      if (!transaction) return; 
+      
+      let rpc = '', p = {}; 
+      if (transaction.type === 'ACHAT_BOUTIQUE') { 
+          rpc = 'acheter_objet'; 
+          p = { objet_id_achat: transaction.item.id }; // Pas besoin de qte pour le shop (toujours 1 par 1 pour l'instant ou géré par le stock)
+      } 
+      else if (transaction.type === 'VENTE') { 
+          rpc = 'vendre_au_marche'; 
+          p = { objet_id_vente: transaction.item.objet_id, qte_vente: qteTransaction, prix_unitaire_vente: prixVente }; 
+      } 
+      else if (transaction.type === 'ACHAT_MARCHE') { 
+          rpc = 'acheter_du_marche'; 
+          p = { annonce_id: transaction.item.id, qte_achat: qteTransaction }; 
+      } 
+      
+      const { data, error } = await supabase.rpc(rpc, p); 
+      
+      if (data && data.success) { 
+          notify(data.message, "success"); 
+          fetchJoueur(session.user.id); 
+          
+          // RECHARGEMENT DES DONNÉES SELON L'ONGLET ACTIF
+          if (activeTab === 'inventaire') chargerInventaire();
+          if (activeTab === 'marche') chargerMarche();
+          if (activeTab === 'boutique') chargerBoutique(); // <--- C'EST CETTE LIGNE QUI MANQUAIT !
+          
+          setTransaction(null); 
+      } else {
+          notify(data?.message || error?.message || "Erreur transaction", "error");
+      }
+  };  const confirmerVenteDirecte = async () => { if (!confirmVente) return; const { data } = await supabase.rpc('vendre_objet_instantane', { objet_id_vente: confirmVente.objet_id, qte_vente: 1 }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify("Erreur", "error"); setConfirmVente(null); };
   const crafterItem = async (recette) => { const { data } = await supabase.rpc('crafter_objet', { recette_id_input: recette.id }); if (data && data.success) { notify(`Fabriqué : ${data.nom} !`, "success"); chargerInventaire(); } else notify(data?.message || "Erreur", "error"); };
   const choisirFaction = async (f) => { const { data } = await supabase.rpc('choisir_faction', { nouvelle_faction: f }); if (data && data.success) { setJoueur(prev => ({ ...prev, faction: f })); notify(`Bienvenue chez les ${f}s !`, "success"); } };
   const acheterCompetence = async (cid) => { const { data, error } = await supabase.rpc('acheter_competence', { _comp_id: cid }); if (data && data.success) { notify(data.message, "success"); chargerCompetences(); fetchJoueur(session.user.id); } else notify(data?.message || error?.message, "error"); };
