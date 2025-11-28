@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffectn, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 // --- HELPERS UI ---
@@ -606,7 +606,35 @@ const handleLogin = async () => {
       
       return "Ingrédient inconnu"; 
     }
+// --- LOGIQUE DRAG & SCROLL (CARTE) ---
+  const mapRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0, left: 0, top: 0 });
 
+  const onMouseDown = (e) => {
+      if(!mapRef.current) return;
+      setIsDragging(true);
+      setStartPos({
+          x: e.pageX,
+          y: e.pageY,
+          left: mapRef.current.scrollLeft,
+          top: mapRef.current.scrollTop
+      });
+      e.preventDefault(); // Empêche la sélection de texte/image
+  };
+
+  const onMouseLeave = () => setIsDragging(false);
+  const onMouseUp = () => setIsDragging(false);
+
+  const onMouseMove = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.pageX - startPos.x;
+      const y = e.pageY - startPos.y;
+      // On inverse le mouvement (si je tire à gauche, la carte va à droite)
+      mapRef.current.scrollLeft = startPos.left - x;
+      mapRef.current.scrollTop = startPos.top - y;
+  };
     // --- CONFIGURATION THEMES (DÉGRADÉS VIBRANTS) ---
   const getFactionTheme = (factionName) => {
       // Normalisation pour éviter les bugs d'accents
@@ -742,6 +770,8 @@ const handleLogin = async () => {
       
       {/* Style global injecté pour la scrollbar et les animations */}
       <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
@@ -1593,85 +1623,95 @@ const handleLogin = async () => {
                                             }
                                         </div>
                                     ) : (
-                                        // MODE : CARTE GLOBALE
-                                        <div className="relative w-full h-full rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl bg-[#1a4c6e]">
-                                            
-                                            {/* CONTENEUR SCROLLABLE */}
-                                            {/* On force une largeur min de 1200px pour que la carte soit détaillée même sur mobile */}
-                                            <div className="w-full h-full overflow-auto custom-scrollbar relative">
-                                                <div className="relative min-w-[1200px] h-[800px]">
+                                        // MODE : CARTE GLOBALE (DRAG & SCROLL)
+                                    <div className="relative w-full h-full rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl bg-[#1a4c6e]">
+                                        
+                                        {/* CONTENEUR SCROLLABLE (AVEC DRAG) */}
+                                        <div 
+                                            ref={mapRef}
+                                            className={`w-full h-full overflow-auto no-scrollbar relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                                            onMouseDown={onMouseDown}
+                                            onMouseLeave={onMouseLeave}
+                                            onMouseUp={onMouseUp}
+                                            onMouseMove={onMouseMove}
+                                        >
+                                            {/* On force une taille géante pour que ça dépasse de l'écran */}
+                                            <div className="relative min-w-[1500px] min-h-[1000px]">
+                                                
+                                                {/* IMAGE CARTE */}
+                                                <img 
+                                                    src="/world_map.jpg" 
+                                                    alt="Carte du Monde One Piece"
+                                                    className="absolute inset-0 w-full h-full object-cover opacity-100 pointer-events-none" // pointer-events-none pour ne pas gêner le drag
+                                                />
+                                                
+                                                {/* PINS (POINTS) */}
+                                                {destinations.map((dest, i) => {
+                                                    const isLocked = joueur.niveau < dest.niveau_requis;
+                                                    const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
                                                     
-                                                    {/* IMAGE CARTE */}
-                                                    <img 
-                                                        src="/world_map.jpg" 
-                                                        alt="Carte du Monde One Piece"
-                                                        className="absolute inset-0 w-full h-full object-cover opacity-90"
-                                                    />
-                                                    
-                                                    {/* PINS (POINTS) */}
-                                                    {destinations.map((dest, i) => {
-                                                        const isLocked = joueur.niveau < dest.niveau_requis;
-                                                        const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
-                                                        
-                                                        return (
-                                                            <button
-                                                                key={i}
-                                                                onClick={() => setSelectedDest(dest)}
-                                                                className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20 z-10
-                                                                ${isLocked ? 'grayscale opacity-70 scale-75' : 'cursor-pointer'}`}
-                                                                style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
-                                                            >
-                                                                {/* PIN */}
-                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg border-2 
-                                                                    ${isLocked ? 'bg-slate-700 border-slate-500' : selectedDest?.id === dest.id ? 'bg-yellow-400 border-white animate-bounce scale-125' : 'bg-white border-blue-500'}`}>
-                                                                    {isLocked ? '🔒' : typeIcon}
-                                                                </div>
-                                                                
-                                                                {/* NOM (Toujours visible sur PC, au survol sur mobile) */}
-                                                                <span className={`mt-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide shadow-md whitespace-nowrap
-                                                                    ${selectedDest?.id === dest.id ? 'bg-yellow-400 text-black z-30' : 'bg-black/70 text-white backdrop-blur-sm'}`}>
-                                                                    {dest.nom}
-                                                                </span>
-                                                            </button>
-                                                        )
-                                                    })}
+                                                    return (
+                                                        <button
+                                                            key={i}
+                                                            // e.stopPropagation() empêche le clic de déclencher le drag en même temps
+                                                            onClick={(e) => { e.stopPropagation(); setSelectedDest(dest); }}
+                                                            className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20 z-10
+                                                            ${isLocked ? 'grayscale opacity-70 scale-75' : 'cursor-pointer'}`}
+                                                            style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
+                                                            onMouseDown={(e) => e.stopPropagation()} // Important pour pouvoir cliquer sans dragger
+                                                        >
+                                                            {/* PIN */}
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg border-2 
+                                                                ${isLocked ? 'bg-slate-700 border-slate-500' : selectedDest?.id === dest.id ? 'bg-yellow-400 border-white animate-bounce scale-125' : 'bg-white border-blue-500'}`}>
+                                                                {isLocked ? '🔒' : typeIcon}
+                                                            </div>
+                                                            
+                                                            {/* NOM */}
+                                                            <span className={`mt-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide shadow-md whitespace-nowrap
+                                                                ${selectedDest?.id === dest.id ? 'bg-yellow-400 text-black z-30' : 'bg-black/70 text-white backdrop-blur-sm'}`}>
+                                                                {dest.nom}
+                                                            </span>
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* POP-UP DÉTAILS (FIXE EN BAS DE LA CARTE) */}
+                                        {selectedDest && (
+                                            // ... (Garde ton code de pop-up actuel, il est très bien) ...
+                                            <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-40 flex flex-col md:flex-row gap-4 items-center md:items-start shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                                                <div className="flex-1 text-center md:text-left">
+                                                    <h3 className="text-xl font-black text-white uppercase leading-none mb-1">{selectedDest.nom}</h3>
+                                                    <p className="text-xs text-slate-400 mb-2 font-bold tracking-wider">{selectedDest.region}</p>
+                                                    <div className="flex justify-center md:justify-start gap-3 text-[10px] font-bold uppercase">
+                                                        <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-slate-300">⏱️ {selectedDest.duree_minutes}m</span>
+                                                        <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-yellow-400">💰 ~{selectedDest.gain_estime}</span>
+                                                        <span className={joueur.niveau >= selectedDest.niveau_requis ? "text-green-400" : "text-red-400"}>Niv {selectedDest.niveau_requis}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex-1 w-full md:w-auto text-center">
+                                                    {(() => {
+                                                         const force = (joueur.force_brute || 0) + (equipement.arme?.stats_bonus?.force || 0);
+                                                         const intel = (joueur.intelligence || 0) + (equipement.tete?.stats_bonus?.intelligence || 0);
+                                                         const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); 
+                                                         const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
+                                                         const diff = selectedDest.niveau_requis * 25;
+                                                         let chance = 50 + (puissance - diff) + ((joueur.chance || 0)/2);
+                                                         chance = Math.max(5, Math.min(100, Math.floor(chance)));
+                                                         let color = chance > 80 ? 'text-green-400' : chance > 50 ? 'text-yellow-400' : 'text-red-500';
+                                                         return (<div><p className="text-[10px] text-slate-500 mb-1 font-bold">CHANCE DE SUCCÈS</p><p className={`text-3xl font-black ${color}`}>{chance}%</p></div>)
+                                                    })()}
+                                                </div>
+
+                                                <div className="flex flex-col gap-2 w-full md:w-auto">
+                                                    {joueur.niveau >= selectedDest.niveau_requis ? (<button onClick={() => partirExpeditionV2(selectedDest)} className={`w-full md:w-32 py-3 rounded-lg font-bold shadow-lg text-sm ${theme.btnPrimary}`}>PARTIR</button>) : (<button disabled className="w-full md:w-32 py-3 rounded-lg font-bold bg-slate-700 text-slate-500 cursor-not-allowed text-sm">BLOQUÉ</button>)}
+                                                    <button onClick={() => setSelectedDest(null)} className="text-xs text-slate-500 underline hover:text-white">Fermer</button>
                                                 </div>
                                             </div>
-
-                                            {/* POP-UP DÉTAILS (FIXE EN BAS DE LA CARTE) */}
-                                            {selectedDest && (
-                                                <div className="absolute bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t-4 border-yellow-500 p-4 animate-slideUp z-40 flex flex-col md:flex-row gap-4 items-center md:items-start shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-                                                    <div className="flex-1 text-center md:text-left">
-                                                        <h3 className="text-xl font-black text-white uppercase leading-none mb-1">{selectedDest.nom}</h3>
-                                                        <p className="text-xs text-slate-400 mb-2 font-bold tracking-wider">{selectedDest.region}</p>
-                                                        <div className="flex justify-center md:justify-start gap-3 text-[10px] font-bold uppercase">
-                                                            <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-slate-300">⏱️ {selectedDest.duree_minutes}m</span>
-                                                            <span className="bg-slate-800 px-2 py-1 rounded border border-slate-600 text-yellow-400">💰 ~{selectedDest.gain_estime}</span>
-                                                            <span className={joueur.niveau >= selectedDest.niveau_requis ? "text-green-400" : "text-red-400"}>Niv {selectedDest.niveau_requis}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex-1 w-full md:w-auto text-center">
-                                                        {(() => {
-                                                             const force = (joueur.force_brute || 0) + (equipement.arme?.stats_bonus?.force || 0);
-                                                             const intel = (joueur.intelligence || 0) + (equipement.tete?.stats_bonus?.intelligence || 0);
-                                                             const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); 
-                                                             const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
-                                                             const diff = selectedDest.niveau_requis * 25;
-                                                             let chance = 50 + (puissance - diff) + ((joueur.chance || 0)/2);
-                                                             chance = Math.max(5, Math.min(100, Math.floor(chance)));
-                                                             let color = chance > 80 ? 'text-green-400' : chance > 50 ? 'text-yellow-400' : 'text-red-500';
-                                                             return (<div><p className="text-[10px] text-slate-500 mb-1 font-bold">CHANCE DE SUCCÈS</p><p className={`text-3xl font-black ${color}`}>{chance}%</p></div>)
-                                                        })()}
-                                                    </div>
-
-                                                    <div className="flex flex-col gap-2 w-full md:w-auto">
-                                                        {joueur.niveau >= selectedDest.niveau_requis ? (<button onClick={() => partirExpeditionV2(selectedDest)} className={`w-full md:w-32 py-3 rounded-lg font-bold shadow-lg text-sm ${theme.btnPrimary}`}>PARTIR</button>) : (<button disabled className="w-full md:w-32 py-3 rounded-lg font-bold bg-slate-700 text-slate-500 cursor-not-allowed text-sm">BLOQUÉ</button>)}
-                                                        <button onClick={() => setSelectedDest(null)} className="text-xs text-slate-500 underline hover:text-white">Fermer</button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
+                                    </div>
                                     )}
                                 </div>
                             )}
