@@ -1114,6 +1114,7 @@ const handleLogin = async () => {
                             <span className="text-[10px] font-bold uppercase tracking-tight">{btn.label}</span>
                             {btn.alert && <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>}
                         </button>
+                        <button onClick={() => supabase.rpc('admin_purger_chat')} className="text-red-500 text-xs">🗑️ Purger le Chat</button>
                     ))}
                 </div>
                 {/* CONTENU PRINCIPAL */}
