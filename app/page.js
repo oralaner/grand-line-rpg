@@ -121,6 +121,8 @@ export default function Home() {
   const [quetes, setQuetes] = useState([]);
   const [showQuetes, setShowQuetes] = useState(false); // Pour ouvrir/fermer le journal
 
+  const [meteoData, setMeteoData] = useState({}); // { "East Blue": "SOLEIL", ... }
+
   const [chatScope, setChatScope] = useState('GENERAL'); // GENERAL, FACTION, EQUIPAGE
   const [messages, setMessages] = useState([]);
   const [inputChat, setInputChat] = useState("");
@@ -227,17 +229,6 @@ useEffect(() => {
   }, [activeTab, leaderboardType, areneFilter]);
   useEffect(() => { if (joueur && joueur.derniere_activite) { const interval = setInterval(() => { const diff = new Date().getTime() - new Date(joueur.derniere_activite).getTime(); if (diff < DELAI_COOLDOWN) setTempsRestant(DELAI_COOLDOWN - diff); else setTempsRestant(0); }, 1000); return () => clearInterval(interval); } }, [joueur]);
   useEffect(() => { if (joueur && joueur.expedition_fin) { const interval = setInterval(() => { const diff = new Date(joueur.expedition_fin).getTime() - new Date().getTime(); if (diff > 0) setExpeditionChrono(diff); else setExpeditionChrono(0); }, 1000); return () => clearInterval(interval); } else setExpeditionChrono(null); }, [joueur]);
-useEffect(() => { 
-      // ... (le reste inchangé)
-      if (activeTab === 'equipage') chargerEquipage(); 
-  }, [activeTab, joueur]); // Ajoute 'joueur' pour recharger si on rejoint/quitte
-useEffect(() => {
-      if (activeTab === 'equipage') {
-          chargerEquipage();
-          if (crewTab === 'BANK') chargerBanque();
-          if (crewTab === 'MEMBERS') chargerCandidatures();
-      }
-  }, [activeTab, crewTab, joueur]);
   
   useEffect(() => {
       if (activeTab === 'equipage') {
@@ -337,7 +328,7 @@ useEffect(() => {
   };
   const fetchRang = async (userId) => { const { data } = await supabase.rpc('get_rang_joueur', { target_id: userId }); if (data) setRangJoueur(data); };
 
-  useEffect(() => { if (!session) return; if (activeTab === 'inventaire') chargerInventaire(); if (activeTab === 'deck') chargerCompetences(); if (activeTab === 'boutique') chargerBoutique(); if (activeTab === 'atelier') chargerAtelier(); if (activeTab === 'classement') chargerClassement(); if (activeTab === 'expeditions') chargerDestinations(); if (activeTab === 'marche') chargerMarche(); if (activeTab === 'arene') chargerArene(); }, [activeTab, leaderboardType]);
+  useEffect(() => { if (!session) return; if (activeTab === 'inventaire') chargerInventaire(); if (activeTab === 'deck') chargerCompetences(); if (activeTab === 'boutique') chargerBoutique(); if (activeTab === 'atelier') chargerAtelier(); if (activeTab === 'classement') chargerClassement(); if (activeTab === 'expeditions') chargerDestinations(); chargerMeteo(); if (activeTab === 'marche') chargerMarche(); if (activeTab === 'arene') chargerArene(); }, [activeTab, leaderboardType]);
  
   const chargerInventaire = async () => { const { data } = await supabase.from('inventaire').select('quantite, objet_id, objets(nom, rarete, description, type_equipement, stats_bonus, prix_achat)').eq('joueur_id', session.user.id); if (data) setInventaire(data); };
 const chargerBoutique = async () => { 
@@ -392,6 +383,14 @@ const chargerBoutique = async () => {
           .order('xp_donnee_equipage', { ascending: false }); // On trie par plus gros donneur !
           
       setMembresEquipage(mb || []);
+  };
+  const chargerMeteo = async () => {
+      const { data } = await supabase.from('vue_meteo').select('*');
+      if (data) {
+          const map = {};
+          data.forEach(m => map[m.region] = m.climat);
+          setMeteoData(map);
+      }
   };
   // --- LOGIQUE TCHAT ---
   
@@ -2074,7 +2073,39 @@ const handleLogin = async () => {
                                             <div className="absolute top-4 left-4 bg-black/60 px-3 py-1 rounded text-white text-xs font-bold backdrop-blur-sm border border-white/10 z-20 pointer-events-none shadow-lg">
                                                 🗺️ GRAND LINE
                                             </div>
-
+                                            {/* WIDGET MÉTÉO (Haut Droite) */}
+                                            {meteoData[currentMapRegion] && (
+                                                <div className="absolute top-4 right-4 bg-black/70 px-4 py-2 rounded-xl text-white backdrop-blur-md border border-white/10 z-20 shadow-xl flex items-center gap-3 animate-slideInRight">
+                                                    <div className="text-4xl filter drop-shadow-lg animate-pulse">
+                                                        {meteoData[currentMapRegion] === 'SOLEIL' && '☀️'}
+                                                        {meteoData[currentMapRegion] === 'TEMPETE' && '⛈️'}
+                                                        {meteoData[currentMapRegion] === 'BRUME' && '🌫️'}
+                                                        {meteoData[currentMapRegion] === 'VENT' && '🍃'}
+                                                        {meteoData[currentMapRegion] === 'AQUA_LAGUNA' && '🌊'}
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Météo Actuelle</p>
+                                                        <p className={`text-sm font-black uppercase ${
+                                                            meteoData[currentMapRegion] === 'SOLEIL' ? 'text-yellow-400' :
+                                                            meteoData[currentMapRegion] === 'TEMPETE' ? 'text-purple-400' :
+                                                            meteoData[currentMapRegion] === 'BRUME' ? 'text-slate-300' :
+                                                            meteoData[currentMapRegion] === 'VENT' ? 'text-green-400' :
+                                                            'text-blue-400'
+                                                        }`}>
+                                                            {meteoData[currentMapRegion].replace('_', ' ')}
+                                                        </p>
+                                                        
+                                                        {/* EFFET TEXTE */}
+                                                        <p className="text-[9px] italic opacity-80 text-white w-32 whitespace-normal leading-tight mt-1">
+                                                            {meteoData[currentMapRegion] === 'SOLEIL' && "Conditions idéales."}
+                                                            {meteoData[currentMapRegion] === 'TEMPETE' && "Gains augmentés, mais dangereux !"}
+                                                            {meteoData[currentMapRegion] === 'BRUME' && "Navigation difficile."}
+                                                            {meteoData[currentMapRegion] === 'VENT' && "Vitesse x2 !"}
+                                                            {meteoData[currentMapRegion] === 'AQUA_LAGUNA' && "XP x3 ! Risque mortel."}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
                                             {/* CONTENEUR SCROLLABLE (LA FENÊTRE) */}
                                             <div 
                                                 ref={mapRef}
