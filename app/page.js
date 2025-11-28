@@ -357,7 +357,9 @@ const chargerBoutique = async () => {
           const { data } = await supabase.rpc('get_classement_equipages');
           setTopEquipages(data || []);
       } else {
-          let query = supabase.from('joueurs').select('pseudo, avatar_url, niveau, xp, berrys, faction, elo_pvp').eq('is_bot', false); 
+          // AJOUT DE 'titre_actuel' DANS LE SELECT
+          let query = supabase.from('joueurs').select('pseudo, avatar_url, niveau, xp, berrys, faction, elo_pvp, titre_actuel').eq('is_bot', false); 
+          
           if (leaderboardType === 'NIVEAU') query = query.order('niveau', { ascending: false }).order('xp', { ascending: false });
           else if (leaderboardType === 'RICHESSE') query = query.order('berrys', { ascending: false });
           else if (leaderboardType === 'PVP') query = query.order('elo_pvp', { ascending: false });
@@ -414,9 +416,10 @@ const chargerBoutique = async () => {
   const chargerMarche = async () => { const { data } = await supabase.from('marche').select('*, objets(nom, rarete), joueurs(pseudo)').order('created_at', { ascending: false }); if (data) setMarcheItems(data); }
   const chargerArene = async () => { 
       const isBot = areneFilter === 'PVE'; 
+      // AJOUT DE 'titre_actuel' DANS LE SELECT
       const { data } = await supabase
           .from('joueurs')
-          .select('id, pseudo, avatar_url, niveau, faction, victoires, defaites, elo_pvp') // <-- AJOUT elo_pvp
+          .select('id, pseudo, avatar_url, niveau, faction, victoires, defaites, elo_pvp, titre_actuel') 
           .eq('is_bot', isBot)
           .neq('id', session.user.id)
           .order('niveau', { ascending: false })
