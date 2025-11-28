@@ -1280,12 +1280,16 @@ const handleLogin = async () => {
                           ))}
                     </div>
                     
-                    {/* EQUIPEMENT (6 SLOTS + NAVIRE) */}
-                    <div className="grid grid-cols-4 gap-2 mb-4 md:mb-6 px-1">
+                
+                    {/* EQUIPEMENT (6 SLOTS : Grille 3x2 symétrique) */}
+                    <div className="grid grid-cols-3 gap-2 mb-4 md:mb-6 px-1 justify-items-center">
+                        {/* LIGNE 1 : Les protections principales */}
                         <EquipSlot type="Tête" item={equipement.tete} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Corps" item={equipement.corps} onUnequip={desequiperSlot} theme={theme} />
-                        <EquipSlot type="Arme" item={equipement.arme} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Bottes" item={equipement.bottes} onUnequip={desequiperSlot} theme={theme} />
+                        
+                        {/* LIGNE 2 : Arme et Bijoux */}
+                        <EquipSlot type="Arme" item={equipement.arme} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Bague" item={equipement.bague} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Collier" item={equipement.collier} onUnequip={desequiperSlot} theme={theme} />
                     </div>
