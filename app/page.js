@@ -606,10 +606,10 @@ const handleLogin = async () => {
       
       return "Ingrédient inconnu"; 
     }
-// --- LOGIQUE DRAG & SCROLL (CARTE) ---
+// --- LOGIQUE DRAG & SCROLL (CARTE AMÉLIORÉE) ---
   const mapRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0, left: 0, top: 0 });
+  const [startPos, setStartPos] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
   const onMouseDown = (e) => {
       if(!mapRef.current) return;
@@ -617,24 +617,44 @@ const handleLogin = async () => {
       setStartPos({
           x: e.pageX,
           y: e.pageY,
-          left: mapRef.current.scrollLeft,
-          top: mapRef.current.scrollTop
+          scrollLeft: mapRef.current.scrollLeft,
+          scrollTop: mapRef.current.scrollTop
       });
-      e.preventDefault(); // Empêche la sélection de texte/image
+      e.preventDefault(); // Empêche la sélection
   };
 
-  const onMouseLeave = () => setIsDragging(false);
-  const onMouseUp = () => setIsDragging(false);
+  // On écoute le mouvement sur la fenêtre pour ne pas perdre le "focus"
+  useEffect(() => {
+      const onMouseMove = (e) => {
+          if (!isDragging || !mapRef.current) return;
+          e.preventDefault();
+          const x = e.pageX - startPos.x;
+          const y = e.pageY - startPos.y;
+          
+          // On déplace le scroll dans le sens inverse du mouvement de la souris (comme Google Maps)
+          mapRef.current.scrollLeft = startPos.scrollLeft - x;
+          mapRef.current.scrollTop = startPos.scrollTop - y;
+      };
 
-  const onMouseMove = (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const x = e.pageX - startPos.x;
-      const y = e.pageY - startPos.y;
-      // On inverse le mouvement (si je tire à gauche, la carte va à droite)
-      mapRef.current.scrollLeft = startPos.left - x;
-      mapRef.current.scrollTop = startPos.top - y;
-  };
+      const onMouseUp = () => {
+          setIsDragging(false);
+      };
+
+      if (isDragging) {
+          window.addEventListener('mousemove', onMouseMove);
+          window.addEventListener('mouseup', onMouseUp);
+      } else {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+      }
+
+      return () => {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+      };
+  }, [isDragging, startPos]);
+
+  
     // --- CONFIGURATION THEMES (DÉGRADÉS VIBRANTS) ---
   const getFactionTheme = (factionName) => {
       // Normalisation pour éviter les bugs d'accents
@@ -1626,51 +1646,44 @@ const handleLogin = async () => {
                                         // MODE : CARTE GLOBALE (DRAG & SCROLL)
                                     <div className="relative w-full h-full rounded-xl overflow-hidden border-4 border-[#3e2723] shadow-2xl bg-[#1a4c6e]">
                                         
-                                        {/* CONTENEUR SCROLLABLE (AVEC DRAG) */}
+                                        {/* CONTENEUR SCROLLABLE (AVEC DRAG AMÉLIORÉ) */}
                                         <div 
                                             ref={mapRef}
                                             className={`w-full h-full overflow-auto no-scrollbar relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                                             onMouseDown={onMouseDown}
-                                            onMouseLeave={onMouseLeave}
-                                            onMouseUp={onMouseUp}
-                                            onMouseMove={onMouseMove}
+                                            // Plus besoin de onMouseMove/Up ici car c'est géré par le useEffect global
                                         >
-                                            {/* On force une taille géante pour que ça dépasse de l'écran */}
-                                            <div className="relative min-w-[1500px] min-h-[1000px]">
+                                            {/* On force une taille géante pour que ça dépasse de l'écran et active le scroll */}
+                                            {/* Ajuste min-w et min-h selon la taille réelle de ton image world_map.jpg */}
+                                            <div className="relative min-w-[2000px] min-h-[1200px]">
                                                 
                                                 {/* IMAGE CARTE */}
                                                 <img 
                                                     src="/world_map.jpg" 
                                                     alt="Carte du Monde One Piece"
-                                                    className="absolute inset-0 w-full h-full object-cover opacity-100 pointer-events-none" // pointer-events-none pour ne pas gêner le drag
+                                                    className="absolute inset-0 w-full h-full object-cover pointer-events-none" 
                                                 />
                                                 
                                                 {/* PINS (POINTS) */}
                                                 {destinations.map((dest, i) => {
+                                                    // ... (Le reste du code des pins reste identique) ...
+                                                    // Juste, assure-toi d'avoir e.stopPropagation() sur le onClick du pin
                                                     const isLocked = joueur.niveau < dest.niveau_requis;
                                                     const typeIcon = dest.type_lieu === 'VILLAGE' ? '🏠' : dest.type_lieu === 'DONJON' ? '💀' : '🏝️';
                                                     
                                                     return (
                                                         <button
                                                             key={i}
-                                                            // e.stopPropagation() empêche le clic de déclencher le drag en même temps
                                                             onClick={(e) => { e.stopPropagation(); setSelectedDest(dest); }}
+                                                            onMouseDown={(e) => e.stopPropagation()} // Important : Clic sur pin ne déclenche pas le drag
                                                             className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-300 hover:scale-125 hover:z-20 z-10
                                                             ${isLocked ? 'grayscale opacity-70 scale-75' : 'cursor-pointer'}`}
                                                             style={{ left: `${dest.pos_x}%`, top: `${dest.pos_y}%` }}
-                                                            onMouseDown={(e) => e.stopPropagation()} // Important pour pouvoir cliquer sans dragger
                                                         >
-                                                            {/* PIN */}
                                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg border-2 
                                                                 ${isLocked ? 'bg-slate-700 border-slate-500' : selectedDest?.id === dest.id ? 'bg-yellow-400 border-white animate-bounce scale-125' : 'bg-white border-blue-500'}`}>
                                                                 {isLocked ? '🔒' : typeIcon}
                                                             </div>
-                                                            
-                                                            {/* NOM */}
-                                                            <span className={`mt-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide shadow-md whitespace-nowrap
-                                                                ${selectedDest?.id === dest.id ? 'bg-yellow-400 text-black z-30' : 'bg-black/70 text-white backdrop-blur-sm'}`}>
-                                                                {dest.nom}
-                                                            </span>
                                                         </button>
                                                     )
                                                 })}
