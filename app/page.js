@@ -531,7 +531,11 @@ const validerTransaction = async () => {
   const choisirFaction = async (f) => { const { data } = await supabase.rpc('choisir_faction', { nouvelle_faction: f }); if (data && data.success) { setJoueur(prev => ({ ...prev, faction: f })); notify(`Bienvenue chez les ${f}s !`, "success"); } };
   const acheterCompetence = async (cid) => { const { data, error } = await supabase.rpc('acheter_competence', { _comp_id: cid }); if (data && data.success) { notify(data.message, "success"); chargerCompetences(); fetchJoueur(session.user.id); } else notify(data?.message || error?.message, "error"); };
   const equiperCompetence = async (cid) => { let nd = [...(joueur.deck_combat || [])]; if (nd.includes(cid)) nd = nd.filter(id => id !== cid); else { if (nd.length >= 5) return notify("Deck plein !", "error"); nd.push(cid); } const { data, error } = await supabase.rpc('modifier_deck', { _nouveaux_ids: nd }); if (data && data.success) { notify("Deck mis à jour", "success"); fetchJoueur(session.user.id); } else notify(data?.message || error?.message, "error"); };
-  
+  const eveillerHaki = async (type) => {
+      const { data } = await supabase.rpc('apprendre_haki', { _type: type });
+      if (data.success) { notify(data.message, "success"); fetchJoueur(session.user.id); }
+      else { notify(data.message, "error"); }
+  };
   const lancerCombat = async (adversaireObj) => { 
       let adversaireId; let adversaireInfo = {};
       if (typeof adversaireObj === 'string') { adversaireId = adversaireObj; adversaireInfo = { avatar_url: null, pseudo: "Adversaire", niveau: "?" }; } 
@@ -1017,6 +1021,7 @@ const handleLogin = async () => {
                     {[
                         { id: 'inventaire', icon: '🎒', label: 'Sac', color: 'hover:bg-amber-600/20 hover:text-amber-400 hover:border-amber-600' },
                         { id: 'stats', icon: '📊', label: 'Stats', color: 'hover:bg-cyan-600/20 hover:text-cyan-400 hover:border-cyan-600', alert: joueur.points_carac > 0 },
+                        { id: 'haki', icon: '👁️', label: 'Haki', color: 'hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-600' },
                         { id: 'deck', icon: '📘', label: 'Skills', color: 'hover:bg-indigo-600/20 hover:text-indigo-400 hover:border-indigo-600' },
                         { id: 'arene', icon: '⚔️', label: 'Arène', color: 'hover:bg-red-600/20 hover:text-red-400 hover:border-red-600' },
                         { id: 'equipage', icon: '🏴‍☠️', label: 'Team', color: 'hover:bg-pink-600/20 hover:text-pink-400 hover:border-pink-600' }, // <-- AJOUT ICI
@@ -1104,6 +1109,7 @@ const handleLogin = async () => {
                             { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
                             { id: 'inventaire', icon: '🎒', label: 'Sac' },
                             { id: 'stats', icon: '📊', label: 'Stats', alert: joueur.points_carac > 0 },
+                            { id: 'haki', icon: '👁️', label: 'Haki', color: 'hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-600' },
                             { id: 'deck', icon: '📘', label: 'Skills' },
                             { id: 'arene', icon: '⚔️', label: 'PvP' },
                             { id: 'expeditions', icon: '🧭', label: 'Voyage' },
@@ -2134,6 +2140,7 @@ const handleLogin = async () => {
                             { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
                             { id: 'inventaire', icon: '🎒', label: 'Sac' },
                             { id: 'stats', icon: '📊', label: 'Stats', alert: joueur.points_carac > 0 },
+                            { id: 'haki', icon: '👁️', label: 'Haki', color: 'hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-600' },
                             { id: 'deck', icon: '📘', label: 'Skills' },
                             { id: 'arene', icon: '⚔️', label: 'PvP' },
                             { id: 'expeditions', icon: '🧭', label: 'Voy.' }, // Label raccourci
@@ -2235,7 +2242,77 @@ const handleLogin = async () => {
                       </div>
                   </div>
             )}
+{/* ENTRAINEMENT HAKI */}
+                            {activeTab === 'haki' && (
+                                <div className="space-y-6 animate-fadeIn">
+                                    <div className={`p-6 rounded-xl text-center border-b-4 ${theme.btnPrimary}`}>
+                                        <h2 className="text-3xl font-black text-white uppercase drop-shadow-md">Maîtrise du Haki</h2>
+                                        <p className="text-xs opacity-80 mt-1">Éveillez votre potentiel latent.</p>
+                                    </div>
 
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {/* OBSERVATION */}
+                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden ${joueur.haki_observation ? 'border-cyan-500 bg-cyan-900/20' : 'border-slate-700 bg-black/40'}`}>
+                                            <div className="flex justify-between items-center relative z-10">
+                                                <div>
+                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_observation ? 'text-cyan-400' : 'text-slate-400'}`}>Kenbunshoku</h3>
+                                                    <p className="text-[10px] text-slate-300">Haki de l'Observation</p>
+                                                    <p className="text-xs mt-2 text-slate-400">
+                                                        <span className="text-cyan-300">Effet :</span> Voir les PV/Stats ennemis + Bonus Esquive (Agilité x1.5)
+                                                    </p>
+                                                </div>
+                                                {joueur.haki_observation ? (
+                                                    <span className="text-3xl">👁️</span>
+                                                ) : (
+                                                    <button onClick={() => eveillerHaki('OBSERVATION')} className="bg-slate-800 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600">
+                                                        ÉVEILLER<br/><span className="text-yellow-500">20k ฿</span> • Niv 20
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* ARMEMENT */}
+                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden ${joueur.haki_armement ? 'border-purple-500 bg-purple-900/20' : 'border-slate-700 bg-black/40'}`}>
+                                            <div className="flex justify-between items-center relative z-10">
+                                                <div>
+                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_armement ? 'text-purple-400' : 'text-slate-400'}`}>Busoshoku</h3>
+                                                    <p className="text-[10px] text-slate-300">Haki de l'Armement</p>
+                                                    <p className="text-xs mt-2 text-slate-400">
+                                                        <span className="text-purple-300">Effet :</span> Bonus Dégâts & Défense + Touche les Logias
+                                                    </p>
+                                                </div>
+                                                {joueur.haki_armement ? (
+                                                    <span className="text-3xl">🛡️</span>
+                                                ) : (
+                                                    <button onClick={() => eveillerHaki('ARMEMENT')} className="bg-slate-800 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600">
+                                                        ÉVEILLER<br/><span className="text-yellow-500">50k ฿</span> • Niv 40
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* ROIS */}
+                                        <div className={`p-4 rounded-xl border-2 relative overflow-hidden ${joueur.haki_rois ? 'border-red-500 bg-red-900/20' : 'border-slate-700 bg-black/40'}`}>
+                                            <div className="flex justify-between items-center relative z-10">
+                                                <div>
+                                                    <h3 className={`text-xl font-black uppercase ${joueur.haki_rois ? 'text-red-500' : 'text-slate-400'}`}>Haoshoku</h3>
+                                                    <p className="text-[10px] text-slate-300">Haki des Rois</p>
+                                                    <p className="text-xs mt-2 text-slate-400">
+                                                        <span className="text-red-300">Effet :</span> Chance d'étourdir l'ennemi à chaque tour.
+                                                    </p>
+                                                </div>
+                                                {joueur.haki_rois ? (
+                                                    <span className="text-3xl">👑</span>
+                                                ) : (
+                                                    <button onClick={() => eveillerHaki('ROIS')} className="bg-slate-800 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-xs border border-slate-600">
+                                                        ÉVEILLER<br/><span className="text-yellow-500">1M ฿</span> • Niv 80
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
       {/* --- INTERFACE DE COMBAT (RESPONSIVE: Stacked on mobile) --- */}
       {activeTab === 'combat_actif' && combatSession && (
         <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-fadeIn h-full w-full">
@@ -2248,8 +2325,13 @@ const handleLogin = async () => {
                 <div className="flex justify-end items-center gap-2 md:gap-4 animate-slideInRight z-10 self-end w-full md:w-auto">
                     <div className="text-right flex-1 md:flex-none">
                         <div className="text-sm md:text-2xl font-bold text-white drop-shadow-md truncate">{combatSession.adv_pseudo}</div>
-                        <div className="text-[10px] md:text-xs text-red-400 font-mono mb-1">{combatSession.pv_adv} PV</div>
-                        <div className="w-full md:w-64 h-2 md:h-4 bg-slate-900/50 rounded-full border border-slate-600 overflow-hidden shadow-inner ml-auto">
+<div className={`text-xs font-mono mb-1 ${joueur.haki_observation ? 'text-cyan-400 font-bold' : 'text-red-400'}`}>
+                                {joueur.haki_observation ? (
+                                    <>👁️ {combatSession.pv_adv} / {combatSession.pv_adv_max} PV</>
+                                ) : (
+                                    <>{Math.ceil((combatSession.pv_adv / combatSession.pv_adv_max) * 100)}% PV</>
+                                )}
+                            </div>                        <div className="w-full md:w-64 h-2 md:h-4 bg-slate-900/50 rounded-full border border-slate-600 overflow-hidden shadow-inner ml-auto">
                             <div className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300" style={{ width: `${Math.max(0, Math.min(100, (combatSession.pv_adv / combatSession.pv_adv_max) * 100))}%` }}></div>
                         </div>
                     </div>
