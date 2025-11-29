@@ -1782,7 +1782,7 @@ const handleLogin = async () => {
                                     
                                     {/* MENU CATÉGORIES */}
                                     {!viewShopCategory ? (
-                                        ['Arme', 'Protection', 'Consommable', 'Fruit', 'Autre'].map(cat => (
+                                        ['Arme', 'Protection', 'Bijoux', 'Consommable', 'Fruit', 'Navire', 'Autre'].map(cat => (
                                             <button 
                                                 key={cat} 
                                                 onClick={() => setViewShopCategory(cat)} 
@@ -1792,7 +1792,7 @@ const handleLogin = async () => {
                                                 {cat === 'Fruit' && <div className="absolute inset-0 bg-purple-500/10 animate-pulse"></div>}
                                                 
                                                 <span className="text-4xl md:text-5xl group-hover:scale-110 transition-transform drop-shadow-md">
-                                                    {cat === 'Arme' ? '⚔️' : cat === 'Protection' ? '🛡️' : cat === 'Consommable' ? '🧪' : cat === 'Fruit' ? '🍎' : '📦'}
+                                                    {cat === 'Arme' ? '⚔️' : cat === 'Protection' ? '🛡️' : cat === 'Bijoux' ? '💍' : cat === 'Consommable' ? '🧪' : cat === 'Fruit' ? '🍎' : '📦'}
                                                 </span>
                                                 <span className={`font-black uppercase text-sm md:text-lg tracking-widest ${theme.textMain}`}>
                                                     {cat === 'Fruit' ? 'Fruits du Démon' : cat}
