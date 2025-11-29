@@ -3,15 +3,39 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 // --- HELPERS UI ---
+// --- HELPERS UI ---
 const formatStatsItem = (stats) => {
     if (!stats) return "";
-    return Object.entries(stats).map(([key, val]) => {
-        if(key === 'soin') return `Soigne ${val} PV`;
-        const label = key.charAt(0).toUpperCase() + key.slice(1);
-        return `${val > 0 ? '+' : ''}${val} ${label}`;
-    }).join(', ');
-};
 
+    return Object.entries(stats)
+        .map(([key, val]) => {
+            // 1. Mappage des noms pour faire joli (Abbreviations)
+            let label = key.charAt(0).toUpperCase() + key.slice(1);
+            if (key === 'force_brute') label = 'Force';
+            if (key === 'intelligence') label = 'Intel.';
+            if (key === 'vitalite') label = 'Vita.';
+            if (key === 'agilite') label = 'Agi.';
+            if (key === 'sagesse') label = 'Sag.';
+            if (key === 'chance') label = 'Chance';
+            if (key === 'soin') label = 'PV'; // Pour l'affichage générique
+
+            // 2. GESTION DES PLAGES (Tableau [Min, Max]) -> BOUTIQUE
+            if (Array.isArray(val)) {
+                return `+${val[0]}-${val[1]} ${label}`;
+            }
+
+            // 3. GESTION DES VALEURS FIXES -> INVENTAIRE
+            // On ignore les valeurs à 0 ou moins
+            if (typeof val === 'number' && val > 0) {
+                if (key === 'soin') return `Soigne ${val} PV`;
+                return `+${val} ${label}`;
+            }
+
+            return null; // On retourne null pour les stats à 0 qu'on filtrera ensuite
+        })
+        .filter(Boolean) // Retire les éléments vides (null)
+        .join(' • '); // Séparateur plus esthétique
+};
 const getStatCost = (val) => {
     if (val < 50) return 1;
     if (val < 100) return 2;
