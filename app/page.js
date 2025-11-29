@@ -2739,7 +2739,7 @@ const handleLogin = async () => {
 
                                     <div className={`border ${theme.border} p-4 rounded-xl text-center mb-4 bg-black/20 relative overflow-hidden`}>
                                         <p className={`font-black text-lg uppercase ${theme.textMain}`}>
-                                            Énergie : {Math.max(0, 10 - (joueur.combats_journaliers || 0))} / 10 ⚡
+                                            Combats Disponibles : {Math.max(0, 10 - (joueur.combats_journaliers || 0))} / 10 ⚡
                                         </p>
                                         
                                         {/* CHRONO REGEN */}
