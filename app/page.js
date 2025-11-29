@@ -823,8 +823,24 @@ const validerTransaction = async () => {
       }
   };
   
-  const confirmerVenteDirecte = async () => { if (!confirmVente) return; const { data } = await supabase.rpc('vendre_objet_instantane', { objet_id_vente: confirmVente.objet_id, qte_vente: 1 }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify("Erreur", "error"); setConfirmVente(null); };
-  const crafterItem = async (recette) => { const { data } = await supabase.rpc('crafter_objet', { recette_id_input: recette.id }); if (data && data.success) { notify(`Fabriqué : ${data.nom} !`, "success"); chargerInventaire(); } else notify(data?.message || "Erreur", "error"); };
+const confirmerVenteDirecte = async () => { 
+      if (!confirmVente) return; 
+      
+      // CORRECTION : On envoie '_inv_id' (l'ID unique de la ligne), et non plus l'ID de l'objet
+      const { data } = await supabase.rpc('vendre_objet_instantane', { 
+          _inv_id: confirmVente.id, // C'est ici la clé du succès ! (item.id)
+          _qte: 1 
+      }); 
+      
+      if (data && data.success) { 
+          notify(data.message, "success"); 
+          chargerInventaire(); 
+          fetchJoueur(session.user.id); 
+      } else { 
+          notify("Erreur vente", "error"); 
+      } 
+      setConfirmVente(null); 
+  };  const crafterItem = async (recette) => { const { data } = await supabase.rpc('crafter_objet', { recette_id_input: recette.id }); if (data && data.success) { notify(`Fabriqué : ${data.nom} !`, "success"); chargerInventaire(); } else notify(data?.message || "Erreur", "error"); };
   const choisirFaction = async (f) => { const { data } = await supabase.rpc('choisir_faction', { nouvelle_faction: f }); if (data && data.success) { setJoueur(prev => ({ ...prev, faction: f })); notify(`Bienvenue chez les ${f}s !`, "success"); } };
   const acheterCompetence = async (cid) => { const { data, error } = await supabase.rpc('acheter_competence', { _comp_id: cid }); if (data && data.success) { notify(data.message, "success"); chargerCompetences(); fetchJoueur(session.user.id); } else notify(data?.message || error?.message, "error"); };
   const equiperCompetence = async (cid) => { let nd = [...(joueur.deck_combat || [])]; if (nd.includes(cid)) nd = nd.filter(id => id !== cid); else { if (nd.length >= 5) return notify("Deck plein !", "error"); nd.push(cid); } const { data, error } = await supabase.rpc('modifier_deck', { _nouveaux_ids: nd }); if (data && data.success) { notify("Deck mis à jour", "success"); fetchJoueur(session.user.id); } else notify(data?.message || error?.message, "error"); };
