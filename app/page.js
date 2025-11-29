@@ -176,6 +176,8 @@ export default function Home() {
       'New World': '/maps/new_world.jpg',
   };
 
+  const [chronoEnergie, setChronoEnergie] = useState(null); // Texte "MM:SS"
+  const [dateProchainGain, setDateProchainGain] = useState(null); // Date brute
 
   const [monEquipage, setMonEquipage] = useState(null);
   const [membresEquipage, setMembresEquipage] = useState([]);
@@ -254,7 +256,28 @@ export default function Home() {
       if (activeTab === 'chantier') chargerChantier();
       // ...
   }, [activeTab, joueur]);
+// --- CHRONO ÉNERGIE ---
+  useEffect(() => {
+      if (!dateProchainGain) return;
 
+      const interval = setInterval(() => {
+          const now = new Date();
+          const diff = dateProchainGain - now;
+
+          if (diff <= 0) {
+              // Temps écoulé ! On rafraîchit pour gagner le point
+              clearInterval(interval);
+              fetchJoueur(session.user.id);
+          } else {
+              // Formatage MM:SS
+              const m = Math.floor(diff / 60000);
+              const s = Math.floor((diff % 60000) / 1000);
+              setChronoEnergie(`${m}:${s.toString().padStart(2, '0')}`);
+          }
+      }, 1000);
+
+      return () => clearInterval(interval);
+  }, [dateProchainGain, session]);
   const verifierQuetes = async () => {
       // 1. Générer si pas encore fait aujourd'hui
       await supabase.rpc('generer_quetes_journalieres');
@@ -312,6 +335,20 @@ export default function Home() {
   };
   const fetchGlobalData = async (userId) => { await fetchJoueur(userId); await fetchRang(userId); };
   const fetchJoueur = async (userId) => {
+    // 1. APPEL RÉGÉNÉRATION & RESET
+    // On s'assure que les compteurs sont à jour avant de charger le joueur
+    await supabase.rpc('verifier_reset_journalier'); // Reset si nouveau jour
+    const { data: regen } = await supabase.rpc('regenerer_combats'); // Regen horaire
+
+    // Mise à jour du chrono pour l'interface
+    if (regen && regen.next_regen) {
+        setDateProchainGain(new Date(regen.next_regen));
+    } else {
+        setDateProchainGain(null);
+        setChronoEnergie(null);
+    }
+
+    // 2. CHARGEMENT DONNÉES JOUEUR
     let { data: j, error } = await supabase.from('joueurs').select('*').eq('id', userId).single();
     
     if (error && error.code === 'PGRST116') {
@@ -325,11 +362,17 @@ export default function Home() {
     if (j) { 
         setJoueur(j); 
         setXpMax(Math.floor(100 * Math.pow(j.niveau, 1.5)));
+        
+        // Récupération des navires (pour le chantier)
+        const { data: navireInfo } = await supabase.from('navires_ref').select('*').eq('niveau', j.niveau_navire).single();
+        // On peut stocker ça dans un state à part ou l'utiliser direct, 
+        // mais ici le useEffect du chantier s'en charge aussi.
+
         const { data: stats } = await supabase.rpc('get_stats_totales', { target_id: userId });
         if (stats) setStatsTotales(stats);
         
-        // Equipement
-       const ids = [
+        // Equipement (6 slots + Navire)
+        const ids = [
             j.equip_arme_id, j.equip_tete_id, j.equip_corps_id, 
             j.equip_navire_id, j.equip_bottes_id, j.equip_bague_id, j.equip_collier_id
         ].filter(Boolean);
@@ -2694,9 +2737,28 @@ const handleLogin = async () => {
                                         <button onClick={() => setAreneFilter('PVP')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${areneFilter === 'PVP' ? theme.btnPrimary : `${theme.textDim} hover:text-white`}`}>⚔️ JOUEURS (PvP)</button>
                                     </div>
 
-                                    <div className={`border ${theme.border} p-3 rounded-xl text-center mb-2 bg-black/20`}>
-                                        <p className={`font-bold text-sm ${theme.textMain}`}>Combats restants : {10 - (joueur.combats_journaliers || 0)} / 10</p>
-                                        <div className="flex justify-center gap-4 text-[10px] mt-1 font-mono">
+                                    <div className={`border ${theme.border} p-4 rounded-xl text-center mb-4 bg-black/20 relative overflow-hidden`}>
+                                        <p className={`font-black text-lg uppercase ${theme.textMain}`}>
+                                            Énergie : {Math.max(0, 10 - (joueur.combats_journaliers || 0))} / 10 ⚡
+                                        </p>
+                                        
+                                        {/* CHRONO REGEN */}
+                                        {chronoEnergie && (joueur.combats_journaliers > 0) ? (
+                                            <p className="text-xs text-yellow-400 font-mono mt-1 animate-pulse">
+                                                +1 ⚡ dans {chronoEnergie}
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-green-400 font-bold mt-1">Énergie Max !</p>
+                                        )}
+
+                                        <div className="w-full h-1 bg-slate-700 mt-3 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full transition-all duration-500 ${theme.barFill}`} 
+                                                style={{ width: `${Math.max(0, (10 - joueur.combats_journaliers) * 10)}%` }}
+                                            ></div>
+                                        </div>
+
+                                        <div className="flex justify-center gap-4 text-[10px] mt-3 font-mono opacity-80">
                                             <span className="text-green-400">V: {joueur.victoires_pve + joueur.victoires_pvp}</span>
                                             <span className="text-red-400">D: {joueur.defaites_pve + joueur.defaites_pvp}</span>
                                         </div>
@@ -2720,10 +2782,18 @@ const handleLogin = async () => {
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border border-slate-600 bg-slate-800 shrink-0">
                                                                 {adv.avatar_url ? <img src={adv.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full text-2xl">👤</div>}
-                                                                
                                                             </div>
+                                                            
                                                             <div>
-                                                                <p className={`font-bold text-sm ${theme.textMain}`}>{adv.pseudo}</p>
+                                                                {/* BLOC PSEUDO + TITRE (AJOUTÉ ICI) */}
+                                                                <div className="flex flex-col md:flex-row md:items-baseline gap-0 md:gap-2">
+                                                                    <p className={`font-bold text-sm ${theme.textMain}`}>{adv.pseudo}</p>
+                                                                    {adv.titre_actuel && (
+                                                                        <span className="text-[9px] text-yellow-500/90 italic truncate max-w-[150px]">
+                                                                            « {adv.titre_actuel} »
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
                                                                     <span className={`font-black uppercase ${factionColor}`}>{adv.faction || 'Neutre'}</span>
