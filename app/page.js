@@ -737,8 +737,17 @@ const chargerBoutique = async () => {
           }
       }
       else if (action === 'EQUIPER') { 
-        // CORRECTION : On envoie l'ID de l'inventaire (item.id), pas l'ID de l'objet
-        const { data } = await supabase.rpc('equiper_objet', { objet_id_input: item.id }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify(data?.message || "Erreur", "error"); }
+          // CORRECTION : On envoie item.id (l'ID unique dans ton sac), PAS item.objet_id (l'ID du catalogue)
+          const { data } = await supabase.rpc('equiper_objet', { objet_id_input: item.id }); 
+          
+          if (data && data.success) { 
+              notify(data.message, "success"); 
+              chargerInventaire(); 
+              fetchJoueur(session.user.id); 
+          } else { 
+              notify(data?.message || "Impossible d'équiper", "error"); 
+          }
+      }
       else if (action === 'VENDRE_INSTANT') setConfirmVente(item);
   }
   const desequiperSlot = async (slot) => { const { data } = await supabase.rpc('desequiper_objet', { slot_nom: slot }); if (data && data.success) { notify("Déséquipé.", "info"); fetchJoueur(session.user.id); chargerInventaire(); } }
