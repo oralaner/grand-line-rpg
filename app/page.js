@@ -1188,10 +1188,11 @@ const handleLogin = async () => {
       ) : (
         <div className="flex flex-col lg:flex-row w-full h-full max-w-7xl mx-auto p-2 md:p-4 gap-2 md:gap-4 overflow-hidden">
         
-            
+
             {/* === GAUCHE : SIDEBAR PROFIL === */}
             {/* Sur mobile : Visible seulement si aucun onglet n'est actif */}
-            <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-2 md:gap-4 transition-all duration-300 ease-in-out h-full overflow-y-auto custom-scrollbar safe-area-bottom lg:pb-0
+            {/* MODIFICATION ICI : 'pb-32' ajoute une grosse marge en bas sur mobile pour dépasser le menu */}
+            <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-2 md:gap-4 transition-all duration-300 ease-in-out h-full overflow-y-auto custom-scrollbar pb-32 lg:pb-0
                 ${activeTab ? 'hidden lg:flex' : 'flex'} 
                 ${activeTab === 'combat_actif' ? 'lg:-translate-x-[120%] lg:opacity-0 lg:hidden' : ''}`}>
                 
