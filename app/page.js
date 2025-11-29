@@ -1192,7 +1192,7 @@ const handleLogin = async () => {
             {/* === GAUCHE : SIDEBAR PROFIL === */}
             {/* Sur mobile : Visible seulement si aucun onglet n'est actif */}
             {/* MODIFICATION ICI : 'pb-32' ajoute une grosse marge en bas sur mobile pour dépasser le menu */}
-            <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-2 md:gap-4 transition-all duration-300 ease-in-out h-full overflow-y-auto custom-scrollbar pb-32 lg:pb-0
+            <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-2 md:gap-4 transition-all duration-300 ease-in-out h-full overflow-y-auto custom-scrollbar pb-40 lg:pb-0
                 ${activeTab ? 'hidden lg:flex' : 'flex'} 
                 ${activeTab === 'combat_actif' ? 'lg:-translate-x-[120%] lg:opacity-0 lg:hidden' : ''}`}>
                 
