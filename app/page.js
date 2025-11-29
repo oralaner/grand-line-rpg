@@ -1680,6 +1680,21 @@ const handleLogin = async () => {
                                         {/* LISTE */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                              {inventaire.filter(item => {
+                                                 // 1. EXCLURE LES OBJETS DÉJÀ ÉQUIPÉS
+                                                 // On vérifie si l'ID unique de cet item (item.id) correspond à un des slots du joueur
+                                                 const estEquipe = [
+                                                     joueur.equip_arme_id, 
+                                                     joueur.equip_tete_id, 
+                                                     joueur.equip_corps_id, 
+                                                     joueur.equip_bottes_id, 
+                                                     joueur.equip_bague_id, 
+                                                     joueur.equip_collier_id, 
+                                                     joueur.equip_navire_id
+                                                 ].includes(item.id);
+
+                                                 if (estEquipe) return false; // On le cache s'il est porté
+
+                                                 // 2. FILTRES DE CATÉGORIE (Votre code existant)
                                                  const type = item.objets.type_equipement;
                                                  if (invFilter === 'TOUT') return true;
                                                  if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
