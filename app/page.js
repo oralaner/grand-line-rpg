@@ -2,39 +2,48 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-// --- HELPERS UI ---
-// --- HELPERS UI ---
-const formatStatsItem = (stats) => {
-    if (!stats) return "";
 
-    return Object.entries(stats)
-        .map(([key, val]) => {
-            // 1. Mappage des noms pour faire joli (Abbreviations)
-            let label = key.charAt(0).toUpperCase() + key.slice(1);
-            if (key === 'force_brute') label = 'Force';
-            if (key === 'intelligence') label = 'Intel.';
-            if (key === 'vitalite') label = 'Vita.';
-            if (key === 'agilite') label = 'Agi.';
-            if (key === 'sagesse') label = 'Sag.';
-            if (key === 'chance') label = 'Chance';
-            if (key === 'soin') label = 'PV'; // Pour l'affichage générique
+// --- NOUVEAU COMPOSANT D'AFFICHAGE STATS ---
+const StatsDisplay = ({ stats, compact = false }) => {
+    if (!stats) return null;
 
-            // 2. GESTION DES PLAGES (Tableau [Min, Max]) -> BOUTIQUE
-            if (Array.isArray(val)) {
-                return `+${val[0]}-${val[1]} ${label}`;
-            }
+    const entries = Object.entries(stats);
+    if (entries.length === 0) return null;
 
-            // 3. GESTION DES VALEURS FIXES -> INVENTAIRE
-            // On ignore les valeurs à 0 ou moins
-            if (typeof val === 'number' && val > 0) {
-                if (key === 'soin') return `Soigne ${val} PV`;
-                return `+${val} ${label}`;
-            }
+    // Mappage Icones & Labels
+    const config = {
+        force: { label: "Force", icon: "⚔️", color: "text-red-400" },
+        force_brute: { label: "Force", icon: "⚔️", color: "text-red-400" },
+        intelligence: { label: "Intelligence", icon: "🧠", color: "text-blue-400" },
+        vitalite: { label: "Vitalité", icon: "❤️", color: "text-pink-400" },
+        agilite: { label: "Agilité", icon: "💨", color: "text-green-400" },
+        chance: { label: "Chance", icon: "🍀", color: "text-emerald-400" },
+        sagesse: { label: "Sagesse", icon: "📜", color: "text-purple-400" },
+        soin: { label: "Soin", icon: "🧪", color: "text-rose-400" },
+        vitesse: { label: "Vitesse", icon: "⚡", color: "text-yellow-400" }
+    };
 
-            return null; // On retourne null pour les stats à 0 qu'on filtrera ensuite
-        })
-        .filter(Boolean) // Retire les éléments vides (null)
-        .join(' • '); // Séparateur plus esthétique
+    return (
+        <div className={`flex ${compact ? 'flex-row gap-2 flex-wrap' : 'flex-col gap-1 mt-2'}`}>
+            {entries.map(([key, val], i) => {
+                // Ignore les valeurs 0 ou null
+                if (!val || val === 0) return null;
+                
+                const conf = config[key] || { label: key, icon: "🔹", color: "text-slate-300" };
+                
+                // Affichage Plage [Min, Max]
+                const valueDisplay = Array.isArray(val) ? `${val[0]} à ${val[1]}` : `+${val}`;
+
+                return (
+                    <div key={i} className={`flex items-center gap-1 text-xs font-bold ${conf.color}`}>
+                        <span>{conf.icon}</span>
+                        <span>{valueDisplay}</span>
+                        {!compact && <span className="text-slate-500 ml-1 uppercase text-[9px]">{conf.label}</span>}
+                    </div>
+                );
+            })}
+        </div>
+    );
 };
 const getStatCost = (val) => {
     if (val < 50) return 1;
@@ -70,7 +79,7 @@ const EquipSlot = ({ type, item, onUnequip }) => (
                {/* 3. Le Tooltip ne s'affiche que si on survole "item" */}
                <div className="absolute bottom-full mb-2 bg-slate-900/95 text-white text-xs p-3 rounded-lg border border-slate-500 w-40 hidden group-hover/item:block z-50 pointer-events-none shadow-2xl backdrop-blur-md">
                    <p className="font-bold text-yellow-400 text-base mb-1">{item.nom}</p>
-                   <p className="text-emerald-400 mb-2 font-mono text-[10px]">{formatStatsItem(item.stats_bonus)}</p>
+                   <p className="text-emerald-400 mb-2 font-mono text-[10px]"><StatsDisplay stats={item.stats_bonus} /></p>
                    <p className="italic opacity-70 text-[10px] z-1000 leading-tight border-t border-slate-700 pt-2">{item.description}</p>
                </div>
 
@@ -1652,7 +1661,7 @@ const handleLogin = async () => {
                                                              {/* Affichage Stats (Base ou Perso) */}
                                                              {(item.stats_perso || item.objets.stats_bonus) && 
                                                                  <p className={`text-[10px] mt-1 font-mono ${theme.highlight}`}>
-                                                                     {formatStatsItem(item.stats_perso || item.objets.stats_bonus)}
+                                                                     <StatsDisplay stats={item.stats_perso || item.objets.stats_bonus} />
                                                                  </p>
                                                              }
                                                          </div>
@@ -1756,7 +1765,7 @@ const handleLogin = async () => {
                                                                     {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
                                                                 </div>
                                                                 <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
-                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}>{formatStatsItem(item.stats_bonus)}</p>
+                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_bonus} /></p>
                                                             </div>
                                                             
                                                             {isSoldOut ? (
