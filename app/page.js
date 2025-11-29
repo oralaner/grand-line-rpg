@@ -372,25 +372,36 @@ export default function Home() {
         if (stats) setStatsTotales(stats);
         
         // Equipement (6 slots + Navire)
-        const ids = [
-            j.equip_arme_id, j.equip_tete_id, j.equip_corps_id, 
-            j.equip_navire_id, j.equip_bottes_id, j.equip_bague_id, j.equip_collier_id
-        ].filter(Boolean);
+        // Dans fetchJoueur...
+        // On récupère les IDs d'inventaire équipés
+        const invIds = [j.equip_arme_id, j.equip_tete_id, j.equip_corps_id, j.equip_bottes_id, j.equip_bague_id, j.equip_collier_id].filter(Boolean);
         
-        let newEquip = { arme: null, tete: null, corps: null, navire: null, bottes: null, bague: null, collier: null };
+        let newEquip = { arme: null, tete: null, corps: null, bottes: null, bague: null, collier: null, navire: null };
         
-        if (ids.length > 0) {
-            const { data: items } = await supabase.from('objets').select('*').in('id', ids);
+        if (invIds.length > 0) {
+            // On charge les lignes d'INVENTAIRE complètes (avec stats_perso) + les infos de l'OBJET lié
+            const { data: items } = await supabase.from('inventaire').select('*, objets(*)').in('id', invIds);
+            
             if (items) {
-                newEquip.arme = items.find(i => i.id === j.equip_arme_id) || null;
-                newEquip.tete = items.find(i => i.id === j.equip_tete_id) || null;
-                newEquip.corps = items.find(i => i.id === j.equip_corps_id) || null;
-                newEquip.bottes = items.find(i => i.id === j.equip_bottes_id) || null;
-                newEquip.bague = items.find(i => i.id === j.equip_bague_id) || null;
-                newEquip.collier = items.find(i => i.id === j.equip_collier_id) || null;
-                newEquip.navire = items.find(i => i.id === j.equip_navire_id) || null;
+                // Fonction pour formater l'objet (fusionner les infos de base + stats uniques)
+                const formatItem = (invItem) => {
+                    if(!invItem) return null;
+                    return {
+                        ...invItem.objets, // Nom, Desc, Rareté...
+                        // Les stats bonus sont celles de l'instance (random), sinon celles de base
+                        stats_bonus: invItem.stats_perso || invItem.objets.stats_bonus 
+                    };
+                };
+
+                newEquip.arme = formatItem(items.find(i => i.id === j.equip_arme_id));
+                newEquip.tete = formatItem(items.find(i => i.id === j.equip_tete_id));
+                newEquip.corps = formatItem(items.find(i => i.id === j.equip_corps_id));
+                newEquip.bottes = formatItem(items.find(i => i.id === j.equip_bottes_id));
+                newEquip.bague = formatItem(items.find(i => i.id === j.equip_bague_id));
+                newEquip.collier = formatItem(items.find(i => i.id === j.equip_collier_id));
             }
         }
+        // Navire reste à part (système de niveaux)
         setEquipement(newEquip);
     }
   };
@@ -692,7 +703,9 @@ const chargerBoutique = async () => {
               else notify(data?.message || "Erreur coffre", "error"); 
           }
       }
-      else if (action === 'EQUIPER') { const { data } = await supabase.rpc('equiper_objet', { objet_id_input: item.objet_id }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify(data?.message || "Erreur", "error"); }
+      else if (action === 'EQUIPER') { 
+        // CORRECTION : On envoie l'ID de l'inventaire (item.id), pas l'ID de l'objet
+        const { data } = await supabase.rpc('equiper_objet', { objet_id_input: item.id }); if (data && data.success) { notify(data.message, "success"); chargerInventaire(); fetchJoueur(session.user.id); } else notify(data?.message || "Erreur", "error"); }
       else if (action === 'VENDRE_INSTANT') setConfirmVente(item);
   }
   const desequiperSlot = async (slot) => { const { data } = await supabase.rpc('desequiper_objet', { slot_nom: slot }); if (data && data.success) { notify("Déséquipé.", "info"); fetchJoueur(session.user.id); chargerInventaire(); } }
@@ -1570,6 +1583,7 @@ const handleLogin = async () => {
 
                                 {/* INVENTAIRE */}
                                 {/* INVENTAIRE (CORRIGÉ POUR LES FRUITS) */}
+                                {/* INVENTAIRE (CORRIGÉ) */}
                                 {activeTab === 'inventaire' && (
                                     <div className="space-y-4 md:space-y-6">
                                         
@@ -1592,11 +1606,10 @@ const handleLogin = async () => {
                                              {inventaire.filter(item => {
                                                  const type = item.objets.type_equipement;
                                                  if (invFilter === 'TOUT') return true;
-                                                 if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps'].includes(type);
-                                                 // CORRECTION ICI : Les Fruits sont des consommables
+                                                 if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
                                                  if (invFilter === 'CONSOMMABLE') return ['Consommable', 'Fruit'].includes(type);
                                                  if (invFilter === 'RESSOURCE') return type === 'Ressource';
-                                                 if (invFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Consommable', 'Fruit', 'Ressource'].includes(type);
+                                                 if (invFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire', 'Consommable', 'Fruit', 'Ressource'].includes(type);
                                                  return true;
                                              }).map((item, i) => {
                                                  const cfg = getRareteConfig(item.objets.rarete);
@@ -1611,7 +1624,13 @@ const handleLogin = async () => {
                                                                  {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
                                                              </div>
                                                              <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.textDim}`}>{item.objets.rarete} • {item.objets.type_equipement}</p>
-                                                             {item.objets.stats_bonus && <p className={`text-[10px] mt-1 font-mono ${theme.highlight}`}>{formatStatsItem(item.objets.stats_bonus)}</p>}
+                                                             
+                                                             {/* Affichage Stats (Base ou Perso) */}
+                                                             {(item.stats_perso || item.objets.stats_bonus) && 
+                                                                 <p className={`text-[10px] mt-1 font-mono ${theme.highlight}`}>
+                                                                     {formatStatsItem(item.stats_perso || item.objets.stats_bonus)}
+                                                                 </p>
+                                                             }
                                                          </div>
                                                          
                                                          <div className="flex flex-col items-end gap-2">
@@ -1619,15 +1638,14 @@ const handleLogin = async () => {
                                                              
                                                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                                  
-                                                                 {/* CORRECTION ICI : Bouton pour Consommable OU Fruit */}
                                                                  {(item.objets.type_equipement === 'Consommable' || isFruit) && (
-                                                                 <button 
-                                                                     onClick={() => gererObjet(item, 'UTILISER')} 
-                                                                     className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
-                                                                 >
-                                                                     {isFruit ? 'MANGER 🍎' : item.objets.nom.includes('Parchemin') ? 'LIRE 📜' : 'BOIRE 🧪'}
-                                                                 </button>
-                                                             )}
+                                                                     <button 
+                                                                         onClick={() => gererObjet(item, 'UTILISER')} 
+                                                                         className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
+                                                                     >
+                                                                         {isFruit ? 'MANGER 🍎' : item.objets.nom.includes('Parchemin') ? 'LIRE 📜' : 'BOIRE 🧪'}
+                                                                     </button>
+                                                                 )}
                                                                  
                                                                  {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement) && (
                                                                      <button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}>Équiper</button>
@@ -1644,7 +1662,19 @@ const handleLogin = async () => {
                                                      </div>
                                                  )
                                              })}
-                                             {inventaire.length === 0 && <div className="col-span-1 md:col-span-2 text-center py-10 text-slate-500 italic">Sac vide...</div>}
+                                             
+                                             {/* Message vide si aucun item trouvé (Hors du map) */}
+                                             {inventaire.filter(item => {
+                                                 const type = item.objets.type_equipement;
+                                                 if (invFilter === 'TOUT') return true;
+                                                 if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
+                                                 if (invFilter === 'CONSOMMABLE') return ['Consommable', 'Fruit'].includes(type);
+                                                 if (invFilter === 'RESSOURCE') return type === 'Ressource';
+                                                 if (invFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire', 'Consommable', 'Fruit', 'Ressource'].includes(type);
+                                                 return true;
+                                             }).length === 0 && (
+                                                 <div className="col-span-1 md:col-span-2 text-center py-10 text-slate-500 italic">Sac vide...</div>
+                                             )}
                                         </div>
                                     </div>
                                 )}
