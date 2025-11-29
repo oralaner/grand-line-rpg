@@ -65,27 +65,28 @@ const formatChronoLong = (ms) => {
     return `${h}h ${m}m ${s.toString().padStart(2, '0')}s`; 
 };
 
-
-
-// Slot d'équipement (Correction : Groupe Nommé "item")
-const EquipSlot = ({ type, item, onUnequip }) => (
+// Slot d'équipement (CORRIGÉ : Utilise item.stats_bonus directement)
+const EquipSlot = ({ type, item, onUnequip, theme }) => (
     <div 
-        // 1. On nomme ce groupe "item" pour l'isoler
         className={`relative w-20 h-20 rounded-2xl flex flex-col items-center justify-center group/item transition-all duration-300 cursor-pointer border-2 shadow-md
-        ${item ? 'bg-slate-800 border-yellow-500 shadow-yellow-500/20' : 'bg-slate-100 border-slate-300 hover:border-slate-400'}`}
+        ${item ? `bg-slate-800 ${theme?.border || 'border-yellow-500'} shadow-lg` : 'bg-slate-100/5 border-white/10 hover:border-white/30'}`}
     >
         {item ? (
             <>
-               {/* 2. On cible uniquement le hover de "item" */}
                <div className="text-3xl drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition">
-                   {type === 'Arme' ? '⚔️' : type === 'Tête' ? '👑' : '👕'}
+                   {type === 'Arme' ? '⚔️' : type === 'Tête' ? '👑' : type === 'Corps' ? '👕' : type === 'Bottes' ? '👢' : type === 'Bague' ? '💍' : type === 'Collier' ? '📿' : '⛵'}
                </div> 
-               <div className="text-[9px] text-yellow-100 font-bold text-center px-1 truncate w-full">{item.nom}</div>
+               <div className={`text-[9px] font-bold text-center px-1 truncate w-full ${theme?.textMain || 'text-yellow-100'}`}>{item.nom}</div>
                
-               {/* 3. Le Tooltip ne s'affiche que si on survole "item" */}
+               {/* TOOLTIP CORRIGÉ */}
                <div className="absolute bottom-full mb-2 bg-slate-900/95 text-white text-xs p-3 rounded-lg border border-slate-500 w-40 hidden group-hover/item:block z-50 pointer-events-none shadow-2xl backdrop-blur-md">
-                   <p className="font-bold text-yellow-400 text-base mb-1">{item.nom}</p>
-                   <p className="text-emerald-400 mb-2 font-mono text-[10px]"><StatsDisplay stats={item.stats_perso || item.objets.stats_bonus} /></p>
+                   <p className={`font-bold text-base mb-1 ${theme?.highlight || 'text-yellow-400'}`}>{item.nom}</p>
+                   
+                   {/* C'EST ICI LA CORRECTION : on utilise item.stats_bonus directement */}
+                   <div className="mb-2">
+                       <StatsDisplay stats={item.stats_bonus} />
+                   </div>
+                   
                    <p className="italic opacity-70 text-[10px] z-1000 leading-tight border-t border-slate-700 pt-2">{item.description}</p>
                </div>
 
@@ -97,15 +98,15 @@ const EquipSlot = ({ type, item, onUnequip }) => (
             </>
         ) : (
             <>
-                <span className="text-slate-600 text-3xl font-bold select-none opacity-50 group-hover/item:text-cyan-900 transition">
-                    {type === 'Arme' ? '⚔️' : type === 'Tête' ? '🧢' : '👕'}
+                <span className="text-slate-600 text-3xl font-bold select-none opacity-50 group-hover/item:text-white transition">
+                    {type === 'Arme' ? '⚔️' : type === 'Tête' ? '🧢' : type === 'Corps' ? '👕' : type === 'Bottes' ? '👢' : type === 'Bague' ? '💍' : type === 'Collier' ? '📿' : '⛵'}
                 </span>
-                <span className="text-[9px] text-slate-400 uppercase font-bold mt-1">{type}</span>
+                <span className="text-[9px] text-slate-500 uppercase font-bold mt-1">{type}</span>
             </>
         )}
         <div className="absolute bottom-0 inset-x-0 bg-black/30 text-[7px] text-slate-400 text-center uppercase font-bold py-0.5 pointer-events-none rounded-b-xl">{type}</div>
     </div>
-);
+); 
 
 // Ligne de stat (Avec Coût Progressif)
 // Ligne de stat (Avec Bonus Equipement + Description visible)
