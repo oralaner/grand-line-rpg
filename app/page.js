@@ -525,8 +525,14 @@ const chargerInventaire = async () => {
       }
   };
   const chargerDestinations = async () => { const { data } = await supabase.from('destinations').select('*').order('niveau_requis'); if (data) setDestinations(data); }
-  const chargerMarche = async () => { const { data } = await supabase.from('marche').select('*, objets(nom, rarete), joueurs(pseudo)').order('created_at', { ascending: false }); if (data) setMarcheItems(data); }
-  const chargerArene = async () => { 
+const chargerMarche = async () => { 
+      const { data } = await supabase
+          .from('marche')
+          // AJOUT de stats_perso et stats_bonus
+          .select('*, objets(nom, rarete, description, type_equipement, stats_bonus), joueurs(pseudo)')
+          .order('created_at', { ascending: false }); 
+      if (data) setMarcheItems(data); 
+  };  const chargerArene = async () => { 
       const isBot = areneFilter === 'PVE'; 
       // AJOUT DE 'titre_actuel' DANS LE SELECT
       const { data } = await supabase
@@ -2482,18 +2488,51 @@ const handleLogin = async () => {
                                 const isMine = annonce.vendeur_id === session.user.id;
                                 const cfg = getRareteConfig(annonce.objets.rarete);
                                 return (
-                                    <div key={i} className={`flex justify-between items-center bg-stone-100 p-3 rounded-xl shadow-sm border-l-4 ${cfg.border}`}>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2"><p className="font-bold text-black truncate text-sm md:text-base">{annonce.objets.nom}</p><span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-opacity-20 ${cfg.bg} ${cfg.text}`}>{annonce.objets.rarete}</span></div>
-                                            <div className="flex items-center gap-2 text-xs mt-1"><span className="bg-white px-1.5 py-0.5 rounded text-stone-900 font-mono border border-stone-200">x{annonce.quantite}</span><span className="text-stone-500">par</span><span className={`font-bold ${isMine ? "text-purple-700" : "text-stone-700"}`}>{isMine ? "VOUS" : annonce.joueurs?.pseudo}</span></div>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-1 ml-2">
-                                            <span className="font-mono font-bold text-base md:text-lg text-yellow-700">{annonce.prix_unitaire} ฿</span>
-                                            {isMine ? (<span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded border border-purple-300">EN VENTE</span>) : (<button onClick={() => ouvrirTransaction('ACHAT_MARCHE', annonce, annonce.quantite)} className="bg-stone-800 hover:bg-stone-700 text-white font-bold py-1 px-3 rounded shadow text-xs">ACHETER</button>)}
-                                        </div>
-                                    </div>
-                                )
-                            })}
+                                            <div key={i} className={`flex flex-col md:flex-row justify-between items-center bg-black/20 p-3 md:p-4 rounded-xl shadow-sm border-l-4 transition hover:bg-black/30 ${cfg.border} mb-2`}>
+                                                
+                                                {/* GAUCHE : INFOS ITEM */}
+                                                <div className="flex-1 w-full md:w-auto">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className={`font-bold text-sm md:text-lg truncate ${theme.textMain}`}>{annonce.objets.nom}</p>
+                                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-opacity-20 ${cfg.bg} ${cfg.text}`}>
+                                                            {annonce.objets.rarete}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* STATS (C'est ici qu'on affiche les stats uniques si elles existent) */}
+                                                    <div className="my-1">
+                                                        <StatsDisplay stats={annonce.stats_perso || annonce.objets.stats_bonus} compact={true} />
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 text-xs mt-1">
+                                                        <span className="bg-black/40 px-2 py-0.5 rounded text-slate-300 font-mono border border-white/10">x{annonce.quantite}</span>
+                                                        <span className="text-slate-500">vendu par</span>
+                                                        <span className={`font-bold ${isMine ? "text-purple-400" : "text-white"}`}>
+                                                            {isMine ? "VOUS" : annonce.joueurs?.pseudo}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* DROITE : PRIX & ACTION */}
+                                                <div className="flex flex-row md:flex-col items-center md:items-end gap-3 md:gap-1 mt-3 md:mt-0 w-full md:w-auto justify-between md:justify-start">
+                                                    <span className="font-mono font-black text-lg text-yellow-400">{annonce.prix_unitaire.toLocaleString()} ฿</span>
+                                                    
+                                                    {isMine ? (
+                                                        <span className="text-[10px] font-bold text-purple-300 bg-purple-900/20 px-2 py-1 rounded border border-purple-500/30">
+                                                            EN VENTE
+                                                        </span>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => ouvrirTransaction('ACHAT_MARCHE', annonce, annonce.quantite)} 
+                                                            className={`font-bold py-1.5 px-4 rounded-lg shadow-lg text-xs ${theme.btnPrimary}`}
+                                                        >
+                                                            ACHETER
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
                         </div>
                     )}
 
