@@ -565,6 +565,10 @@ const chargerMarche = async () => {
       setMembresEquipage(mb || []);
   };
   const chargerMeteo = async () => {
+      // 1. On vérifie si la météo doit changer (Lazy Update)
+      await supabase.rpc('check_and_update_meteo');
+
+      // 2. On charge la météo à jour
       const { data } = await supabase.from('vue_meteo').select('*');
       if (data) {
           const map = {};
