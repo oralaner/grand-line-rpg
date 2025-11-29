@@ -1856,7 +1856,7 @@ const handleLogin = async () => {
                                                                 
                                                                 {/* Affichage Stats (Sécurisé) */}
                                                                 <div className="text-[9px] md:text-[10px]">
-                                                                    <StatsDisplay stats={item.stats_bonus || {}} compact={true} />
+                                                                    <StatsDisplay stats={item.stats_bonus || {}} compact={false} />
                                                                 </div>
                                                             </div>
                                                             
