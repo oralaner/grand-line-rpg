@@ -1712,7 +1712,9 @@ const handleLogin = async () => {
                                                      <div key={i} className={`flex items-center justify-between bg-black/20 p-4 rounded-xl border ${theme.borderLow} border-l-4 ${cfg.border} hover:bg-black/30 transition group`}>
                                                          <div className="flex-1 min-w-0 pr-4">
                                                              <div className="flex items-center gap-2">
-                                                                 <p className={`font-bold text-lg truncate ${theme.textMain}`}>{item.objets.nom}</p>
+                                                                 <p className={`font-bold text-sm md:text-lg leading-tight ${theme.textMain}`}>
+                                                                {item.objets.nom}
+                                                            </p>
                                                                  {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse shrink-0">UNIQUE</span>}
                                                              </div>
                                                              <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.textDim}`}>{item.objets.rarete} • {item.objets.type_equipement}</p>
@@ -1823,8 +1825,8 @@ const handleLogin = async () => {
                                                         <div key={i} className={`relative border ${theme.borderLow} bg-black/20 p-3 md:p-4 rounded-xl flex justify-between items-center transition group ${isSoldOut ? 'opacity-60 grayscale' : 'hover:bg-black/30'}`}>
                                                             <div className="min-w-0 pr-2">
                                                                 <div className="flex items-center gap-2">
-                                                                 <p className={`font-bold text-lg truncate ${theme.textMain}`}>{item.objets.nom}</p>                                                      
-                                                                {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
+                                                                    <p className={`font-bold text-sm md:text-lg truncate ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
+                                                                    {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
                                                                 </div>
                                                                 <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
                                                                 <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_bonus || {}} /></p>
