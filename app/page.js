@@ -699,7 +699,7 @@ const chargerBoutique = async () => {
   const gererObjet = async (item, action) => {
       if (action === 'UTILISER') {
           
-          // 1. CAS SPÉCIAL : FRUIT DU DÉMON
+          // 1. CAS SPÉCIAL : FRUIT DU DÉMON (item.objet_id)
           if (item.objets.nom.endsWith("no Mi")) {
               const { data, error } = await supabase.rpc('manger_fruit_demon', { _objet_id_inventaire: item.objet_id });
               if (data?.success) { 
@@ -714,7 +714,7 @@ const chargerBoutique = async () => {
               return;
           }
 
-          // 2. CAS CLASSIQUE : POTIONS
+          // 2. CAS CLASSIQUE : POTIONS ET PARCHEMINS (item.objet_id)
           if (item.objets.type_equipement === 'Consommable') { 
               const result = await supabase.rpc('utiliser_consommable', { _objet_id_input: item.objet_id }); 
               if (result?.data?.success) { 
@@ -723,30 +723,26 @@ const chargerBoutique = async () => {
                   await fetchJoueur(session.user.id); 
               } else notify(result?.data?.message || "Erreur", "error"); 
           
-          // 3. CAS CLASSIQUE : COFFRES (TOUS TYPES)
+          // 3. CAS CLASSIQUE : COFFRES (item.objets.nom)
           } else if (item.objets.type_equipement === "Coffre") { 
               const { data } = await supabase.rpc('ouvrir_coffre', { nom_coffre: item.objets.nom }); 
               
               if(data && data.success) { 
-                  // Notification détaillée - Durée augmentée à 15000ms (15 secondes)
                   notify(`🎁 BUTIN !\nObjet : ${data.loot} (${data.rarete})\nBonus : +${data.xp} XP | +${data.berrys} ฿`, "success", 15000); 
                   chargerInventaire(); 
                   fetchJoueur(session.user.id);
               } 
               else notify(data?.message || "Erreur coffre", "error"); 
-          }
+          } 
       }
+      // 4. CAS ÉQUIPER (item.id pour les objets uniques)
       else if (action === 'EQUIPER') { 
-          // CORRECTION : On envoie item.id (l'ID unique dans ton sac), PAS item.objet_id (l'ID du catalogue)
           const { data } = await supabase.rpc('equiper_objet', { objet_id_input: item.id }); 
-          
           if (data && data.success) { 
               notify(data.message, "success"); 
               chargerInventaire(); 
               fetchJoueur(session.user.id); 
-          } else { 
-              notify(data?.message || "Impossible d'équiper", "error"); 
-          }
+          } else notify(data?.message || "Erreur", "error"); 
       }
       else if (action === 'VENDRE_INSTANT') setConfirmVente(item);
   }
