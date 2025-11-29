@@ -792,7 +792,6 @@ const validerTransaction = async () => {
       
       if (transaction.type === 'ACHAT_BOUTIQUE') { 
           rpc = 'acheter_objet'; 
-          // CORRECTION ICI : On envoie bien la quantité choisie
           p = { 
               objet_id_achat: transaction.item.id, 
               qte_achat: qteTransaction 
@@ -800,7 +799,11 @@ const validerTransaction = async () => {
       } 
       else if (transaction.type === 'VENTE') { 
           rpc = 'vendre_au_marche'; 
-          p = { objet_id_vente: transaction.item.objet_id, qte_vente: qteTransaction, prix_unitaire_vente: prixVente }; 
+          p = { 
+              objet_id_vente: transaction.item.id, // <--- ICI LA CORRECTION
+              qte_vente: qteTransaction, 
+              prix_unitaire_vente: prixVente 
+          }; 
       } 
       else if (transaction.type === 'ACHAT_MARCHE') { 
           rpc = 'acheter_du_marche'; 
