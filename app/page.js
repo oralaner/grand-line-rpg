@@ -1720,7 +1720,7 @@ const handleLogin = async () => {
                                                              {/* NOUVEAU : Affichage des stats (Perso ou Base) avec le composant propre */}
                                                              <StatsDisplay 
                                                                  stats={item.stats_perso || item.objets.stats_bonus} 
-                                                                 compact={true} 
+                                                                 compact={false} 
                                                              />
                                                          </div>
                                                          
@@ -2516,7 +2516,7 @@ const handleLogin = async () => {
                                                     
                                                     {/* STATS (C'est ici qu'on affiche les stats uniques si elles existent) */}
                                                     <div className="my-1">
-                                                        <StatsDisplay stats={annonce.stats_perso || annonce.objets.stats_bonus} compact={true} />
+                                                        <StatsDisplay stats={annonce.stats_perso || annonce.objets.stats_bonus} compact={false} />
                                                     </div>
 
                                                     <div className="flex items-center gap-2 text-xs mt-1">
