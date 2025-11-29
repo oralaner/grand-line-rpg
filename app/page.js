@@ -1823,8 +1823,10 @@ const handleLogin = async () => {
                                                         <div key={i} className={`relative border ${theme.borderLow} bg-black/20 p-3 md:p-4 rounded-xl flex justify-between items-center transition group ${isSoldOut ? 'opacity-60 grayscale' : 'hover:bg-black/30'}`}>
                                                             <div className="min-w-0 pr-2">
                                                                 <div className="flex items-center gap-2">
-                                                                    <p className={`font-bold text-sm md:text-lg ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
-                                                                    {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
+                                                                <p className={`font-bold text-sm md:text-lg leading-tight ${theme.textMain}`}>
+                                                                 {item.objets.nom}
+                                                                </p>                                                                    
+                                                                {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
                                                                 </div>
                                                                 <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
                                                                 <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_bonus || {}} /></p>
