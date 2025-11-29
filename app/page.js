@@ -3,42 +3,40 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 
-// --- NOUVEAU COMPOSANT D'AFFICHAGE STATS ---
-const StatsDisplay = ({ stats, compact = false }) => {
+// COMPOSANT D'AFFICHAGE STATS (STYLE DOFUS)
+const StatsDisplay = ({ stats }) => {
     if (!stats) return null;
-
     const entries = Object.entries(stats);
     if (entries.length === 0) return null;
 
-    // Mappage Icones & Labels
-    const config = {
-        force: { label: "Force", icon: "⚔️", color: "text-red-400" },
-        force_brute: { label: "Force", icon: "⚔️", color: "text-red-400" },
-        intelligence: { label: "Intelligence", icon: "🧠", color: "text-blue-400" },
-        vitalite: { label: "Vitalité", icon: "❤️", color: "text-pink-400" },
-        agilite: { label: "Agilité", icon: "💨", color: "text-green-400" },
-        chance: { label: "Chance", icon: "🍀", color: "text-emerald-400" },
-        sagesse: { label: "Sagesse", icon: "📜", color: "text-purple-400" },
-        soin: { label: "Soin", icon: "🧪", color: "text-rose-400" },
-        vitesse: { label: "Vitesse", icon: "⚡", color: "text-yellow-400" }
+    // Config des icônes et couleurs
+    const conf = {
+        force: { ico: "⚔️", col: "text-red-400", label: "Force" },
+        force_brute: { ico: "⚔️", col: "text-red-400", label: "Force" },
+        intelligence: { ico: "🧠", col: "text-blue-400", label: "Intelligence" },
+        vitalite: { ico: "❤️", col: "text-pink-400", label: "Vitalité" },
+        agilite: { ico: "💨", col: "text-green-400", label: "Agilité" },
+        chance: { ico: "🍀", col: "text-emerald-400", label: "Chance" },
+        sagesse: { ico: "📜", col: "text-purple-400", label: "Sagesse" },
+        soin: { ico: "🧪", col: "text-rose-400", label: "Soin" },
+        vitesse: { ico: "⚡", col: "text-yellow-400", label: "Vitesse" }
     };
 
     return (
-        <div className={`flex ${compact ? 'flex-row gap-2 flex-wrap' : 'flex-col gap-1 mt-2'}`}>
+        <div className="flex flex-col gap-1 mt-2 bg-black/40 p-2 rounded text-[10px] font-mono">
             {entries.map(([key, val], i) => {
-                // Ignore les valeurs 0 ou null
+                // Ignore les stats à 0 ou null
                 if (!val || val === 0) return null;
+                const c = conf[key] || { ico: "🔹", col: "text-slate-300", label: key };
                 
-                const conf = config[key] || { label: key, icon: "🔹", color: "text-slate-300" };
-                
-                // Affichage Plage [Min, Max]
-                const valueDisplay = Array.isArray(val) ? `${val[0]} à ${val[1]}` : `+${val}`;
+                // Affichage Plage [Min, Max] ou Valeur Fixe
+                const valTxt = Array.isArray(val) ? `${val[0]} à ${val[1]}` : `+${val}`;
 
                 return (
-                    <div key={i} className={`flex items-center gap-1 text-xs font-bold ${conf.color}`}>
-                        <span>{conf.icon}</span>
-                        <span>{valueDisplay}</span>
-                        {!compact && <span className="text-slate-500 ml-1 uppercase text-[9px]">{conf.label}</span>}
+                    <div key={i} className={`flex items-center gap-2 ${c.col}`}>
+                        <span>{c.ico}</span>
+                        <span className="font-bold">{valTxt}</span>
+                        <span className="uppercase opacity-70">{c.label}</span>
                     </div>
                 );
             })}
@@ -79,7 +77,7 @@ const EquipSlot = ({ type, item, onUnequip }) => (
                {/* 3. Le Tooltip ne s'affiche que si on survole "item" */}
                <div className="absolute bottom-full mb-2 bg-slate-900/95 text-white text-xs p-3 rounded-lg border border-slate-500 w-40 hidden group-hover/item:block z-50 pointer-events-none shadow-2xl backdrop-blur-md">
                    <p className="font-bold text-yellow-400 text-base mb-1">{item.nom}</p>
-                   <p className="text-emerald-400 mb-2 font-mono text-[10px]"><StatsDisplay stats={item.stats_bonus} /></p>
+                   <p className="text-emerald-400 mb-2 font-mono text-[10px]"><StatsDisplay stats={item.stats_perso || item.objets.stats_bonus} /></p>
                    <p className="italic opacity-70 text-[10px] z-1000 leading-tight border-t border-slate-700 pt-2">{item.description}</p>
                </div>
 
@@ -1774,7 +1772,7 @@ const handleLogin = async () => {
                                                                     {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
                                                                 </div>
                                                                 <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
-                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_bonus} /></p>
+                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_perso || item.objets.stats_bonus} /></p>
                                                             </div>
                                                             
                                                             {isSoldOut ? (
