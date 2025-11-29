@@ -2,8 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-
-// COMPOSANT D'AFFICHAGE STATS (STYLE DOFUS)
 // COMPOSANT STATS (VERSION SÉCURISÉE ANTI-CRASH)
 const StatsDisplay = ({ stats, compact = false }) => {
     // 1. Sécurité absolue : Si pas de stats, on ne rend rien (pas d'erreur)
@@ -1387,16 +1385,13 @@ const handleLogin = async () => {
                           ))}
                     </div>
                     
-                
-                    {/* EQUIPEMENT (6 SLOTS : Grille 3x2 symétrique) */}
+                    {/* EQUIPEMENT (Grille 3x2 propre) */}
                     <div className="grid grid-cols-3 gap-2 mb-4 md:mb-6 px-1 justify-items-center">
-                        {/* LIGNE 1 : Les protections principales */}
                         <EquipSlot type="Tête" item={equipement.tete} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Corps" item={equipement.corps} onUnequip={desequiperSlot} theme={theme} />
-                        <EquipSlot type="Bottes" item={equipement.bottes} onUnequip={desequiperSlot} theme={theme} />
-                        
-                        {/* LIGNE 2 : Arme et Bijoux */}
                         <EquipSlot type="Arme" item={equipement.arme} onUnequip={desequiperSlot} theme={theme} />
+                        
+                        <EquipSlot type="Bottes" item={equipement.bottes} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Bague" item={equipement.bague} onUnequip={desequiperSlot} theme={theme} />
                         <EquipSlot type="Collier" item={equipement.collier} onUnequip={desequiperSlot} theme={theme} />
                     </div>
@@ -1695,15 +1690,13 @@ const handleLogin = async () => {
                                                                      </button>
                                                                  )}
                                                                  
-                                                                 {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets?.type_equipement) && (
-    <button 
-        // C'EST ICI LE SECRET : item.id (pas item.objets.id)
-        onClick={() => gererObjet(item, 'EQUIPER')} 
-        className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
-    >
-        Équiper
-    </button>
-)}
+                                                                 {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement) && (
+                                                                    <button onClick={() => gererObjet(item, 'EQUIPER')} 
+                                                                      className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
+                                                                    >
+                                                                     Équiper
+                                                                    </button>
+                                                                )}
                                                                  
                                                                  {isCoffre && (
                                                                      <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 animate-pulse`}>Ouvrir</button>
