@@ -1695,14 +1695,15 @@ const handleLogin = async () => {
                                                                      </button>
                                                                  )}
                                                                  
-                                                                 {isEquipable && (
-                                                                     <button 
-                                                                         onClick={() => gererObjet(item, 'EQUIPER')} 
-                                                                         className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
-                                                                     >
-                                                                         Équiper
-                                                                     </button>
-                                                                 )}
+                                                                 {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets?.type_equipement) && (
+    <button 
+        // C'EST ICI LE SECRET : item.id (pas item.objets.id)
+        onClick={() => gererObjet(item, 'EQUIPER')} 
+        className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
+    >
+        Équiper
+    </button>
+)}
                                                                  
                                                                  {isCoffre && (
                                                                      <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 animate-pulse`}>Ouvrir</button>
