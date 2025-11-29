@@ -1772,7 +1772,7 @@ const handleLogin = async () => {
                                                                     {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
                                                                 </div>
                                                                 <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
-                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_perso || item.objets.stats_bonus} /></p>
+                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_bonus || {}} /></p>
                                                             </div>
                                                             
                                                             {isSoldOut ? (
