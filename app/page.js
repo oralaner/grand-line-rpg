@@ -4,39 +4,49 @@ import { supabase } from "../lib/supabaseClient";
 
 
 // COMPOSANT D'AFFICHAGE STATS (STYLE DOFUS)
-const StatsDisplay = ({ stats }) => {
-    if (!stats) return null;
+// COMPOSANT STATS (VERSION SÉCURISÉE ANTI-CRASH)
+const StatsDisplay = ({ stats, compact = false }) => {
+    // 1. Sécurité absolue : Si pas de stats, on ne rend rien (pas d'erreur)
+    if (!stats || typeof stats !== 'object') return null;
+
     const entries = Object.entries(stats);
     if (entries.length === 0) return null;
 
-    // Config des icônes et couleurs
-    const conf = {
-        force: { ico: "⚔️", col: "text-red-400", label: "Force" },
-        force_brute: { ico: "⚔️", col: "text-red-400", label: "Force" },
-        intelligence: { ico: "🧠", col: "text-blue-400", label: "Intelligence" },
-        vitalite: { ico: "❤️", col: "text-pink-400", label: "Vitalité" },
-        agilite: { ico: "💨", col: "text-green-400", label: "Agilité" },
-        chance: { ico: "🍀", col: "text-emerald-400", label: "Chance" },
-        sagesse: { ico: "📜", col: "text-purple-400", label: "Sagesse" },
-        soin: { ico: "🧪", col: "text-rose-400", label: "Soin" },
-        vitesse: { ico: "⚡", col: "text-yellow-400", label: "Vitesse" }
+    const config = {
+        force: { icon: "⚔️", color: "text-red-400", label: "Force" },
+        force_brute: { icon: "⚔️", color: "text-red-400", label: "Force" },
+        intelligence: { icon: "🧠", color: "text-blue-400", label: "Intel" },
+        vitalite: { icon: "❤️", color: "text-pink-400", label: "Vita" },
+        agilite: { icon: "💨", color: "text-green-400", label: "Agi" },
+        chance: { icon: "🍀", color: "text-emerald-400", label: "Chance" },
+        sagesse: { icon: "📜", color: "text-purple-400", label: "Sagesse" },
+        soin: { icon: "🧪", color: "text-rose-400", label: "Soin" },
+        vitesse: { icon: "⚡", color: "text-yellow-400", label: "Vitesse" }
     };
 
     return (
-        <div className="flex flex-col gap-1 mt-2 bg-black/40 p-2 rounded text-[10px] font-mono">
+        <div className={`flex ${compact ? 'flex-row gap-2 flex-wrap' : 'flex-col gap-1 mt-2'}`}>
             {entries.map(([key, val], i) => {
-                // Ignore les stats à 0 ou null
-                if (!val || val === 0) return null;
-                const c = conf[key] || { ico: "🔹", col: "text-slate-300", label: key };
+                // Ignore les valeurs vides
+                if (!val) return null;
+
+                const conf = config[key] || { label: key, icon: "🔹", color: "text-slate-300" };
                 
-                // Affichage Plage [Min, Max] ou Valeur Fixe
-                const valTxt = Array.isArray(val) ? `${val[0]} à ${val[1]}` : `+${val}`;
+                // Gestion sécurisée de l'affichage (Tableau ou Nombre)
+                let displayVal = val;
+                if (Array.isArray(val)) {
+                    displayVal = `${val[0]}-${val[1]}`; // Plage [Min, Max]
+                } else if (typeof val === 'number' && val > 0) {
+                    displayVal = `+${val}`; // Valeur Fixe
+                } else {
+                    return null; // Si format inconnu ou 0, on cache
+                }
 
                 return (
-                    <div key={i} className={`flex items-center gap-2 ${c.col}`}>
-                        <span>{c.ico}</span>
-                        <span className="font-bold">{valTxt}</span>
-                        <span className="uppercase opacity-70">{c.label}</span>
+                    <div key={i} className={`flex items-center gap-1 text-xs font-bold ${conf.color}`}>
+                        <span>{conf.icon}</span>
+                        <span>{displayVal}</span>
+                        {!compact && <span className="text-slate-500 ml-1 uppercase text-[9px]">{conf.label}</span>}
                     </div>
                 );
             })}
@@ -1621,11 +1631,9 @@ const handleLogin = async () => {
                                     </div>
                                 )}
 
-                                {/* INVENTAIRE */}
-                                {/* INVENTAIRE (CORRIGÉ POUR LES FRUITS) */}
-                                {/* INVENTAIRE (CORRIGÉ) */}
+                                {/* INVENTAIRE (AVEC STATS DYNAMIQUES ET CORRECTION EQUIPEMENT) */}
                                 {activeTab === 'inventaire' && (
-                                    <div className="space-y-4 md:space-y-6">
+                                    <div className="space-y-4 md:space-y-6 animate-fadeIn">
                                         
                                         {/* FILTRES */}
                                         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
@@ -1655,25 +1663,25 @@ const handleLogin = async () => {
                                                  const cfg = getRareteConfig(item.objets.rarete);
                                                  const isCoffre = item.objets.type_equipement === "Coffre";
                                                  const isFruit = item.objets.type_equipement === 'Fruit';
+                                                 const isEquipable = ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement);
 
                                                  return (
                                                      <div key={i} className={`flex items-center justify-between bg-black/20 p-4 rounded-xl border ${theme.borderLow} border-l-4 ${cfg.border} hover:bg-black/30 transition group`}>
-                                                         <div>
+                                                         <div className="flex-1 min-w-0 pr-4">
                                                              <div className="flex items-center gap-2">
-                                                                 <p className={`font-bold text-lg ${theme.textMain}`}>{item.objets.nom}</p>
-                                                                 {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
+                                                                 <p className={`font-bold text-lg truncate ${theme.textMain}`}>{item.objets.nom}</p>
+                                                                 {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse shrink-0">UNIQUE</span>}
                                                              </div>
                                                              <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.textDim}`}>{item.objets.rarete} • {item.objets.type_equipement}</p>
                                                              
-                                                             {/* Affichage Stats (Base ou Perso) */}
-                                                             {(item.stats_perso || item.objets.stats_bonus) && 
-                                                                 <p className={`text-[10px] mt-1 font-mono ${theme.highlight}`}>
-                                                                     <StatsDisplay stats={item.stats_perso || item.objets.stats_bonus} />
-                                                                 </p>
-                                                             }
+                                                             {/* NOUVEAU : Affichage des stats (Perso ou Base) avec le composant propre */}
+                                                             <StatsDisplay 
+                                                                 stats={item.stats_perso || item.objets.stats_bonus} 
+                                                                 compact={true} 
+                                                             />
                                                          </div>
                                                          
-                                                         <div className="flex flex-col items-end gap-2">
+                                                         <div className="flex flex-col items-end gap-2 shrink-0">
                                                              <span className="bg-black/40 text-slate-400 px-3 py-1 rounded text-xs font-mono font-bold border border-white/5">x{item.quantite}</span>
                                                              
                                                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1687,8 +1695,13 @@ const handleLogin = async () => {
                                                                      </button>
                                                                  )}
                                                                  
-                                                                 {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement) && (
-                                                                     <button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}>Équiper</button>
+                                                                 {isEquipable && (
+                                                                     <button 
+                                                                         onClick={() => gererObjet(item, 'EQUIPER')} 
+                                                                         className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
+                                                                     >
+                                                                         Équiper
+                                                                     </button>
                                                                  )}
                                                                  
                                                                  {isCoffre && (
@@ -1703,8 +1716,8 @@ const handleLogin = async () => {
                                                  )
                                              })}
                                              
-                                             {/* Message vide si aucun item trouvé (Hors du map) */}
                                              {inventaire.filter(item => {
+                                                 // (Même logique de filtre pour afficher le message vide)
                                                  const type = item.objets.type_equipement;
                                                  if (invFilter === 'TOUT') return true;
                                                  if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
