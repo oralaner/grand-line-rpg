@@ -375,11 +375,9 @@ export default function Home() {
   const fetchGlobalData = async (userId) => { await fetchJoueur(userId); await fetchRang(userId); };
   const fetchJoueur = async (userId) => {
     // 1. APPEL RÉGÉNÉRATION & RESET
-    // On s'assure que les compteurs sont à jour avant de charger le joueur
-    await supabase.rpc('verifier_reset_journalier'); // Reset si nouveau jour
-    const { data: regen } = await supabase.rpc('regenerer_combats'); // Regen horaire
+    await supabase.rpc('verifier_reset_journalier'); 
+    const { data: regen } = await supabase.rpc('regenerer_combats'); 
 
-    // Mise à jour du chrono pour l'interface
     if (regen && regen.next_regen) {
         setDateProchainGain(new Date(regen.next_regen));
     } else {
@@ -391,7 +389,6 @@ export default function Home() {
     let { data: j, error } = await supabase.from('joueurs').select('*').eq('id', userId).single();
     
     if (error && error.code === 'PGRST116') {
-        // Erreur "Introuvable" -> Donc c'est un nouveau joueur !
         console.log("Joueur introuvable, création en cours...");
         const { data: { user } } = await supabase.auth.getUser();
         if (user) await creerNouveauJoueur(user);
@@ -402,45 +399,48 @@ export default function Home() {
         setJoueur(j); 
         setXpMax(Math.floor(100 * Math.pow(j.niveau, 1.5)));
         
-        // Récupération des navires (pour le chantier)
-        const { data: navireInfo } = await supabase.from('navires_ref').select('*').eq('niveau', j.niveau_navire).single();
-        // On peut stocker ça dans un state à part ou l'utiliser direct, 
-        // mais ici le useEffect du chantier s'en charge aussi.
-
+        // Stats Totales
         const { data: stats } = await supabase.rpc('get_stats_totales', { target_id: userId });
         if (stats) setStatsTotales(stats);
         
-        // Equipement (6 slots + Navire)
-        // Dans fetchJoueur...
-        // On récupère les IDs d'inventaire équipés
-        const invIds = [j.equip_arme_id, j.equip_tete_id, j.equip_corps_id, j.equip_bottes_id, j.equip_bague_id, j.equip_collier_id].filter(Boolean);
+        // --- CHARGEMENT ÉQUIPEMENT (NOUVELLE LOGIQUE) ---
+        // On récupère tous les IDs d'inventaire équipés (y compris le Navire maintenant)
+        const invIds = [
+            j.equip_arme_id, j.equip_tete_id, j.equip_corps_id, 
+            j.equip_bottes_id, j.equip_bague_id, j.equip_collier_id, j.equip_navire_id
+        ].filter(Boolean); // Enlève les null
         
         let newEquip = { arme: null, tete: null, corps: null, bottes: null, bague: null, collier: null, navire: null };
         
         if (invIds.length > 0) {
-            // On charge les lignes d'INVENTAIRE complètes (avec stats_perso) + les infos de l'OBJET lié
-            const { data: items } = await supabase.from('inventaire').select('*, objets(*)').in('id', invIds);
+            // On charge les lignes d'INVENTAIRE complètes + les infos de l'OBJET lié
+            const { data: items } = await supabase
+                .from('inventaire')
+                .select('*, objets(*)') // On veut tout l'inventaire ET l'objet associé
+                .in('id', invIds);
             
             if (items) {
                 // Fonction pour formater l'objet (fusionner les infos de base + stats uniques)
                 const formatItem = (invItem) => {
-                    if(!invItem) return null;
+                    if(!invItem || !invItem.objets) return null;
                     return {
                         ...invItem.objets, // Nom, Desc, Rareté...
+                        id: invItem.id,    // IMPORTANT : L'ID pour déséquiper est celui de l'inventaire
                         // Les stats bonus sont celles de l'instance (random), sinon celles de base
                         stats_bonus: invItem.stats_perso || invItem.objets.stats_bonus 
                     };
                 };
 
+                // On mappe chaque slot avec l'objet trouvé correspondant à l'ID sauvegardé sur le joueur
                 newEquip.arme = formatItem(items.find(i => i.id === j.equip_arme_id));
                 newEquip.tete = formatItem(items.find(i => i.id === j.equip_tete_id));
                 newEquip.corps = formatItem(items.find(i => i.id === j.equip_corps_id));
                 newEquip.bottes = formatItem(items.find(i => i.id === j.equip_bottes_id));
                 newEquip.bague = formatItem(items.find(i => i.id === j.equip_bague_id));
                 newEquip.collier = formatItem(items.find(i => i.id === j.equip_collier_id));
+                newEquip.navire = formatItem(items.find(i => i.id === j.equip_navire_id));
             }
         }
-        // Navire reste à part (système de niveaux)
         setEquipement(newEquip);
     }
   };
