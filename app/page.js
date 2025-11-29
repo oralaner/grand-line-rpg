@@ -449,8 +449,15 @@ export default function Home() {
 
   useEffect(() => { if (!session) return; if (activeTab === 'inventaire') chargerInventaire(); if (activeTab === 'deck') chargerCompetences(); if (activeTab === 'boutique') chargerBoutique(); if (activeTab === 'atelier') chargerAtelier(); if (activeTab === 'classement') chargerClassement(); if (activeTab === 'expeditions') chargerDestinations(); chargerMeteo(); if (activeTab === 'marche') chargerMarche(); if (activeTab === 'arene') chargerArene(); }, [activeTab, leaderboardType]);
  
-  const chargerInventaire = async () => { const { data } = await supabase.from('inventaire').select('quantite, objet_id, objets(nom, rarete, description, type_equipement, stats_bonus, prix_achat)').eq('joueur_id', session.user.id); if (data) setInventaire(data); };
-const chargerBoutique = async () => { 
+const chargerInventaire = async () => { 
+      const { data } = await supabase
+          .from('inventaire')
+          // ICI : J'ai ajouté 'id' (l'ID unique de la ligne) et 'stats_perso' (tes stats fixées)
+          .select('id, quantite, objet_id, stats_perso, objets(nom, rarete, description, type_equipement, stats_bonus, prix_achat)')
+          .eq('joueur_id', session.user.id); 
+      
+      if (data) setInventaire(data); 
+  };const chargerBoutique = async () => { 
       // On récupère tout (*), donc le stock est inclus
       const { data } = await supabase.from('objets').select('*').eq('en_boutique', true).order('prix_achat'); 
       if (data) setBoutiqueItems(data); 
