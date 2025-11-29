@@ -1777,12 +1777,14 @@ const handleLogin = async () => {
                                 )}
 
                                 {/* BOUTIQUE (AVEC FRUITS UNIQUES) */}
+                            {/* BOUTIQUE (CATÉGORIES DÉTAILLÉES) */}
                             {activeTab === 'boutique' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-fadeIn">
                                     
                                     {/* MENU CATÉGORIES */}
                                     {!viewShopCategory ? (
-                                        ['Arme', 'Protection', 'Bijoux', 'Consommable', 'Fruit', 'Navire', 'Autre'].map(cat => (
+                                        // On liste toutes les catégories explicites
+                                        ['Arme', 'Tête', 'Corps', 'Bottes', 'Bijoux', 'Consommable', 'Fruit', 'Navire', 'Autre'].map(cat => (
                                             <button 
                                                 key={cat} 
                                                 onClick={() => setViewShopCategory(cat)} 
@@ -1792,7 +1794,15 @@ const handleLogin = async () => {
                                                 {cat === 'Fruit' && <div className="absolute inset-0 bg-purple-500/10 animate-pulse"></div>}
                                                 
                                                 <span className="text-4xl md:text-5xl group-hover:scale-110 transition-transform drop-shadow-md">
-                                                    {cat === 'Arme' ? '⚔️' : cat === 'Protection' ? '🛡️' : cat === 'Bijoux' ? '💍' : cat === 'Consommable' ? '🧪' : cat === 'Fruit' ? '🍎' : '📦'}
+                                                    {cat === 'Arme' ? '⚔️' : 
+                                                     cat === 'Tête' ? '🧢' : 
+                                                     cat === 'Corps' ? '👕' : 
+                                                     cat === 'Bottes' ? '👢' : 
+                                                     cat === 'Bijoux' ? '💍' : 
+                                                     cat === 'Consommable' ? '🧪' : 
+                                                     cat === 'Fruit' ? '🍎' : 
+                                                     cat === 'Navire' ? '⛵' : 
+                                                     '📦'}
                                                 </span>
                                                 <span className={`font-black uppercase text-sm md:text-lg tracking-widest ${theme.textMain}`}>
                                                     {cat === 'Fruit' ? 'Fruits du Démon' : cat}
@@ -1801,7 +1811,7 @@ const handleLogin = async () => {
                                             </button>
                                         ))
                                     ) : (
-                                        /* LISTE DES OBJETS */
+                                        /* LISTE DES OBJETS FILTRÉE */
                                         <div className="col-span-1 md:col-span-2">
                                             <button 
                                                 onClick={() => setViewShopCategory(null)} 
@@ -1812,10 +1822,14 @@ const handleLogin = async () => {
                                             
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {boutiqueItems.filter(i => 
-                                                 i.type_equipement === viewShopCategory || 
-                                                     (viewShopCategory === 'Protection' && ['Tête','Corps','Bottes'].includes(i.type_equipement)) || 
-                                                     (viewShopCategory === 'Bijoux' && ['Bague','Collier'].includes(i.type_equipement)) || // <--- NOUVELLE CATEGORIE
-                                                     (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))
+                                                    // 1. Correspondance directe (Arme, Tête, Corps, Bottes, Fruit, Navire...)
+                                                    i.type_equipement === viewShopCategory || 
+                                                    
+                                                    // 2. Cas spécial Bijoux (Regroupe Bague et Collier)
+                                                    (viewShopCategory === 'Bijoux' && ['Bague','Collier'].includes(i.type_equipement)) || 
+                                                    
+                                                    // 3. Cas spécial Autre (Tout le reste)
+                                                    (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))
                                                 ).map((item, i) => {
                                                     // Gestion du Stock
                                                     const isSoldOut = item.stock !== null && item.stock <= 0;
@@ -1826,10 +1840,14 @@ const handleLogin = async () => {
                                                             <div className="min-w-0 pr-2">
                                                                 <div className="flex items-center gap-2">
                                                                     <p className={`font-bold text-sm md:text-lg truncate ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
-                                                                    {isUnique && !isSoldOut && <span className="text-[8px] bg-red-900 text-red-200 px-1.5 rounded border border-red-500 animate-pulse">UNIQUE</span>}
+                                                                    {isUnique && !isSoldOut && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
                                                                 </div>
                                                                 <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
-                                                                <p className={`text-[9px] md:text-[10px] font-bold uppercase ${theme.highlight}`}><StatsDisplay stats={item.stats_bonus || {}} /></p>
+                                                                
+                                                                {/* Affichage Stats (Sécurisé) */}
+                                                                <div className="text-[9px] md:text-[10px]">
+                                                                    <StatsDisplay stats={item.stats_bonus || {}} compact={true} />
+                                                                </div>
                                                             </div>
                                                             
                                                             {isSoldOut ? (
@@ -1838,26 +1856,27 @@ const handleLogin = async () => {
                                                                 </div>
                                                             ) : (
                                                                 <button 
-                                                                onClick={() => {
-                                                                    // CORRECTION : Calcul de la limite d'achat
-                                                                    // Si c'est un Fruit ou un Equipement -> Max 1
-                                                                    // Si c'est une Potion/Ressource -> Max 99
-                                                                    const maxAchat = ['Consommable', 'Ressource', 'Autre'].includes(item.type_equipement) ? 99 : 1;
-                                                                    
-                                                                    ouvrirTransaction('ACHAT_BOUTIQUE', item, maxAchat);
-                                                                }} 
-                                                                className={`ml-2 font-bold py-2 px-3 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary}`}
-                                                            >
-                                                                {item.prix_achat} ฿
-                                                            </button>
+                                                                    onClick={() => {
+                                                                        // Calcul limite achat (99 pour consommables, 1 pour équipement/fruit/navire)
+                                                                        const maxAchat = ['Consommable', 'Ressource', 'Autre'].includes(item.type_equipement) ? 99 : 1;
+                                                                        ouvrirTransaction('ACHAT_BOUTIQUE', item, maxAchat);
+                                                                    }} 
+                                                                    className={`ml-2 font-bold py-2 px-3 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary}`}
+                                                                >
+                                                                    {item.prix_achat.toLocaleString()} ฿
+                                                                </button>
                                                             )}
                                                         </div>
                                                     )
                                                 })}
                                             </div>
                                             
-                                            {boutiqueItems.filter(i => i.type_equipement === viewShopCategory).length === 0 && (
-                                                <div className="text-center py-10 text-slate-500 italic"></div>
+                                            {boutiqueItems.filter(i => 
+                                                i.type_equipement === viewShopCategory || 
+                                                (viewShopCategory === 'Bijoux' && ['Bague','Collier'].includes(i.type_equipement)) ||
+                                                (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))
+                                            ).length === 0 && (
+                                                <div className="text-center py-10 text-slate-500 italic">Rien à vendre ici pour le moment...</div>
                                             )}
                                         </div>
                                     )}
