@@ -1572,7 +1572,7 @@ const handleLogin = async () => {
                     
                     {!activeTab ? (
                         // --- DASHBOARD ACCUEIL (Visible sur PC par défaut) ---
-                        <div className="flex flex-col items-center justify-center w-full h-full animate-fadeIn p-4 overflow-y-auto">
+                        <div className="flex flex-col items-center justify-center w-full h-full animate-fadeIn p-4 overflow-y-auto pb-32 md:pb-4">
                             
                             <div className="text-center mb-6 md:mb-10">
                                 <h2 className={`text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r ${theme.textGradient} tracking-tighter drop-shadow-2xl pr-4 py-2 break-all`}>
@@ -1623,8 +1623,8 @@ const handleLogin = async () => {
                             </div>
                         </div>
                     ) : (
-                        // --- ONGLETS (Full height on mobile with scroll + padding bottom) ---
-                        <div className="absolute inset-0 p-3 md:p-8 overflow-y-auto custom-scrollbar animate-fadeIn safe-area-bottom lg:pb-8">
+                        {/* CORRECTION SCROLL : pb-48 ajoute un grand espace vide en bas sur mobile pour dépasser le menu */}
+                        <div className="absolute inset-0 p-3 md:p-8 overflow-y-auto custom-scrollbar animate-fadeIn pb-48 md:pb-8">
                             
                             {/* HEADER TAB MOBILE OPTIMISÉ */}
                             {/* === BARRE DE NAVIGATION MOBILE (FIXE EN BAS) === */}
@@ -3144,7 +3144,6 @@ const handleLogin = async () => {
                     <div className="grid grid-cols-6 gap-1">
                          {[
                             { id: null, icon: '🏠', label: 'Accueil', color: 'hover:bg-white/20 hover:text-white hover:border-white' },
-                            { id: null, icon: '🏠', label: 'Moi' },
                             { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
                             { id: 'inventaire', icon: '🎒', label: 'Sac' },
                             { id: 'stats', icon: '📊', label: 'Stats', alert: joueur.points_carac > 0 },
