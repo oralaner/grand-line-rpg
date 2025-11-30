@@ -3429,22 +3429,20 @@ const handleLogin = async () => {
       )}
         </div>
       )}
-      {/* --- MODALE RÉSULTAT EXPÉDITION --- */}
-      {/* MODALE DE RÉCOMPENSE UNIFIÉE (Centrée & Grosse) */}
+      {/* MODALE DE RÉCOMPENSE UNIFIÉE (CORRIGÉE) */}
             {rewardModal && (
                 <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-md">
                     <div className={`relative w-full max-w-md p-8 rounded-3xl border-4 shadow-2xl text-center overflow-hidden transform transition-all scale-100
                         ${rewardModal.success ? 'border-yellow-500 bg-slate-900' : 'border-red-500 bg-slate-900'}`}>
                         
-                        {/* Rayons de lumière en fond (si succès) */}
+                        {/* FOND : AJOUT DE 'pointer-events-none' pour ne pas bloquer les clics */}
                         {rewardModal.success && (
-                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-10 animate-pulse"></div>
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-10 animate-pulse pointer-events-none"></div>
                         )}
 
-                        {/* Icône Principale (Item ou Statut) */}
+                        {/* CONTENU (Z-INDEX 10) */}
                         <div className="relative z-10 mb-6 flex justify-center">
                             {rewardModal.item ? (
-                                // Si c'est un item (Coffre)
                                 <div className="relative group">
                                     <div className="absolute inset-0 bg-yellow-500 blur-2xl opacity-20 rounded-full animate-pulse"></div>
                                     {rewardModal.item.image ? (
@@ -3457,27 +3455,25 @@ const handleLogin = async () => {
                                     </div>
                                 </div>
                             ) : (
-                                // Si c'est juste XP/Berrys (Expedition/Activité)
                                 <div className="text-7xl animate-bounce">
                                     {rewardModal.success ? (rewardModal.type === 'ACTIVITÉ' ? '⚡' : '⛵') : '💀'}
                                 </div>
                             )}
                         </div>
 
-                        {/* Titre & Message */}
-                        <h2 className={`text-3xl md:text-4xl font-black uppercase mb-2 tracking-wide drop-shadow-lg ${rewardModal.success ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-600' : 'text-red-500'}`}>
+                        <h2 className={`relative z-10 text-3xl md:text-4xl font-black uppercase mb-2 tracking-wide drop-shadow-lg ${rewardModal.success ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-600' : 'text-red-500'}`}>
                             {rewardModal.title}
                         </h2>
+                        
                         {rewardModal.item && (
-                            <p className="text-xl text-white font-bold mb-4">{rewardModal.item.name}</p>
+                            <p className="relative z-10 text-xl text-white font-bold mb-4">{rewardModal.item.name}</p>
                         )}
                         {rewardModal.message && (
-                            <p className="text-slate-400 text-sm mb-6 italic">"{rewardModal.message}"</p>
+                            <p className="relative z-10 text-slate-400 text-sm mb-6 italic">"{rewardModal.message}"</p>
                         )}
 
-                        {/* Gains XP / Berrys */}
                         {(rewardModal.xp > 0 || rewardModal.berrys > 0) && (
-                            <div className="flex justify-center gap-4 mb-8 mt-4">
+                            <div className="relative z-10 flex justify-center gap-4 mb-8 mt-4">
                                 {rewardModal.xp > 0 && (
                                     <div className="flex flex-col items-center bg-slate-800/80 p-3 rounded-xl border border-slate-600 min-w-[90px]">
                                         <span className="text-2xl mb-1">✨</span>
@@ -3495,13 +3491,13 @@ const handleLogin = async () => {
                             </div>
                         )}
 
-                        {/* Bouton Fermer */}
+                        {/* BOUTON : AJOUT DE 'relative z-20' pour passer au-dessus de tout */}
                         <button 
                             onClick={() => {
                                 setRewardModal(null);
-                                if (rewardModal.type === 'EXPÉDITION') fetchJoueur(session.user.id); // Rafraichir si retour expé
+                                if (rewardModal.type === 'EXPÉDITION') fetchJoueur(session.user.id);
                             }} 
-                            className={`w-full py-4 rounded-xl font-black text-lg uppercase shadow-2xl hover:scale-[1.02] active:scale-95 transition-all border-t border-white/20 ${theme.btnPrimary}`}
+                            className={`relative z-20 w-full py-4 rounded-xl font-black text-lg uppercase shadow-2xl hover:scale-[1.02] active:scale-95 transition-all border-t border-white/20 ${theme.btnPrimary}`}
                         >
                             {rewardModal.success ? 'RÉCUPÉRER' : 'FERMER'}
                         </button>
