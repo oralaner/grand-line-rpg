@@ -172,6 +172,8 @@ export default function Home() {
   const [mesTitres, setMesTitres] = useState([]);
   const [showTitresModal, setShowTitresModal] = useState(false); // Pour la pop-up de sélection
 
+  const [rewardModal, setRewardModal] = useState(null); // Pour afficher le butin en gros
+
   const [meteoData, setMeteoData] = useState({}); // { "East Blue": "SOLEIL", ... }
 
   const [chatScope, setChatScope] = useState('GENERAL'); // GENERAL, FACTION, EQUIPAGE
@@ -727,8 +729,28 @@ const chargerMarche = async () => {
       if (data.success) { notify(data.message, "info"); fetchJoueur(session.user.id); setMonEquipage(null); }
   };
   // Actions
-  const clickActivite = async () => { if (!session || !joueur || tempsRestant > 0 || explorationLoading) return; setExplorationLoading(true); const oldLevel = joueur.niveau; const { data, error } = await supabase.rpc('faire_activite'); if (error) { notify("Erreur: " + error.message, "error"); setExplorationLoading(false); return; } if (data.success) { if (data.new_level > oldLevel) { notify(`🎉 NIVEAU UP ! Lvl ${data.new_level} !`, "success", 8000); } else { notify(`+${data.gain_xp} XP | +${data.gain_berrys} ฿`, "success"); } setTempsRestant(60 * 1000); await fetchJoueur(session.user.id); setExplorationLoading(false); } else { notify(data.message, "error"); setExplorationLoading(false); } };
-  const investirStat = async (statNom) => { const { data, error } = await supabase.rpc('investir_stat', { stat_nom: statNom, points_investis: 1 }); if (!error && data.success) { notify("Stat +1 !", "success"); fetchJoueur(session.user.id); } else notify("Erreur stat", "error"); }
+const clickActivite = async () => { 
+      if (!session || !joueur || tempsRestant > 0 || explorationLoading) return; 
+      setExplorationLoading(true); 
+      const oldLevel = joueur.niveau; 
+      const { data, error } = await supabase.rpc('faire_activite'); 
+      
+      if (data && data.success) { 
+          // Affiche la grosse modale au lieu de la notif
+          setRewardModal({
+              type: "ACTIVITÉ",
+              title: data.new_level > oldLevel ? `NIVEAU UP ! (Lvl ${data.new_level})` : "Exploration Terminée",
+              xp: data.gain_xp,
+              berrys: data.gain_berrys,
+              success: true
+          });
+          setTempsRestant(60 * 1000); 
+          await fetchJoueur(session.user.id); 
+      } else { 
+          notify(error?.message || data?.message, "error"); 
+      }
+      setExplorationLoading(false); 
+  };  const investirStat = async (statNom) => { const { data, error } = await supabase.rpc('investir_stat', { stat_nom: statNom, points_investis: 1 }); if (!error && data.success) { notify("Stat +1 !", "success"); fetchJoueur(session.user.id); } else notify("Erreur stat", "error"); }
   const gererObjet = async (item, action) => {
       if (action === 'UTILISER') {
           
@@ -761,8 +783,15 @@ const chargerMarche = async () => {
               const { data } = await supabase.rpc('ouvrir_coffre', { nom_coffre: item.objets.nom }); 
               
               if(data && data.success) { 
-                  // Notification détaillée - Durée augmentée à 15000ms (15 secondes)
-                  notify(`🎁 BUTIN !\nObjet : ${data.loot} (${data.rarete})\nBonus : +${data.xp} XP | +${data.berrys} ฿`, "success", 15000); 
+                  // Affiche la grosse modale avec l'image de l'item
+                  setRewardModal({
+                      type: "COFFRE",
+                      title: "Coffre Ouvert !",
+                      xp: data.xp,
+                      berrys: data.berrys,
+                      item: { name: data.loot, rarity: data.rarete, image: data.image }, // On passe l'image
+                      success: true
+                  });
                   chargerInventaire(); 
                   fetchJoueur(session.user.id);
               } 
@@ -788,19 +817,21 @@ const chargerMarche = async () => {
   const recolterExpedition = async () => { 
       const { data, error } = await supabase.rpc('revenir_expedition'); 
       
-      if (!error && data.success !== undefined) { // On accepte success true ou false
-          setExpeditionResult({ 
-              message: data.message, 
-              success: data.success, // true = win, false = loose
-              xp: data.xp, 
-              berrys: data.berrys 
+      if (!error && data.success !== undefined) {
+          // On utilise la même modale unifiée
+          setRewardModal({
+              type: "EXPÉDITION",
+              title: data.success ? "Retour Triomphal !" : "Échec de la mission...",
+              message: data.message,
+              xp: data.xp,
+              berrys: data.berrys,
+              success: data.success
           });
           
-          // On force le rafraîchissement pour dire au site "C'est fini, affiche la carte"
           await fetchJoueur(session.user.id); 
           setExpeditionChrono(null); 
       } else { 
-          notify(error?.message || data?.message || "Erreur inconnue", "error"); 
+          notify(error?.message || "Erreur", "error"); 
       }
   };
   const ouvrirTransaction = (type, item, maxVal = 99) => { setTransaction({ type, item, max: maxVal }); setQteTransaction(1); setPrixVente(item.objets?.prix_vente || 100); };
@@ -3399,48 +3430,84 @@ const handleLogin = async () => {
         </div>
       )}
       {/* --- MODALE RÉSULTAT EXPÉDITION --- */}
-      {expeditionResult && (
-    <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4 animate-in zoom-in duration-300">
-        <div className="bg-slate-900 w-full max-w-md p-6 md:p-8 rounded-2xl border border-slate-700 shadow-2xl text-center relative">
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-6xl md:text-7xl drop-shadow-md animate-bounce">
-                {expeditionResult.success ? '🎁' : '🩹'}
-            </div>
-            
-            <h2 className={`text-2xl md:text-3xl font-black mb-2 mt-6 uppercase tracking-wide ${expeditionResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
-                {expeditionResult.success ? 'Succès !' : 'Échec...'}
-            </h2>
-            
-            <p className="text-slate-300 mb-6 md:mb-8 text-xs md:text-sm font-medium">
-                "{expeditionResult.message}"
-            </p>
-            
-            {expeditionResult.success && (
-                <div className="flex justify-center gap-4 mb-6 md:mb-8">
-                    <div className="flex flex-col items-center bg-slate-800 p-3 md:p-4 rounded-xl border border-slate-600 shadow-lg min-w-[80px] md:min-w-[100px]">
-                        <span className="text-xl md:text-2xl mb-1">✨</span>
-                        <span className="font-black text-emerald-400 text-lg md:text-xl">+{expeditionResult.xp}</span>
-                        <span className="text-[8px] md:text-[10px] uppercase font-bold text-slate-400 tracking-widest">XP</span>
-                    </div>
-                    <div className="flex flex-col items-center bg-slate-800 p-3 md:p-4 rounded-xl border border-slate-600 shadow-lg min-w-[80px] md:min-w-[100px]">
-                        <span className="text-xl md:text-2xl mb-1">💰</span>
-                        <span className="font-black text-yellow-400 text-lg md:text-xl">+{expeditionResult.berrys}</span>
-                        <span className="text-[8px] md:text-[10px] uppercase font-bold text-slate-400 tracking-widest">Berrys</span>
+      {/* MODALE DE RÉCOMPENSE UNIFIÉE (Centrée & Grosse) */}
+            {rewardModal && (
+                <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-md">
+                    <div className={`relative w-full max-w-md p-8 rounded-3xl border-4 shadow-2xl text-center overflow-hidden transform transition-all scale-100
+                        ${rewardModal.success ? 'border-yellow-500 bg-slate-900' : 'border-red-500 bg-slate-900'}`}>
+                        
+                        {/* Rayons de lumière en fond (si succès) */}
+                        {rewardModal.success && (
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')] opacity-10 animate-pulse"></div>
+                        )}
+
+                        {/* Icône Principale (Item ou Statut) */}
+                        <div className="relative z-10 mb-6 flex justify-center">
+                            {rewardModal.item ? (
+                                // Si c'est un item (Coffre)
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-yellow-500 blur-2xl opacity-20 rounded-full animate-pulse"></div>
+                                    {rewardModal.item.image ? (
+                                        <img src={rewardModal.item.image} className="w-32 h-32 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] animate-bounce-slow" />
+                                    ) : (
+                                        <div className="text-8xl">🎁</div>
+                                    )}
+                                    <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest bg-black border border-white/20 text-white whitespace-nowrap`}>
+                                        {rewardModal.item.rarity}
+                                    </div>
+                                </div>
+                            ) : (
+                                // Si c'est juste XP/Berrys (Expedition/Activité)
+                                <div className="text-7xl animate-bounce">
+                                    {rewardModal.success ? (rewardModal.type === 'ACTIVITÉ' ? '⚡' : '⛵') : '💀'}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Titre & Message */}
+                        <h2 className={`text-3xl md:text-4xl font-black uppercase mb-2 tracking-wide drop-shadow-lg ${rewardModal.success ? 'text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-600' : 'text-red-500'}`}>
+                            {rewardModal.title}
+                        </h2>
+                        {rewardModal.item && (
+                            <p className="text-xl text-white font-bold mb-4">{rewardModal.item.name}</p>
+                        )}
+                        {rewardModal.message && (
+                            <p className="text-slate-400 text-sm mb-6 italic">"{rewardModal.message}"</p>
+                        )}
+
+                        {/* Gains XP / Berrys */}
+                        {(rewardModal.xp > 0 || rewardModal.berrys > 0) && (
+                            <div className="flex justify-center gap-4 mb-8 mt-4">
+                                {rewardModal.xp > 0 && (
+                                    <div className="flex flex-col items-center bg-slate-800/80 p-3 rounded-xl border border-slate-600 min-w-[90px]">
+                                        <span className="text-2xl mb-1">✨</span>
+                                        <span className="font-black text-emerald-400 text-xl">+{rewardModal.xp}</span>
+                                        <span className="text-[9px] uppercase font-bold text-slate-500 tracking-widest">XP</span>
+                                    </div>
+                                )}
+                                {rewardModal.berrys > 0 && (
+                                    <div className="flex flex-col items-center bg-slate-800/80 p-3 rounded-xl border border-slate-600 min-w-[90px]">
+                                        <span className="text-2xl mb-1">💰</span>
+                                        <span className="font-black text-yellow-400 text-xl">+{rewardModal.berrys}</span>
+                                        <span className="text-[9px] uppercase font-bold text-slate-500 tracking-widest">Berrys</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Bouton Fermer */}
+                        <button 
+                            onClick={() => {
+                                setRewardModal(null);
+                                if (rewardModal.type === 'EXPÉDITION') fetchJoueur(session.user.id); // Rafraichir si retour expé
+                            }} 
+                            className={`w-full py-4 rounded-xl font-black text-lg uppercase shadow-2xl hover:scale-[1.02] active:scale-95 transition-all border-t border-white/20 ${theme.btnPrimary}`}
+                        >
+                            {rewardModal.success ? 'RÉCUPÉRER' : 'FERMER'}
+                        </button>
                     </div>
                 </div>
             )}
-
-            <button 
-                onClick={() => {
-                    setExpeditionResult(null); // Ferme la modale
-                    fetchJoueur(session.user.id); // Re-vérifie que le joueur est bien "libre"
-                }} 
-                className={`font-black text-lg py-3 px-10 rounded-xl shadow-lg hover:scale-105 transition uppercase w-full ${theme.btnPrimary}`}
-            >
-                Empocher
-            </button>
-        </div>
-    </div>
-)}
     </main>
   );
 }
