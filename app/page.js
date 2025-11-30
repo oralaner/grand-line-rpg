@@ -1332,44 +1332,61 @@ const handleLogin = async () => {
   const getActiveSetBonuses = () => {
       if (!equipement) return [];
       
-      // 1. On compte les items par Set
       const counts = {};
       const slots = ['arme', 'tete', 'corps', 'bottes', 'bague', 'collier'];
       
       slots.forEach(slot => {
           const item = equipement[slot];
-          // On vérifie 'objets.nom_set' (si chargé via fetchJoueur) ou 'nom_set' direct
           const setName = item?.nom_set || item?.objets?.nom_set; 
           if (setName) {
               counts[setName] = (counts[setName] || 0) + 1;
           }
       });
 
-      // 2. On définit les règles
       const bonuses = [];
       
+      // Fonction helper pour ajouter proprement
+      const addBonus = (set, count, tier2, tier4) => {
+          if (counts[set] >= 2) bonuses.push(tier2);
+          if (counts[set] >= 4) bonuses.push(tier4);
+      };
+
       // Petit Herboriste (Soin)
-      if (counts['Petit Herboriste'] >= 2) bonuses.push({ name: "Apprenti Soigneur", desc: "+10% Soin", color: "text-green-400" });
-      if (counts['Petit Herboriste'] >= 4) bonuses.push({ name: "Maître Herboriste", desc: "+25% Soin", color: "text-emerald-400" });
+      addBonus('Petit Herboriste', counts, 
+          { name: "Apprenti", desc: "+10% Soin", color: "text-green-400 border-green-500/50" },
+          { name: "Maître", desc: "+25% Soin", color: "text-emerald-400 border-emerald-500/50 bg-emerald-900/20" }
+      );
 
       // Marine (XP)
-      if (counts['Marine'] >= 2) bonuses.push({ name: "Discipline", desc: "+5% XP", color: "text-blue-400" });
-      if (counts['Marine'] >= 4) bonuses.push({ name: "Justice Absolue", desc: "+15% XP", color: "text-cyan-300" });
+      addBonus('Marine', counts, 
+          { name: "Discipline", desc: "+5% XP", color: "text-blue-400 border-blue-500/50" },
+          { name: "Justice", desc: "+15% XP", color: "text-cyan-300 border-cyan-500/50 bg-cyan-900/20" }
+      );
 
       // Pirate (Berrys)
-      if (counts['Pirate'] >= 2) bonuses.push({ name: "Pillage", desc: "+5% Berrys", color: "text-yellow-400" });
-      if (counts['Pirate'] >= 4) bonuses.push({ name: "Fortune", desc: "+15% Berrys", color: "text-amber-400" });
+      addBonus('Pirate', counts, 
+          { name: "Pillage", desc: "+5% Or", color: "text-yellow-400 border-yellow-500/50" },
+          { name: "Fortune", desc: "+15% Or", color: "text-amber-400 border-amber-500/50 bg-amber-900/20" }
+      );
 
-      // Révolutionnaire (Cooldown - Non visible en stats mais actif en combat)
-      if (counts['Révolutionnaire'] >= 2) bonuses.push({ name: "Vif", desc: "-5% Cooldown", color: "text-red-400" });
-      if (counts['Révolutionnaire'] >= 4) bonuses.push({ name: "Éclair", desc: "-15% Cooldown", color: "text-rose-400" });
-
-      // Petit Forgeron (Craft Parfait)
-      if (counts['Petit Forgeron'] >= 2) bonuses.push({ name: "Main Ferme", desc: "+10% Perfect Craft", color: "text-orange-400" });
-      if (counts['Petit Forgeron'] >= 4) bonuses.push({ name: "Maître Forge", desc: "+25% Perfect Craft", color: "text-orange-300" });
-
-      // Aventurier (Polyvalent - À inventer si tu veux un bonus, sinon rien pour l'instant)
+      // Révolutionnaire (Cooldown)
+      addBonus('Révolutionnaire', counts, 
+          { name: "Vif", desc: "-5% CD", color: "text-red-400 border-red-500/50" },
+          { name: "Éclair", desc: "-15% CD", color: "text-rose-400 border-rose-500/50 bg-rose-900/20" }
+      );
       
+      // Petit Forgeron (Craft)
+      addBonus('Petit Forgeron', counts, 
+          { name: "Main Ferme", desc: "+10% Perfect", color: "text-orange-400 border-orange-500/50" },
+          { name: "Maître Forge", desc: "+25% Perfect", color: "text-orange-300 border-orange-500/50 bg-orange-900/20" }
+      );
+      
+      // Aventurier (Stats)
+      addBonus('Aventurier', counts,
+          { name: "Débrouillard", desc: "+5% Stats", color: "text-slate-300 border-slate-500/50" },
+          { name: "Vétéran", desc: "+10% Stats", color: "text-white border-white/50 bg-white/10" }
+      );
+
       return bonuses;
   };
   // --- HELPER RANG (Icones & Couleurs) ---
