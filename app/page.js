@@ -553,11 +553,13 @@ const chargerInventaire = async () => {
 const chargerMarche = async () => { 
       const { data } = await supabase
           .from('marche')
-          // AJOUT de stats_perso et stats_bonus
-          .select('*, objets(nom, rarete, description, type_equipement, stats_bonus), joueurs(pseudo)')
+          // CORRECTION ICI : Ajout de 'image_url' dans la sélection des objets
+          .select('*, objets(nom, rarete, description, type_equipement, stats_bonus, image_url), joueurs(pseudo)')
           .order('created_at', { ascending: false }); 
       if (data) setMarcheItems(data); 
-  };  const chargerArene = async () => { 
+  }; 
+  
+  const chargerArene = async () => { 
       const isBot = areneFilter === 'PVE'; 
       // AJOUT DE 'titre_actuel' DANS LE SELECT
       const { data } = await supabase
@@ -2649,31 +2651,45 @@ const handleLogin = async () => {
                             {marcheItems.length === 0 ? (
                                 <div className="text-center py-10"><p className="text-2xl mb-2">🤷‍♂️</p><p className="text-white font-bold opacity-60">Le marché est vide.</p></div>
                             ) : marcheItems.map((annonce, i) => {
-                                const isMine = annonce.vendeur_id === session.user.id;
-                                const cfg = getRareteConfig(annonce.objets.rarete);
-                                return (
-                                            <div key={i} className={`flex flex-col md:flex-row justify-between items-center bg-black/20 p-3 md:p-4 rounded-xl shadow-sm border-l-4 transition hover:bg-black/30 ${cfg.border} mb-2`}>
+                                        const isMine = annonce.vendeur_id === session.user.id;
+                                        const cfg = getRareteConfig(annonce.objets.rarete);
+                                        
+                                        return (
+                                            <div key={i} className={`flex flex-col md:flex-row justify-between items-start bg-black/20 p-3 md:p-4 rounded-xl shadow-sm border-l-4 transition hover:bg-black/30 ${cfg.border} mb-2`}>
                                                 
-                                                {/* GAUCHE : INFOS ITEM */}
-                                                <div className="flex-1 w-full md:w-auto">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className={`font-bold text-sm md:text-lg truncate ${theme.textMain}`}>{annonce.objets.nom}</p>
-                                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-opacity-20 ${cfg.bg} ${cfg.text}`}>
-                                                            {annonce.objets.rarete}
-                                                        </span>
-                                                    </div>
+                                                {/* GAUCHE : IMAGE + INFOS */}
+                                                <div className="flex-1 w-full md:w-auto flex gap-3">
                                                     
-                                                    {/* STATS (C'est ici qu'on affiche les stats uniques si elles existent) */}
-                                                    <div className="my-1">
-                                                        <StatsDisplay stats={annonce.stats_perso || annonce.objets.stats_bonus} compact={false} />
+                                                    {/* IMAGE DE L'OBJET */}
+                                                    <div className="w-16 h-16 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center shrink-0 p-1 shadow-inner relative overflow-hidden">
+                                                        {annonce.objets.image_url ? (
+                                                            <img src={annonce.objets.image_url} alt={annonce.objets.nom} className="w-full h-full object-contain" />
+                                                        ) : (
+                                                            <span className="text-2xl opacity-50">📦</span>
+                                                        )}
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 text-xs mt-1">
-                                                        <span className="bg-black/40 px-2 py-0.5 rounded text-slate-300 font-mono border border-white/10">x{annonce.quantite}</span>
-                                                        <span className="text-slate-500">vendu par</span>
-                                                        <span className={`font-bold ${isMine ? "text-purple-400" : "text-white"}`}>
-                                                            {isMine ? "VOUS" : annonce.joueurs?.pseudo}
-                                                        </span>
+                                                    {/* INFOS */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className={`font-bold text-sm md:text-lg truncate ${theme.textMain}`}>{annonce.objets.nom}</p>
+                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-opacity-20 ${cfg.bg} ${cfg.text}`}>
+                                                                {annonce.objets.rarete}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        {/* STATS (Uniques ou de Base) */}
+                                                        <div className="my-1 text-[10px]">
+                                                            <StatsDisplay stats={annonce.stats_perso || annonce.objets.stats_bonus} compact={true} />
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 text-xs mt-1">
+                                                            <span className="bg-black/40 px-2 py-0.5 rounded text-slate-300 font-mono border border-white/10">x{annonce.quantite}</span>
+                                                            <span className="text-slate-500">vendu par</span>
+                                                            <span className={`font-bold ${isMine ? "text-purple-400" : "text-white"}`}>
+                                                                {isMine ? "VOUS" : annonce.joueurs?.pseudo}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
 
