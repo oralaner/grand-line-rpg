@@ -237,6 +237,7 @@ export default function Home() {
 
   const [chronoEnergie, setChronoEnergie] = useState(null); // Texte "MM:SS"
   const [dateProchainGain, setDateProchainGain] = useState(null); // Date brute
+  const [casinoCooldown, setCasinoCooldown] = useState(null); // Timer "MM:SS"
 
   const [monEquipage, setMonEquipage] = useState(null);
   const [membresEquipage, setMembresEquipage] = useState([]);
@@ -311,7 +312,44 @@ export default function Home() {
           if (crewTab === 'MEMBERS') chargerCandidatures();
       }
   }, [activeTab, crewTab, joueur]);
+// --- CHRONO CASINO ---
+  useEffect(() => {
+      if (!joueur || activeTab !== 'casino') return;
 
+      const interval = setInterval(() => {
+          let lastPlay = null;
+          
+          // On récupère la date de dernière partie selon le jeu
+          if (casinoGame === 'DES') lastPlay = joueur.last_play_des;
+          else if (casinoGame === 'PFC') lastPlay = joueur.last_play_pfc;
+          else if (casinoGame === 'QUITTE') {
+              // Pour Quitte ou Double, le cooldown ne compte que si on n'est PAS déjà en train de jouer une série
+              if (joueur.casino_streak > 0) {
+                  setCasinoCooldown(null);
+                  return;
+              }
+              lastPlay = joueur.last_play_quitte;
+          }
+
+          if (lastPlay) {
+              const now = new Date().getTime();
+              const end = new Date(lastPlay).getTime() + (5 * 60 * 1000); // 5 minutes de délai
+              const diff = end - now;
+
+              if (diff > 0) {
+                  const m = Math.floor(diff / 60000);
+                  const s = Math.floor((diff % 60000) / 1000);
+                  setCasinoCooldown(`${m}:${s.toString().padStart(2, '0')}`);
+              } else {
+                  setCasinoCooldown(null);
+              }
+          } else {
+              setCasinoCooldown(null);
+          }
+      }, 1000);
+
+      return () => clearInterval(interval);
+  }, [joueur, casinoGame, activeTab]);
   useEffect(() => {
       // ...
       if (activeTab === 'chantier') chargerChantier();
@@ -2794,13 +2832,33 @@ const handleLogin = async () => {
                                             <button onClick={() => setCasinoGame('PFC')} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'PFC' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Chifoumi</button>
                                             <button onClick={() => setCasinoGame('DES')} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'DES' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Dés</button>
                                         </div>
-                                        <div className="bg-black/40 p-4 rounded-lg mb-6 backdrop-blur-sm border border-white/10">
-                                            <p className="text-xs uppercase font-bold opacity-70 mb-2 text-white">Votre Mise</p>
-                                            <div className="flex items-center justify-center gap-2">
-                                                <input type="number" value={miseCasino} onChange={(e) => setMiseCasino(parseInt(e.target.value))} className="bg-transparent text-center text-3xl font-black text-white w-32 md:w-40 border-b-2 border-white/50 focus:border-white outline-none transition" />
-                                                <span className="text-xl font-bold">฿</span>
+                                        {/* ZONE DE MISE AVEC TIMER */}
+                                    <div className="bg-black/40 p-4 rounded-lg mb-6 backdrop-blur-sm border border-white/10 relative overflow-hidden transition-all">
+                                        
+                                        {/* AFFICHAGE DU COOLDOWN */}
+                                        {casinoCooldown ? (
+                                            <div className="mb-4 bg-red-900/40 border border-red-500/50 p-2 rounded text-center animate-pulse">
+                                                <p className="text-[10px] text-red-200 font-bold uppercase tracking-widest">Croupier en pause</p>
+                                                <p className="text-3xl font-mono font-black text-white drop-shadow-md">{casinoCooldown}</p>
                                             </div>
+                                        ) : (
+                                            <div className="mb-4 bg-green-900/20 border border-green-500/30 p-1 rounded text-center">
+                                                 <p className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Jeu Disponible</p>
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs uppercase font-bold opacity-70 mb-2 text-white">Votre Mise</p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <input 
+                                                type="number" 
+                                                value={miseCasino} 
+                                                onChange={(e) => setMiseCasino(parseInt(e.target.value))} 
+                                                className="bg-transparent text-center text-3xl font-black text-white w-32 md:w-40 border-b-2 border-white/50 focus:border-white outline-none transition" 
+                                                disabled={!!casinoCooldown} // Bloque la saisie si cooldown
+                                            />
+                                            <span className="text-xl font-bold text-yellow-500">฿</span>
                                         </div>
+                                    </div>
                                         {casinoGame === 'QUITTE' && (
                                             <div className="flex flex-col gap-4">
                                                 <div className="bg-black/30 p-3 rounded border border-white/20">
