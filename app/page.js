@@ -1689,10 +1689,11 @@ const handleLogin = async () => {
 
                     {/* BARRES DE PROGRESSION */}
                     <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
+                        
+                        {/* SANTÉ (Déjà corrigé avec statsTotales) */}
                         <div>
                             <div className={`flex justify-between text-[10px] font-bold ${theme.textDim} mb-1`}>
                                 <span>SANTÉ</span>
-                                {/* CORRECTION ICI : On utilise statsTotales.pv_max au lieu du calcul manuel */}
                                 <span>{joueur.pv_actuel} / {statsTotales?.pv_max || 100}</span>
                             </div>
                             <div className="w-full h-2.5 bg-black/50 rounded-full overflow-hidden border border-slate-700/50">
@@ -1702,12 +1703,20 @@ const handleLogin = async () => {
                                 ></div>
                             </div>
                         </div>
+
+                        {/* EXPÉRIENCE (NOUVEL AFFICHAGE) */}
                         <div>
                             <div className={`flex justify-between text-[10px] font-bold ${theme.textDim} mb-1`}>
-                                    <span>EXPÉRIENCE</span><span>{Math.floor((joueur.xp/xpMax)*100)}%</span></div>
-                            <div className="w-full h-1.5 ${theme.textMain} rounded-full overflow-hidden border border-slate-700/50">
-                            <div className={`h-full ${theme.barFill} transition-all duration-500`} style={{ width: `${Math.min(100, (joueur.xp / xpMax) * 100)}%` }}></div>    
-                        </div>
+                                <span>EXPÉRIENCE</span>
+                                {/* C'EST ICI : 150 / 2000 (7%) */}
+                                <span>{joueur.xp.toLocaleString()} / {xpMax.toLocaleString()} ({Math.floor((joueur.xp / xpMax) * 100)}%)</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-slate-700/50">
+                                <div 
+                                    className={`h-full ${theme.barFill} transition-all duration-500`} 
+                                    style={{ width: `${Math.min(100, (joueur.xp / xpMax) * 100)}%` }}
+                                ></div>
+                            </div>
                         </div>
                     </div>
 
