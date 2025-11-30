@@ -2607,12 +2607,28 @@ const handleLogin = async () => {
                                                              const force = (joueur.force_brute || 0) + (equipement.arme?.stats_bonus?.force || 0);
                                                              const intel = (joueur.intelligence || 0) + (equipement.tete?.stats_bonus?.intelligence || 0);
                                                              const agi = (joueur.agilite || 0) + (equipement.corps?.stats_bonus?.agilite || 0); 
+                                                             const chanceStat = (joueur.chance || 0); // On récupère la chance pour l'affichage bonus
+
+                                                             // Nouvelle formule : Puissance pure
                                                              const puissance = (force * 1.5) + (agi * 1.2) + (intel * 1.0);
                                                              const diff = selectedDest.niveau_requis * 25;
-                                                             let chance = 50 + (puissance - diff) + ((joueur.chance || 0)/2);
-                                                             chance = Math.max(5, Math.min(100, Math.floor(chance)));
-                                                             let color = chance > 80 ? 'text-green-400' : chance > 50 ? 'text-yellow-400' : 'text-red-500';
-                                                             return (<div><p className="text-[10px] text-slate-500 mb-1 font-bold">SUCCÈS</p><p className={`text-3xl font-black ${color}`}>{chance}%</p></div>)
+                                                             let chanceReussite = 50 + (puissance - diff); // Plus de bonus chance ici
+                                                             chanceReussite = Math.max(5, Math.min(100, Math.floor(chanceReussite)));
+                                                             
+                                                             let color = chanceReussite > 80 ? 'text-green-400' : chanceReussite > 50 ? 'text-yellow-400' : 'text-red-500';
+                                                             
+                                                             // Calcul du bonus or (Juste pour info)
+                                                             const bonusOr = (chanceStat * 0.05).toFixed(2);
+
+                                                             return (
+                                                                 <div className="flex flex-col items-center">
+                                                                     <p className="text-[9px] md:text-[10px] text-slate-500 mb-1 font-bold">SUCCÈS</p>
+                                                                     <p className={`text-2xl md:text-3xl font-black ${color}`}>{chanceReussite}%</p>
+                                                                     {chanceStat > 0 && (
+                                                                        <p className="text-[8px] text-yellow-500 mt-1 font-bold">Bonus Or : +{bonusOr}%</p>
+                                                                     )}
+                                                                 </div>
+                                                             )
                                                         })()}
                                                     </div>
                                                     <div className="flex flex-col gap-2 w-full md:w-auto">
