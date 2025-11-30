@@ -65,30 +65,28 @@ const formatChronoLong = (ms) => {
     return `${h}h ${m}m ${s.toString().padStart(2, '0')}s`; 
 };
 
-// Slot d'équipement (CORRIGÉ : Croix visible & Texte unique)
 const EquipSlot = ({ type, item, onUnequip, theme }) => (
     <div 
-        // 1. On enlève overflow-hidden pour que la croix rouge puisse dépasser
         className={`relative w-20 h-20 rounded-2xl flex flex-col items-center justify-center group/item transition-all duration-300 cursor-pointer border-2 shadow-md
         ${item ? `bg-slate-800 ${theme?.border || 'border-yellow-500'} shadow-lg` : 'bg-slate-100/5 border-white/10 hover:border-white/30'}`}
     >
         {item ? (
             <>
-               {/* IMAGE OBJET */}
+               {/* IMAGE */}
                {item.image_url ? (
                    <img 
                        src={item.image_url} 
                        alt={item.nom} 
-                       className="w-14 h-14 object-contain drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition rounded-lg" 
+                       className="w-14 h-14 object-contain drop-shadow-lg mb-2 transform group-hover/item:scale-110 transition rounded-lg" 
                    />
                ) : (
-                   <div className="text-3xl drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition">
+                   <div className="text-3xl drop-shadow-lg mb-2 transform group-hover/item:scale-110 transition">
                        {type === 'Arme' ? '⚔️' : type === 'Tête' ? '👑' : type === 'Corps' ? '👕' : type === 'Bottes' ? '👢' : type === 'Bague' ? '💍' : type === 'Collier' ? '📿' : '⛵'}
                    </div> 
                )}
 
-               {/* NOM OBJET (Petit, en bas) */}
-               <div className={`absolute bottom-1 inset-x-0 text-[10px] font-bold text-center px-1 truncate ${theme?.textMain || 'text-yellow-100'} bg-black/40 rounded-b-xl py-0.5`}>
+               {/* NOM OBJET (CORRIGÉ : Multi-lignes) */}
+               <div className={`absolute bottom-0 inset-x-0 text-[8px] font-bold text-center px-1 py-0.5 leading-tight ${theme?.textMain || 'text-yellow-100'} bg-black/60 rounded-b-xl min-h-[18px] flex items-center justify-center`}>
                    {item.nom}
                </div>
                
@@ -99,7 +97,6 @@ const EquipSlot = ({ type, item, onUnequip, theme }) => (
                    <p className="italic opacity-70 text-[10px] z-1000 leading-tight border-t border-slate-700 pt-2">{item.description}</p>
                </div>
 
-               {/* BOUTON DÉSÉQUIPER (Visible car plus d'overflow-hidden) */}
                <button 
                    onClick={(e) => { e.stopPropagation(); onUnequip(type); }} 
                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs border-2 border-slate-900 shadow-lg z-20 transition-transform hover:scale-110 font-bold"
@@ -108,7 +105,6 @@ const EquipSlot = ({ type, item, onUnequip, theme }) => (
             </>
         ) : (
             <>
-                {/* SLOT VIDE : Juste l'icône fantôme et le nom du slot */}
                 <span className="text-slate-600 text-3xl font-bold select-none opacity-30 group-hover/item:text-white transition group-hover/item:opacity-50">
                     {type === 'Arme' ? '⚔️' : type === 'Tête' ? '🧢' : type === 'Corps' ? '👕' : type === 'Bottes' ? '👢' : type === 'Bague' ? '💍' : type === 'Collier' ? '📿' : '⛵'}
                 </span>
@@ -120,7 +116,6 @@ const EquipSlot = ({ type, item, onUnequip, theme }) => (
     </div>
 );
 
-// Ligne de stat (Avec Coût Progressif)
 // Ligne de stat (Avec Bonus Equipement + Description visible)
 const StatRow = ({ label, base, total, statCode, icon, desc, pointsDispo, onInvest, theme }) => {
     const cost = getStatCost(base); // Le coût dépend de la stat de BASE (pas du total)
