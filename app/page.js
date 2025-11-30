@@ -88,7 +88,7 @@ const EquipSlot = ({ type, item, onUnequip, theme }) => (
                )}
 
                {/* NOM OBJET (Petit, en bas) */}
-               <div className={`absolute bottom-1 inset-x-0 text-[8px] font-bold text-center px-1 truncate ${theme?.textMain || 'text-yellow-100'} bg-black/40 rounded-b-xl py-0.5`}>
+               <div className={`absolute bottom-1 inset-x-0 text-[10px] font-bold text-center px-1 truncate ${theme?.textMain || 'text-yellow-100'} bg-black/40 rounded-b-xl py-0.5`}>
                    {item.nom}
                </div>
                
