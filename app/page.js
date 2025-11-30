@@ -1565,7 +1565,6 @@ const handleLogin = async () => {
                             {btn.alert && <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>}
                         </button>
                         
-                        
                     ))}
                 </div>
                 {/* CONTENU PRINCIPAL */}
