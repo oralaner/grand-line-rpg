@@ -1623,7 +1623,7 @@ const handleLogin = async () => {
                             </div>
                         </div>
                     ) : (
-                        {/* CORRECTION SCROLL : pb-48 ajoute un grand espace vide en bas sur mobile pour dépasser le menu */}
+                        // --- ONGLETS (Full height on mobile with scroll + padding bottom) ---
                         <div className="absolute inset-0 p-3 md:p-8 overflow-y-auto custom-scrollbar animate-fadeIn pb-48 md:pb-8">
                             
                             {/* HEADER TAB MOBILE OPTIMISÉ */}
