@@ -171,6 +171,8 @@ export default function Home() {
 
   const [mesTitres, setMesTitres] = useState([]);
   const [showTitresModal, setShowTitresModal] = useState(false); // Pour la pop-up de sélection
+  const [lastTitleCount, setLastTitleCount] = useState(0); // Pour détecter les nouveaux
+  const [newTitleUnlocked, setNewTitleUnlocked] = useState(false); // Pour faire briller le bouton
 
   const [rewardModal, setRewardModal] = useState(null); // Pour afficher le butin en gros
   const [itemDefs, setItemDefs] = useState({}); // Dictionnaire ID -> {nom, image}
@@ -993,12 +995,21 @@ const confirmerVenteDirecte = async () => {
   const jouerPFC = async (choix) => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_pfc', { mise: parseInt(miseCasino), choix_joueur: choix }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat + " (IA: " + data.choix_ia + ")", data.resultat === 'VICTOIRE' ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
   const jouerDes = async () => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_des', { mise: parseInt(miseCasino) }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat, data.resultat.includes('VICTOIRE') ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
 const chargerTitres = async () => {
-      // Récupère les titres débloqués par le joueur
       const { data } = await supabase
           .from('joueur_titres')
           .select('*, titres_ref(*)')
           .eq('joueur_id', session.user.id);
-      setMesTitres(data || []);
+      
+      if (data) {
+          setMesTitres(data);
+          
+          // Détection nouveau titre (si on en a plus qu'au dernier chargement)
+          if (lastTitleCount > 0 && data.length > lastTitleCount) {
+              notify("🏆 NOUVEAU TITRE DÉBLOQUÉ !", "success", 8000);
+              setNewTitleUnlocked(true);
+          }
+          setLastTitleCount(data.length);
+      }
   };
 
   const changerTitre = async (nomTitre) => {
@@ -1401,8 +1412,16 @@ const handleLogin = async () => {
                         <div className="flex-1 min-w-0">
                             <h2 className={`text-xl md:text-2xl font-black truncate ${theme.textMain}`}>{joueur.pseudo}</h2>
                             <button 
-                                    onClick={() => { chargerTitres(); setShowTitresModal(true); }}
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded border border-dashed border-slate-600 hover:border-white hover:bg-white/10 transition mt-1 ${joueur.titre_actuel ? 'text-yellow-400 border-yellow-600/50' : 'text-slate-500'}`}
+                                    onClick={() => { 
+                                        chargerTitres(); 
+                                        setShowTitresModal(true); 
+                                        setNewTitleUnlocked(false); // On éteint la lumière quand on clique
+                                    }}
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded border border-dashed transition mt-1 
+                                    ${newTitleUnlocked 
+                                        ? 'border-yellow-400 text-yellow-300 animate-pulse shadow-[0_0_10px_orange]' 
+                                        : 'border-slate-600 text-slate-500 hover:border-white hover:bg-white/10'}
+                                    ${joueur.titre_actuel && !newTitleUnlocked ? 'text-yellow-400 border-yellow-600/50' : ''}`}
                                 >
                                     {joueur.titre_actuel ? `« ${joueur.titre_actuel} »` : "+ Choisir un titre"}
                                 </button>
@@ -1524,6 +1543,7 @@ const handleLogin = async () => {
                 {/* NAVIGATION (PC UNIQUEMENT - Caché sur mobile car on a la Bottom Bar) */}
                 <div className={`hidden md:flex md:flex-wrap gap-3 mb-4 transition-all duration-500 ${activeTab === 'combat_actif' ? '-translate-y-[200px] opacity-0 hidden' : 'translate-y-0 opacity-100'}`}>
                     {[
+                        { id: null, icon: '🏠', label: 'Accueil', color: 'hover:bg-white/20 hover:text-white hover:border-white' },
                         { id: 'inventaire', icon: '🎒', label: 'Sac', color: 'hover:bg-amber-600/20 hover:text-amber-400 hover:border-amber-600' },
                         { id: 'stats', icon: '📊', label: 'Stats', color: 'hover:bg-cyan-600/20 hover:text-cyan-400 hover:border-cyan-600', alert: joueur.points_carac > 0 },
                         { id: 'haki', icon: '👁️', label: 'Haki', color: 'hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-600' },
@@ -3123,6 +3143,7 @@ const handleLogin = async () => {
                     {/* GRILLE 6 COLONNES (2 Lignes) : Tout est visible sans scroll */}
                     <div className="grid grid-cols-6 gap-1">
                          {[
+                            { id: null, icon: '🏠', label: 'Accueil', color: 'hover:bg-white/20 hover:text-white hover:border-white' },
                             { id: null, icon: '🏠', label: 'Moi' },
                             { id: 'equipage', icon: '🏴‍☠️', label: 'Team' },
                             { id: 'inventaire', icon: '🎒', label: 'Sac' },
