@@ -237,6 +237,7 @@ export default function Home() {
  
   const [isAnimating, setIsAnimating] = useState(false); // Bloque l'interface
   const [pendingResult, setPendingResult] = useState(null); // Stocke le résultat DB en attendant la fin de l'anim
+  const [gameResult, setGameResult] = useState(null); // Stocke le résultat du jeu en cours (dés, cartes...)
 
   const [chronoEnergie, setChronoEnergie] = useState(null); // Texte "MM:SS"
   const [dateProchainGain, setDateProchainGain] = useState(null); // Date brute
@@ -1056,24 +1057,28 @@ const confirmerVenteDirecte = async () => {
   const jouerDes = async () => { 
       if (!miseCasino || miseCasino <= 0 || isAnimating) return; 
       
-      // 1. On lance l'anim
+      // Phase 1 : Animation de secousse
       setIsAnimating('DES');
-      setPendingResult(null); // Reset
+      setGameResult(null); 
 
-      // 2. On appelle la DB
       const { data } = await supabase.rpc('jouer_des', { mise: parseInt(miseCasino) });
       
       if(data.success) { 
-          fetchJoueur(session.user.id); // On met à jour les sous en fond
-          // 3. On attend 2 secondes (l'animation tourne)
+          fetchJoueur(session.user.id); 
+          // Phase 2 : Révélation après 2s
           setTimeout(() => {
               setIsAnimating(false);
-              // 4. On notifie le résultat
-              notify(data.resultat, data.resultat.includes('VICTOIRE') ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); 
+              setGameResult(data); // On stocke le résultat pour l'afficher
+              
+              // Phase 3 : Nettoyage après 3s de lecture du résultat
+              setTimeout(() => {
+                  setGameResult(null);
+                  notify(data.resultat, data.gain > 0 ? "success" : "error");
+              }, 3000);
           }, 2000);
       } else {
           setIsAnimating(false);
-          notify("Erreur", "error");
+          notify(data.message, "error");
       }
   };
 
@@ -1081,46 +1086,66 @@ const confirmerVenteDirecte = async () => {
       if (!miseCasino || miseCasino <= 0 || isAnimating) return; 
       
       setIsAnimating('PFC');
+      setGameResult(null);
       
       const { data } = await supabase.rpc('jouer_pfc', { mise: parseInt(miseCasino), choix_joueur: choix });
       
       if(data.success) { 
           fetchJoueur(session.user.id); 
-          // On stocke le résultat pour l'afficher dans le JSX pendant l'anim (optionnel) ou après
-          setPendingResult(data);
-
+          
           setTimeout(() => {
               setIsAnimating(false);
-              notify(data.resultat + " (IA: " + data.choix_ia + ")", data.resultat === 'VICTOIRE' ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); 
-              setPendingResult(null);
-          }, 2000); // 2 sec de "Pierre... Feuille... Ciseaux..."
+              setGameResult(data);
+              
+              setTimeout(() => {
+                  setGameResult(null);
+                  notify(data.resultat, data.gain > 0 ? "success" : "error");
+              }, 3000);
+          }, 2000);
+      } else {
+          setIsAnimating(false);
+          notify(data.message, "error");
       }
   };
 
   const jouerQuitteOuDouble = async (action) => { 
-      if (!miseCasino || miseCasino <= 0 || isAnimating) return notify("Mise invalide", "error"); 
-      
-      // Si c'est "STOP", pas d'anim, on encaisse direct
+      // Vérifs de base
+      if (action === 'JOUER' && (!miseCasino || miseCasino <= 0)) return notify("Mise invalide", "error");
+      if (isAnimating || (action === 'JOUER' && gameResult)) return; 
+
+      // CAS 1 : STOP (Encaissement immédiat, pas d'anim)
       if (action === 'STOP') {
            const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) });
-           if(data.success) { fetchJoueur(session.user.id); notify(`Encaissé : ${data.gain_final}`, "success"); }
+           if(data.success) { 
+               fetchJoueur(session.user.id); 
+               notify(`Encaissé : ${data.gain_final} ฿`, "success"); 
+               setGameResult(null); // On reset tout
+           }
            return;
       }
 
-      // Si c'est "JOUER"
+      // CAS 2 : JOUER (Animation)
       setIsAnimating('QUITTE');
+      setGameResult(null);
+
       const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) });
       
       if (data.success) { 
           fetchJoueur(session.user.id); 
+          
+          // Phase 1 : La pièce tourne (2 secondes)
           setTimeout(() => {
               setIsAnimating(false);
-              if (data.etat === 'GAGNE') notify(`GAGNÉ ! Gain: ${data.gain_en_cours}`, "success"); 
-              else notify("Perdu...", "error"); 
-          }, 2000); // 2 sec de pièce qui tourne
+              setGameResult(data); // On affiche le résultat (Gagné/Perdu)
+              
+              // Phase 2 : On laisse le résultat affiché (2 secondes) avant de revenir
+              setTimeout(() => {
+                  setGameResult(null);
+              }, 2000);
+          }, 2000); 
       } else {
           setIsAnimating(false);
-          notify("Erreur", "error"); 
+          notify(data?.message || "Erreur", "error"); 
       }
   };
   
@@ -2938,24 +2963,65 @@ const handleLogin = async () => {
 
                                         {/* JEU : QUITTE OU DOUBLE */}
                                         {casinoGame === 'QUITTE' && (
-                                            <div className="flex flex-col gap-4 min-h-[150px] justify-center">
+                                            <div className="flex flex-col gap-4 min-h-[220px] justify-center items-center">
+                                                
                                                 {isAnimating === 'QUITTE' ? (
-                                                    <div className="flex justify-center items-center">
-                                                        <div className="w-24 h-24 bg-yellow-400 rounded-full border-4 border-yellow-200 shadow-[0_0_30px_gold] flex items-center justify-center text-5xl font-black text-yellow-800 animate-flip">
-                                                            ฿
+                                                    // ANIMATION : PIÈCE QUI TOURNE
+                                                    <div className="w-32 h-32 bg-yellow-400 rounded-full border-8 border-yellow-200 shadow-[0_0_50px_gold] flex items-center justify-center text-6xl font-black text-yellow-800 animate-flip">
+                                                        ฿
+                                                    </div>
+                                                ) : gameResult ? (
+                                                    // RÉSULTAT : PIÈCE FINALE
+                                                    <div className="text-center animate-zoomIn">
+                                                        <div className={`w-32 h-32 rounded-full border-8 flex items-center justify-center text-5xl font-black shadow-2xl mb-4 mx-auto
+                                                            ${gameResult.etat === 'GAGNE' 
+                                                                ? 'bg-yellow-400 border-yellow-200 text-yellow-900 shadow-[0_0_50px_gold]' 
+                                                                : 'bg-slate-700 border-slate-500 text-slate-400 grayscale'}`}>
+                                                            {gameResult.etat === 'GAGNE' ? 'x2' : '💀'}
                                                         </div>
+                                                        <p className={`text-2xl font-black uppercase ${gameResult.etat === 'GAGNE' ? 'text-yellow-400' : 'text-red-500'}`}>
+                                                            {gameResult.etat === 'GAGNE' ? 'VICTOIRE !' : 'PERDU...'}
+                                                        </p>
+                                                        {gameResult.etat === 'GAGNE' && (
+                                                            <p className="text-white font-mono text-sm mt-1">Cumul : {gameResult.gain_en_cours.toLocaleString()} ฿</p>
+                                                        )}
                                                     </div>
                                                 ) : (
-                                                    <>
-                                                        <div className="bg-black/30 p-3 rounded border border-white/20">
-                                                            <p className="text-[10px] uppercase opacity-80">Gain en cours</p>
-                                                            <p className="text-4xl font-black text-yellow-400 drop-shadow-md">{joueur.casino_streak || 0} ฿</p>
+                                                    // INTERFACE DE JEU (BOUTONS)
+                                                    <div className="w-full">
+                                                        {/* Ecran du Gain en cours */}
+                                                        <div className="bg-black/30 p-4 rounded-xl border border-white/10 mb-6 text-center relative overflow-hidden">
+                                                            <p className="text-[10px] uppercase opacity-70 text-slate-400 mb-1">Gain potentiel</p>
+                                                            <p className="text-5xl font-black text-yellow-400 drop-shadow-lg tracking-tighter">
+                                                                {joueur.casino_streak > 0 ? joueur.casino_streak.toLocaleString() : (miseCasino || 0).toLocaleString()} <span className="text-2xl">฿</span>
+                                                            </p>
+                                                            {joueur.casino_streak > 0 && (
+                                                                <div className="absolute top-2 right-2 bg-green-500 text-black text-[9px] font-bold px-2 py-0.5 rounded animate-pulse">SÉRIE EN COURS</div>
+                                                            )}
                                                         </div>
+                                                        
                                                         <div className="grid grid-cols-2 gap-4">
-                                                            <button onClick={() => jouerQuitteOuDouble('JOUER')} className="bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-xl shadow-lg border-b-4 border-yellow-700 active:border-b-0 active:translate-y-1 transition-all uppercase">{joueur.casino_streak > 0 ? "Doubler !" : "Lancer"}</button>
-                                                            <button onClick={() => jouerQuitteOuDouble('STOP')} disabled={!joueur.casino_streak} className={`font-black py-4 rounded-xl shadow-lg border-b-4 transition-all uppercase ${!joueur.casino_streak ? 'bg-slate-700 text-slate-500 border-slate-900' : 'bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-700 active:translate-y-1'}`}>Stop</button>
+                                                            <button 
+                                                                onClick={() => jouerQuitteOuDouble('JOUER')} 
+                                                                className="bg-gradient-to-b from-yellow-400 to-yellow-600 hover:from-yellow-300 hover:to-yellow-500 text-black font-black py-4 rounded-xl shadow-[0_5px_0_rgb(161,98,7)] active:shadow-none active:translate-y-[5px] transition-all uppercase text-lg flex flex-col items-center leading-tight group"
+                                                            >
+                                                                <span className="group-hover:scale-110 transition-transform">{joueur.casino_streak > 0 ? "DOUBLER !" : "LANCER"}</span>
+                                                                <span className="text-[10px] opacity-70 font-normal">1 chance sur 2</span>
+                                                            </button>
+                                                            
+                                                            <button 
+                                                                onClick={() => jouerQuitteOuDouble('STOP')} 
+                                                                disabled={!joueur.casino_streak} 
+                                                                className={`font-black py-4 rounded-xl shadow-[0_5px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[5px] transition-all uppercase text-lg flex flex-col items-center leading-tight
+                                                                ${!joueur.casino_streak 
+                                                                    ? 'bg-slate-800 text-slate-600 border border-slate-700 cursor-not-allowed' 
+                                                                    : 'bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white'}`}
+                                                            >
+                                                                <span>ENCAISSER</span>
+                                                                <span className="text-[10px] opacity-70 font-normal">Sécuriser les gains</span>
+                                                            </button>
                                                         </div>
-                                                    </>
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
@@ -2965,8 +3031,30 @@ const handleLogin = async () => {
                                             <div className="min-h-[150px] flex flex-col justify-center">
                                                 {isAnimating === 'PFC' ? (
                                                     <div className="flex justify-center gap-10">
-                                                        <div className="text-6xl animate-pump">✊</div> {/* Joueur */}
-                                                        <div className="text-6xl animate-pump" style={{ animationDelay: '0.1s' }}>🤖</div> {/* IA */}
+                                                        <div className="text-6xl animate-pump">✊</div>
+                                                        <div className="text-6xl animate-pump" style={{ animationDelay: '0.1s' }}>✊</div>
+                                                    </div>
+                                                ) : gameResult ? (
+                                                    // RÉVÉLATION DU RÉSULTAT
+                                                    <div className="text-center animate-zoomIn">
+                                                        <p className={`text-2xl font-black mb-4 ${gameResult.resultat === 'VICTOIRE' ? 'text-green-400' : gameResult.resultat === 'DEFAITE' ? 'text-red-500' : 'text-yellow-400'}`}>
+                                                            {gameResult.resultat}
+                                                        </p>
+                                                        <div className="flex justify-center gap-10 items-center">
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-[10px] uppercase text-slate-400 mb-1">Vous</span>
+                                                                <span className="text-6xl">
+                                                                    {gameResult.choix_joueur === 'Pierre' ? '🪨' : gameResult.choix_joueur === 'Feuille' ? '📜' : '✂️'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-2xl font-black text-white">VS</div>
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-[10px] uppercase text-slate-400 mb-1">IA</span>
+                                                                <span className="text-6xl">
+                                                                    {gameResult.choix_ia === 'Pierre' ? '🪨' : gameResult.choix_ia === 'Feuille' ? '📜' : '✂️'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <div className="grid grid-cols-3 gap-2">
@@ -2982,9 +3070,38 @@ const handleLogin = async () => {
                                         {casinoGame === 'DES' && (
                                             <div className="space-y-4 min-h-[150px] flex flex-col justify-center">
                                                 {isAnimating === 'DES' ? (
-                                                    <div className="flex justify-center gap-4">
-                                                        <div className="w-16 h-16 bg-white rounded-xl text-black flex items-center justify-center text-3xl font-black shadow-lg animate-shake">?</div>
-                                                        <div className="w-16 h-16 bg-white rounded-xl text-black flex items-center justify-center text-3xl font-black shadow-lg animate-shake" style={{ animationDelay: '0.05s' }}>?</div>
+                                                    <div className="flex justify-center gap-8">
+                                                        {/* Animation fausse */}
+                                                        <div className="flex gap-2"><div className="w-12 h-12 bg-white rounded-lg text-black flex items-center justify-center text-3xl animate-shake">🎲</div><div className="w-12 h-12 bg-white rounded-lg text-black flex items-center justify-center text-3xl animate-shake" style={{animationDelay:'0.1s'}}>🎲</div></div>
+                                                        <div className="flex gap-2"><div className="w-12 h-12 bg-slate-600 rounded-lg text-white flex items-center justify-center text-3xl animate-shake">🎲</div><div className="w-12 h-12 bg-slate-600 rounded-lg text-white flex items-center justify-center text-3xl animate-shake" style={{animationDelay:'0.1s'}}>🎲</div></div>
+                                                    </div>
+                                                ) : gameResult ? (
+                                                    // RÉVÉLATION DÉS
+                                                    <div className="text-center animate-zoomIn">
+                                                         <p className={`text-2xl font-black mb-4 ${gameResult.resultat.includes('VICTOIRE') || gameResult.resultat.includes('DOUBLE') ? 'text-green-400' : gameResult.resultat.includes('PERDU') ? 'text-red-500' : 'text-yellow-400'}`}>
+                                                            {gameResult.resultat.split('!')[0]}!
+                                                        </p>
+                                                        <div className="flex justify-center gap-6 items-center">
+                                                            {/* JOUEUR */}
+                                                            <div className="flex flex-col items-center bg-white/10 p-2 rounded-xl">
+                                                                <span className="text-[10px] uppercase text-slate-300 mb-1">Vous ({gameResult.d1 + gameResult.d2})</span>
+                                                                <div className="flex gap-1">
+                                                                    <span className="text-4xl text-white">{['','⚀','⚁','⚂','⚃','⚄','⚅'][gameResult.d1]}</span>
+                                                                    <span className="text-4xl text-white">{['','⚀','⚁','⚂','⚃','⚄','⚅'][gameResult.d2]}</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <span className="font-black text-slate-500">VS</span>
+
+                                                            {/* BANQUE */}
+                                                            <div className="flex flex-col items-center bg-black/40 p-2 rounded-xl border border-slate-700">
+                                                                <span className="text-[10px] uppercase text-slate-500 mb-1">Banque ({gameResult.d3 + gameResult.d4})</span>
+                                                                <div className="flex gap-1">
+                                                                    <span className="text-4xl text-slate-400">{['','⚀','⚁','⚂','⚃','⚄','⚅'][gameResult.d3]}</span>
+                                                                    <span className="text-4xl text-slate-400">{['','⚀','⚁','⚂','⚃','⚄','⚅'][gameResult.d4]}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <>
