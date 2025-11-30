@@ -1328,7 +1328,50 @@ const handleLogin = async () => {
           color: color 
       };
   };
+// --- CALCULATEUR BONUS DE SET ---
+  const getActiveSetBonuses = () => {
+      if (!equipement) return [];
+      
+      // 1. On compte les items par Set
+      const counts = {};
+      const slots = ['arme', 'tete', 'corps', 'bottes', 'bague', 'collier'];
+      
+      slots.forEach(slot => {
+          const item = equipement[slot];
+          // On vérifie 'objets.nom_set' (si chargé via fetchJoueur) ou 'nom_set' direct
+          const setName = item?.nom_set || item?.objets?.nom_set; 
+          if (setName) {
+              counts[setName] = (counts[setName] || 0) + 1;
+          }
+      });
 
+      // 2. On définit les règles
+      const bonuses = [];
+      
+      // Petit Herboriste (Soin)
+      if (counts['Petit Herboriste'] >= 2) bonuses.push({ name: "Apprenti Soigneur", desc: "+10% Soin", color: "text-green-400" });
+      if (counts['Petit Herboriste'] >= 4) bonuses.push({ name: "Maître Herboriste", desc: "+25% Soin", color: "text-emerald-400" });
+
+      // Marine (XP)
+      if (counts['Marine'] >= 2) bonuses.push({ name: "Discipline", desc: "+5% XP", color: "text-blue-400" });
+      if (counts['Marine'] >= 4) bonuses.push({ name: "Justice Absolue", desc: "+15% XP", color: "text-cyan-300" });
+
+      // Pirate (Berrys)
+      if (counts['Pirate'] >= 2) bonuses.push({ name: "Pillage", desc: "+5% Berrys", color: "text-yellow-400" });
+      if (counts['Pirate'] >= 4) bonuses.push({ name: "Fortune", desc: "+15% Berrys", color: "text-amber-400" });
+
+      // Révolutionnaire (Cooldown - Non visible en stats mais actif en combat)
+      if (counts['Révolutionnaire'] >= 2) bonuses.push({ name: "Vif", desc: "-5% Cooldown", color: "text-red-400" });
+      if (counts['Révolutionnaire'] >= 4) bonuses.push({ name: "Éclair", desc: "-15% Cooldown", color: "text-rose-400" });
+
+      // Petit Forgeron (Craft Parfait)
+      if (counts['Petit Forgeron'] >= 2) bonuses.push({ name: "Main Ferme", desc: "+10% Perfect Craft", color: "text-orange-400" });
+      if (counts['Petit Forgeron'] >= 4) bonuses.push({ name: "Maître Forge", desc: "+25% Perfect Craft", color: "text-orange-300" });
+
+      // Aventurier (Polyvalent - À inventer si tu veux un bonus, sinon rien pour l'instant)
+      
+      return bonuses;
+  };
   // --- HELPER RANG (Icones & Couleurs) ---
   const getRankInfo = (points) => {
       const p = points || 0;
@@ -1552,8 +1595,6 @@ const handleLogin = async () => {
         
 
             {/* === GAUCHE : SIDEBAR PROFIL === */}
-            {/* Sur mobile : Visible seulement si aucun onglet n'est actif */}
-            {/* MODIFICATION ICI : 'pb-32' ajoute une grosse marge en bas sur mobile pour dépasser le menu */}
             <div className={`w-full lg:w-[340px] flex-shrink-0 flex flex-col gap-2 md:gap-4 transition-all duration-300 ease-in-out h-full overflow-y-auto custom-scrollbar pb-40 lg:pb-0
                 ${activeTab ? 'hidden lg:flex' : 'flex'} 
                 ${activeTab === 'combat_actif' ? 'lg:-translate-x-[120%] lg:opacity-0 lg:hidden' : ''}`}>
@@ -1630,24 +1671,22 @@ const handleLogin = async () => {
                         </div>
                     </div>
 
-                    {/* STATS PVE/PVP */}
-                    <div className="flex gap-2 mb-4 md:mb-6">
-                        <div className="flex-1 bg-black/20 p-2 rounded border border-white/5 text-center">
-                            <p className={`text-[9px] font-bold uppercase ${theme.textDim}`}>PvE</p>
-                            <div className="flex justify-center gap-2 text-xs font-bold">
-                                <span className="text-green-400">{joueur.victoires_pve || 0}V</span>
-                                <span className="text-red-400">{joueur.defaites_pve || 0}D</span>
+                    {/* BONUS DE PANOPLIE */}
+                    <div className="mb-4">
+                        <p className={`text-[9px] font-bold uppercase mb-1 tracking-widest ${theme.textDim}`}>Bonus de Set</p>
+                        {getActiveSetBonuses().length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                                {getActiveSetBonuses().map((bonus, i) => (
+                                    <div key={i} className={`text-[9px] px-2 py-1 rounded border bg-black/40 border-white/10 flex items-center gap-1 ${bonus.color}`}>
+                                        <span className="font-bold uppercase">{bonus.name}</span>
+                                        <span className="opacity-70">({bonus.desc})</span>
+                                    </div>
+                                ))}
                             </div>
-                        </div>
-                        <div className="flex-1 bg-black/20 p-2 rounded border border-white/5 text-center">
-                            <p className={`text-[9px] font-bold uppercase ${theme.textDim}`}>PvP</p>
-                            <div className="flex justify-center gap-2 text-xs font-bold">
-                                <span className="text-green-400">{joueur.victoires_pvp || 0}V</span>
-                                <span className="text-red-400">{joueur.defaites_pvp || 0}D</span>
-                            </div>
-                        </div>
+                        ) : (
+                            <div className="text-[9px] italic opacity-50 text-slate-400">Aucun bonus de panoplie actif.</div>
+                        )}
                     </div>
-
                     {/* GRILLE STATS */}
                     <div className="grid grid-cols-3 gap-1 mb-4 bg-[#3e2723]/10 p-2 rounded border border-[#3e2723]/30">
                           {[{i:'❤️',v:statsTotales?.vitalite},{i:'⚔️',v:statsTotales?.force},{i:'🧠',v:statsTotales?.intelligence},{i:'🐈',v:statsTotales?.agilite},{i:'🍀',v:statsTotales?.chance},{i:'📜',v:statsTotales?.sagesse}].map((s,i) => (
