@@ -68,21 +68,30 @@ const formatChronoLong = (ms) => {
 // Slot d'équipement (CORRIGÉ : Utilise item.stats_bonus directement)
 const EquipSlot = ({ type, item, onUnequip, theme }) => (
     <div 
-        className={`relative w-20 h-20 rounded-2xl flex flex-col items-center justify-center group/item transition-all duration-300 cursor-pointer border-2 shadow-md
+        className={`relative w-20 h-20 rounded-2xl flex flex-col items-center justify-center group/item transition-all duration-300 cursor-pointer border-2 shadow-md overflow-hidden
         ${item ? `bg-slate-800 ${theme?.border || 'border-yellow-500'} shadow-lg` : 'bg-slate-100/5 border-white/10 hover:border-white/30'}`}
     >
         {item ? (
             <>
-               <div className="text-3xl drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition">
-                   {type === 'Arme' ? '⚔️' : type === 'Tête' ? '👑' : type === 'Corps' ? '👕' : type === 'Bottes' ? '👢' : type === 'Bague' ? '💍' : type === 'Collier' ? '📿' : '⛵'}
-               </div> 
+               {/* MODIFICATION ICI : Affiche l'image si dispo, sinon l'émoji */}
+               {item.image_url ? (
+                   <img 
+                       src={item.image_url} 
+                       alt={item.nom} 
+                       className="w-12 h-12 object-contain drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition" 
+                   />
+               ) : (
+                   <div className="text-3xl drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition">
+                       {type === 'Arme' ? '⚔️' : type === 'Tête' ? '👑' : type === 'Corps' ? '👕' : type === 'Bottes' ? '👢' : type === 'Bague' ? '💍' : type === 'Collier' ? '📿' : '⛵'}
+                   </div> 
+               )}
+
                <div className={`text-[9px] font-bold text-center px-1 truncate w-full ${theme?.textMain || 'text-yellow-100'}`}>{item.nom}</div>
                
-               {/* TOOLTIP CORRIGÉ */}
+               {/* TOOLTIP */}
                <div className="absolute bottom-full mb-2 bg-slate-900/95 text-white text-xs p-3 rounded-lg border border-slate-500 w-40 hidden group-hover/item:block z-50 pointer-events-none shadow-2xl backdrop-blur-md">
                    <p className={`font-bold text-base mb-1 ${theme?.highlight || 'text-yellow-400'}`}>{item.nom}</p>
                    
-                   {/* C'EST ICI LA CORRECTION : on utilise item.stats_bonus directement */}
                    <div className="mb-2">
                        <StatsDisplay stats={item.stats_bonus} />
                    </div>
@@ -106,7 +115,7 @@ const EquipSlot = ({ type, item, onUnequip, theme }) => (
         )}
         <div className="absolute bottom-0 inset-x-0 bg-black/30 text-[7px] text-slate-400 text-center uppercase font-bold py-0.5 pointer-events-none rounded-b-xl">{type}</div>
     </div>
-); 
+);
 
 // Ligne de stat (Avec Coût Progressif)
 // Ligne de stat (Avec Bonus Equipement + Description visible)
@@ -1719,59 +1728,74 @@ const handleLogin = async () => {
                                                  const isEquipable = ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement);
 
                                                  return (
-                                                     <div key={i} className={`flex items-center justify-between bg-black/20 p-4 rounded-xl border ${theme.borderLow} border-l-4 ${cfg.border} hover:bg-black/30 transition group`}>
-                                                         <div className="flex-1 min-w-0 pr-4">
-                                                             <div className="flex items-center gap-2">
-                                                                 <p className={`font-bold text-sm md:text-lg leading-tight ${theme.textMain}`}>
-                                                                {item.objets.nom}
-                                                            </p>
-                                                                 {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse shrink-0">UNIQUE</span>}
-                                                             </div>
-                                                             <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.textDim}`}>{item.objets.rarete} • {item.objets.type_equipement}</p>
+                                                     <div key={i} className={`flex items-start justify-between bg-black/20 p-4 rounded-xl border ${theme.borderLow} border-l-4 ${cfg.border} hover:bg-black/30 transition group min-h-[140px]`}>
+                                                         
+                                                         {/* GAUCHE : IMAGE + INFOS */}
+                                                         <div className="flex-1 min-w-0 pr-4 flex gap-4">
                                                              
-                                                             {/* NOUVEAU : Affichage des stats (Perso ou Base) avec le composant propre */}
-                                                             <StatsDisplay 
-                                                                 stats={item.stats_perso || item.objets.stats_bonus} 
-                                                                 compact={false} 
-                                                             />
+                                                             {/* IMAGE (Carré) */}
+                                                             <div className="w-20 h-20 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center shrink-0 p-1 shadow-inner self-start">
+                                                                 {item.objets.image_url ? (
+                                                                     <img src={item.objets.image_url} alt={item.objets.nom} className="w-full h-full object-contain" />
+                                                                 ) : (
+                                                                     <span className="text-3xl opacity-50">📦</span>
+                                                                 )}
+                                                             </div>
+
+                                                             {/* INFOS */}
+                                                             <div className="flex-1 min-w-0">
+                                                                 <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                                     <p className={`font-bold text-sm md:text-lg leading-tight ${theme.textMain}`}>
+                                                                         {item.objets.nom}
+                                                                     </p>
+                                                                     {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse shrink-0">UNIQUE</span>}
+                                                                 </div>
+                                                                 <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${theme.textDim}`}>{item.objets.rarete} • {item.objets.type_equipement}</p>
+                                                                 
+                                                                 {/* STATS (VERTICALES) */}
+                                                                 <div className="text-[10px]">
+                                                                     <StatsDisplay 
+                                                                         stats={item.stats_perso || item.objets.stats_bonus} 
+                                                                         compact={false} 
+                                                                     />
+                                                                 </div>
+                                                             </div>
                                                          </div>
                                                          
-                                                         <div className="flex flex-col items-end gap-2 shrink-0">
+                                                         {/* DROITE : QUANTITÉ & ACTIONS */}
+                                                         <div className="flex flex-col items-end gap-2 shrink-0 self-start">
                                                              <span className="bg-black/40 text-slate-400 px-3 py-1 rounded text-xs font-mono font-bold border border-white/5">x{item.quantite}</span>
                                                              
-                                                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                 
+                                                             <div className="flex flex-col gap-2 mt-2">
                                                                  {(item.objets.type_equipement === 'Consommable' || isFruit) && (
-                                                                     <button 
-                                                                         onClick={() => gererObjet(item, 'UTILISER')} 
-                                                                         className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
-                                                                     >
+                                                                     <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold shadow-lg active:scale-95 transition w-full ${theme.btnSecondary}`}>
                                                                          {isFruit ? 'MANGER 🍎' : item.objets.nom.includes('Parchemin') ? 'LIRE 📜' : 'BOIRE 🧪'}
                                                                      </button>
                                                                  )}
                                                                  
-                                                                 {['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(item.objets.type_equipement) && (
-                                                                    <button onClick={() => gererObjet(item, 'EQUIPER')} 
-                                                                      className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}
-                                                                    >
-                                                                     Équiper
-                                                                    </button>
-                                                                )}
-                                                                 
-                                                                 {isCoffre && (
-                                                                     <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 animate-pulse`}>Ouvrir</button>
+                                                                 {isEquipable && (
+                                                                     <button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold shadow-lg active:scale-95 transition w-full ${theme.btnSecondary}`}>
+                                                                         Équiper
+                                                                     </button>
                                                                  )}
                                                                  
-                                                                 <button onClick={() => ouvrirTransaction('VENTE', item, item.quantite)} className={`text-xs px-3 py-1.5 rounded font-bold ${theme.btnSecondary}`}>HDV</button>
-                                                                 <button onClick={() => gererObjet(item, 'VENDRE_INSTANT')} className="text-xs text-red-400 hover:text-red-200 px-2 underline font-bold transition" title="Vente Rapide">Vendre</button>
+                                                                 {isCoffre && (
+                                                                     <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 animate-pulse w-full`}>Ouvrir</button>
+                                                                 )}
+                                                                 
+                                                                 <button onClick={() => ouvrirTransaction('VENTE', item, item.quantite)} className={`text-xs px-3 py-1.5 rounded font-bold w-full ${theme.btnSecondary}`}>HDV</button>
+                                                                 <button onClick={() => gererObjet(item, 'VENDRE_INSTANT')} className="text-xs text-red-400 hover:text-red-200 px-2 underline font-bold transition w-full text-right" title="Vente Rapide">Vendre</button>
                                                              </div>
                                                          </div>
                                                      </div>
                                                  )
                                              })}
                                              
+                                             {/* Message vide (Copie de la logique de filtre) */}
                                              {inventaire.filter(item => {
-                                                 // (Même logique de filtre pour afficher le message vide)
+                                                 if (!item.objets) return false;
+                                                 const estEquipe = [joueur.equip_arme_id, joueur.equip_tete_id, joueur.equip_corps_id, joueur.equip_bottes_id, joueur.equip_bague_id, joueur.equip_collier_id, joueur.equip_navire_id].includes(item.id);
+                                                 if (estEquipe) return false;
                                                  const type = item.objets.type_equipement;
                                                  if (invFilter === 'TOUT') return true;
                                                  if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
@@ -1846,25 +1870,35 @@ const handleLogin = async () => {
                                                     const isUnique = item.stock !== null;
 
                                                     return (
-                                                        <div key={i} className={`relative border ${theme.borderLow} bg-black/20 p-3 md:p-4 rounded-xl flex justify-between items-center transition group ${isSoldOut ? 'opacity-60 grayscale' : 'hover:bg-black/30'}`}>
-                                                            <div className="min-w-0 pr-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <p className={`font-bold text-sm md:text-lg truncate ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
-                                                                    {isUnique && !isSoldOut && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
-                                                                </div>
-                                                                <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
-                                                                
-                                                                {/* Affichage Stats (Sécurisé) */}
-                                                                <div className="text-[9px] md:text-[10px]">
-                                                                    <StatsDisplay stats={item.stats_bonus || {}} compact={false} />
-                                                                </div>
-                                                            </div>
+                                                        <div key={i} className={`relative border ${theme.borderLow} bg-black/20 p-3 md:p-4 rounded-xl flex flex-col justify-between transition group ${isSoldOut ? 'opacity-60 grayscale' : 'hover:bg-black/30'}`}>
+                                                        <div className="flex-grow min-w-0 pr-2"> {/* flex-grow pour pousser le bouton vers le bas */}
+                                                          <div className="flex items-center gap-2 mb-1">
+                                                             <p className={`font-bold text-sm md:text-lg ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
+                                                              {isUnique && !isSoldOut && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
+                                                           </div>
+
+                                                           {/* NOUVEL EMPLACEMENT DE L'IMAGE */}
+                                                           <div className="flex items-start gap-3 mb-2">
+                                                           {item.image_url && (
+                                                           <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center p-1 md:p-1.5 shadow-inner">
+                                                              <img src={item.image_url} alt={item.nom} className="w-full h-full object-contain" />
+                                                             </div>
+                                                                  )}
+                                                               <div>
+                                                               <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
+                                                            {/* Affichage Stats (Sécurisé) */}
+                                                              <div className="text-[9px] md:text-[10px]">
+                                                           <StatsDisplay stats={item.stats_bonus || {}} compact={false} /> {/* compact={false} pour la verticale */}
+                                                         </div>
+                                                        </div>
+                                                      </div>
+                                                     </div>
                                                             
                                                             {isSoldOut ? (
-                                                                <div className="ml-2 px-4 py-2 rounded-lg border border-red-900/50 bg-red-950/30 text-red-500 font-black text-xs uppercase -rotate-12 border-2">
-                                                                    ÉPUISÉ
-                                                                </div>
-                                                            ) : (
+                                                             <div className="self-end px-4 py-2 rounded-lg border border-red-900/50 bg-red-950/30 text-red-500 font-black text-xs uppercase -rotate-12 border-2 mt-auto"> {/* mt-auto pour pousser en bas */}
+                                                                ÉPUISÉ
+                                                           </div>
+                                                              ) : (
                                                                 <button 
                                                                     onClick={() => {
                                                                         // Calcul limite achat (99 pour consommables, 1 pour équipement/fruit/navire)
