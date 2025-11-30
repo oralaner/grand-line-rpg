@@ -465,12 +465,13 @@ export default function Home() {
 const chargerInventaire = async () => { 
       const { data } = await supabase
           .from('inventaire')
-          // ICI : J'ai ajouté 'id' (l'ID unique de la ligne) et 'stats_perso' (tes stats fixées)
-          .select('id, quantite, objet_id, stats_perso, objets(nom, rarete, description, type_equipement, stats_bonus, prix_achat)')
+          // CORRECTION ICI : Ajout de 'image_url' dans la parenthèse objets(...)
+          .select('id, quantite, objet_id, stats_perso, objets(nom, rarete, description, type_equipement, stats_bonus, prix_achat, image_url)')
           .eq('joueur_id', session.user.id); 
       
       if (data) setInventaire(data); 
-  };const chargerBoutique = async () => { 
+  };
+  const chargerBoutique = async () => { 
       // On récupère tout (*), donc le stock est inclus
       const { data } = await supabase.from('objets').select('*').eq('en_boutique', true).order('prix_achat'); 
       if (data) setBoutiqueItems(data); 
