@@ -1127,17 +1127,18 @@ const confirmerVenteDirecte = async () => {
   };
 
   const jouerQuitteOuDouble = async (action) => { 
+      // Vérifs de base
       if (action === 'JOUER' && (!miseCasino || miseCasino <= 0)) return notify("Mise invalide", "error");
       if (isAnimating || (action === 'JOUER' && gameResult)) return; 
 
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-      // CAS 1 : STOP (Encaissement immédiat)
+      // CAS 1 : STOP (Encaissement)
       if (action === 'STOP') {
            const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) });
            if(data.success) { 
                fetchJoueur(session.user.id); 
-               notify(`Encaissé : ${data.gain_final} ฿`, "success"); 
+               notify(`Encaissé : ${data.gain_final.toLocaleString()} ฿`, "success"); 
                setGameResult(null); 
            }
            return;
@@ -1156,15 +1157,16 @@ const confirmerVenteDirecte = async () => {
 
           setTimeout(() => {
               setIsAnimating(false);
-              setGameResult(data);
+              setGameResult(data); // Affiche la grosse pièce (x2 ou Tête de mort)
               
-              // FIX ANTI-SPOIL
+              // Mise à jour des sous et du streak
               fetchJoueur(session.user.id); 
               
-              // Si PERDU, on reset l'affichage après 2s
-              if (data.etat === 'PERDU') {
-                  setTimeout(() => setGameResult(null), 2000);
-              }
+              // CORRECTION ICI : On retire l'écran de résultat après 1.5s pour réafficher les boutons
+              setTimeout(() => {
+                  setGameResult(null);
+              }, 1500); 
+
           }, delay); 
       } else {
           setIsAnimating(false);
