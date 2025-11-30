@@ -313,17 +313,21 @@ export default function Home() {
       }
   }, [activeTab, crewTab, joueur]);
 // --- CHRONO CASINO ---
+  // --- CHRONO CASINO (CORRIGÉ : Instantané) ---
   useEffect(() => {
+      // 1. On nettoie l'état précédent immédiatement pour éviter de voir le vieux timer
+      setCasinoCooldown(null);
+
       if (!joueur || activeTab !== 'casino') return;
 
-      const interval = setInterval(() => {
+      // Fonction de calcul (extraite pour être appelée tout de suite ET dans l'intervalle)
+      const updateTimer = () => {
           let lastPlay = null;
           
-          // On récupère la date de dernière partie selon le jeu
           if (casinoGame === 'DES') lastPlay = joueur.last_play_des;
           else if (casinoGame === 'PFC') lastPlay = joueur.last_play_pfc;
           else if (casinoGame === 'QUITTE') {
-              // Pour Quitte ou Double, le cooldown ne compte que si on n'est PAS déjà en train de jouer une série
+              // Pas de cooldown si on est au milieu d'une partie
               if (joueur.casino_streak > 0) {
                   setCasinoCooldown(null);
                   return;
@@ -333,7 +337,7 @@ export default function Home() {
 
           if (lastPlay) {
               const now = new Date().getTime();
-              const end = new Date(lastPlay).getTime() + (5 * 60 * 1000); // 5 minutes de délai
+              const end = new Date(lastPlay).getTime() + (5 * 60 * 1000); // 5 min
               const diff = end - now;
 
               if (diff > 0) {
@@ -346,10 +350,16 @@ export default function Home() {
           } else {
               setCasinoCooldown(null);
           }
-      }, 1000);
+      };
+
+      // 2. Appel Immédiat (C'est ça qui corrige le bug visuel)
+      updateTimer();
+
+      // 3. Lancement de la boucle
+      const interval = setInterval(updateTimer, 1000);
 
       return () => clearInterval(interval);
-  }, [joueur, casinoGame, activeTab]);
+  }, [joueur, casinoGame, activeTab]); // Se relance dès que 'casinoGame' change
   useEffect(() => {
       // ...
       if (activeTab === 'chantier') chargerChantier();
