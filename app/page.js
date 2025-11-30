@@ -173,6 +173,7 @@ export default function Home() {
   const [showTitresModal, setShowTitresModal] = useState(false); // Pour la pop-up de sélection
 
   const [rewardModal, setRewardModal] = useState(null); // Pour afficher le butin en gros
+  const [itemDefs, setItemDefs] = useState({}); // Dictionnaire ID -> {nom, image}
 
   const [meteoData, setMeteoData] = useState({}); // { "East Blue": "SOLEIL", ... }
 
@@ -272,6 +273,7 @@ export default function Home() {
     const { data: { session } } = await supabase.auth.getSession();
     setSession(session);
     if (session) await fetchGlobalData(session.user.id);
+    chargerDefinitionsObjets();
     chargerTitres();
     verifierQuetes();
     const { data: allComp } = await supabase.from('competences').select('*').eq('exclusif_pnj', false).order('puissance');
@@ -469,6 +471,14 @@ const chargerInventaire = async () => {
       
       if (data) setInventaire(data); 
   };
+  const chargerDefinitionsObjets = async () => {
+      const { data } = await supabase.from('objets').select('id, nom, image_url');
+      if (data) {
+          const map = {};
+          data.forEach(i => map[i.id] = i);
+          setItemDefs(map);
+      }
+  };
   const chargerBoutique = async () => { 
       // On récupère tout (*), donc le stock est inclus
       const { data } = await supabase.from('objets').select('*').eq('en_boutique', true).order('prix_achat'); 
@@ -507,12 +517,12 @@ const chargerInventaire = async () => {
           const matIds = Object.keys(prochain.materiaux);
           const { data: matsDetails } = await supabase.from('objets').select('id, nom').in('id', matIds);
           
-          // On construit une liste propre pour l'affichage
           const materiauxRequis = matIds.map(id => {
-              const detail = matsDetails.find(d => d.id == id);
+              const def = itemDefs[id] || { nom: "Inconnu", image_url: null };
               return {
                   id: id,
-                  nom: detail ? detail.nom : "Objet Inconnu",
+                  nom: def.nom,
+                  image: def.image_url, // <--- ON RÉCUPÈRE L'IMAGE
                   qte: prochain.materiaux[id]
               };
           });
@@ -2693,31 +2703,48 @@ const handleLogin = async () => {
                                                 <div className="text-center py-10 italic opacity-50">Aucune recette connue dans ce métier...</div>
                                             ) : (
                                                 recettes.filter(r => r.categorie === craftCategory).map((recette, i) => (
-                                                    <div key={i} className="bg-slate-900/80 p-4 rounded-xl shadow-sm border border-slate-700 relative overflow-hidden">
-                                                        {/* Titre Recette */}
-                                                        <div className="flex justify-between items-start mb-4 z-10 relative">
+                                                    <div key={i} className={`bg-slate-900/80 p-4 rounded-xl shadow-lg border ${theme.borderLow} relative overflow-hidden group`}>
+                                                        
+                                                        {/* En-tête : Produit Fini */}
+                                                        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-white/5">
+                                                            <div className={`w-16 h-16 rounded-xl bg-black/40 border-2 ${theme.border} flex items-center justify-center shadow-inner`}>
+                                                                {recette.objets?.image_url ? (
+                                                                    <img src={recette.objets.image_url} className="w-full h-full object-contain p-1" />
+                                                                ) : (
+                                                                    <span className="text-3xl">🛠️</span>
+                                                                )}
+                                                            </div>
                                                             <div>
                                                                 <p className={`font-black text-lg ${theme.textMain}`}>{recette.nom}</p>
+                                                                <p className="text-xs text-slate-400 italic">Résultat de fabrication</p>
                                                             </div>
                                                         </div>
 
-                                                        {/* Ingrédients */}
-                                                        <div className="grid grid-cols-2 gap-2 mb-4">
+                                                        {/* Grille Ingrédients */}
+                                                        <p className="text-[10px] font-bold uppercase text-slate-500 mb-2 tracking-widest">Composants requis</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
                                                             {Object.entries(recette.ingredients).map(([idItem, qteReq]) => {
                                                                 const possede = getQtePossedee(idItem);
-                                                                const nomIngredient = getNomIngredient(idItem);
+                                                                const def = itemDefs[idItem]; // On utilise le dictionnaire chargé
+                                                                const nomIngredient = def ? def.nom : "Inconnu";
+                                                                const imgIngredient = def ? def.image_url : null;
                                                                 const aAssez = possede >= qteReq;
                                                                 
                                                                 return (
-                                                                    <div key={idItem} className={`flex justify-between items-center text-xs p-2 rounded border ${aAssez ? 'bg-green-900/20 border-green-500/30 text-green-400' : 'bg-red-900/20 border-red-500/30 text-red-400'}`}>
-                                                                        <span className="truncate pr-2">{nomIngredient}</span>
-                                                                        <span className="font-mono font-bold whitespace-nowrap">{possede}/{qteReq}</span>
+                                                                    <div key={idItem} className={`flex items-center gap-2 p-2 rounded-lg border ${aAssez ? 'bg-green-900/10 border-green-500/30' : 'bg-red-900/10 border-red-500/30'}`}>
+                                                                        <div className="w-8 h-8 rounded bg-slate-950 border border-white/5 flex items-center justify-center shrink-0">
+                                                                            {imgIngredient ? <img src={imgIngredient} className="w-full h-full object-contain p-0.5"/> : <span>📦</span>}
+                                                                        </div>
+                                                                        <div className="min-w-0 overflow-hidden">
+                                                                            <p className={`text-[10px] truncate ${aAssez ? 'text-slate-300' : 'text-red-300'}`}>{nomIngredient}</p>
+                                                                            <p className={`text-xs font-mono font-bold ${aAssez ? 'text-green-400' : 'text-red-400'}`}>{possede}/{qteReq}</p>
+                                                                        </div>
                                                                     </div>
                                                                 )
                                                             })}
                                                         </div>
 
-                                                        {/* Bouton Action */}
+                                                        {/* Bouton */}
                                                         <button 
                                                             onClick={() => crafterItem(recette)} 
                                                             className={`w-full py-3 rounded-lg font-black uppercase shadow-lg transition transform active:scale-95 ${theme.btnPrimary}`}
@@ -2947,9 +2974,16 @@ const handleLogin = async () => {
                                                     const possede = getQtePossedee(mat.id);
                                                     const aAssez = possede >= mat.qte;
                                                     return (
-                                                        <div key={idx} className={`flex flex-col items-center p-3 rounded-xl border text-center ${aAssez ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
-                                                            {/* On affiche une icone générique ou le nom */}
-                                                            <span className="text-[10px] text-slate-300 mb-1 h-8 flex items-center justify-center leading-tight">{mat.nom}</span>
+                                                        <div key={idx} className={`flex flex-col items-center p-2 rounded-xl border text-center relative overflow-hidden ${aAssez ? 'bg-green-900/30 border-green-500/50' : 'bg-red-900/20 border-red-500/30'}`}>
+                                                            {/* Image Matériau */}
+                                                            <div className="w-10 h-10 rounded-lg bg-slate-900/50 mb-1 flex items-center justify-center border border-white/5">
+                                                                {mat.image ? (
+                                                                    <img src={mat.image} className="w-full h-full object-contain p-0.5" />
+                                                                ) : (
+                                                                    <span className="text-lg">🪵</span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-[9px] text-slate-300 mb-0.5 truncate w-full px-1">{mat.nom}</span>
                                                             <span className={`text-xs font-black ${aAssez ? 'text-green-400' : 'text-red-400'}`}>
                                                                 {possede} / {mat.qte}
                                                             </span>
