@@ -1730,7 +1730,7 @@ const handleLogin = async () => {
                                                 total={statsTotales?.chance} 
                                                 statCode="chance" 
                                                 icon="🍀" 
-                                                desc="Augmente les chances de Coup Critique et la réussite des Expéditions." 
+                                                desc="Augmente les chances de Coup Critique et les gains de Berrys." 
                                                 pointsDispo={joueur.points_carac} onInvest={investirStat} theme={theme} 
                                             />
                                             <StatRow 
