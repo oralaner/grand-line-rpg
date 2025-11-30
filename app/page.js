@@ -187,6 +187,12 @@ export default function Home() {
   const [infosNavire, setInfosNavire] = useState(null); // Infos du navire actuel (vitesse, type)
   const [nextNavire, setNextNavire] = useState(null);   // Coûts du prochain niveau
 
+// ... (Tes autres useState)
+  
+  // --- ÉTATS POUR LA RECHERCHE & FILTRES HDV ---
+  const [searchTerm, setSearchTerm] = useState(""); // Barre de recherche universelle
+  const [hdvFilter, setHdvFilter] = useState('TOUT'); // Onglets pour l'HDV
+
   const [activeTab, setActiveTab] = useState(null); 
   const [notification, setNotification] = useState(null); 
   const [invFilter, setInvFilter] = useState('TOUT');
@@ -288,7 +294,8 @@ export default function Home() {
    useEffect(() => {
       scrollToBottom();
     }, [messages]);
-
+// Reset de la recherche quand on change d'onglet
+  useEffect(() => { setSearchTerm(""); }, [activeTab, invFilter, viewShopCategory, hdvFilter, areneFilter, leaderboardType]);
   useEffect(() => { 
       // ... (début inchangé)
       if (activeTab === 'arene') chargerArene();
@@ -1748,42 +1755,44 @@ const handleLogin = async () => {
                                     </div>
                                 )}
 
-                                {/* INVENTAIRE (AVEC STATS DYNAMIQUES ET CORRECTION EQUIPEMENT) */}
+                                {/* INVENTAIRE AVEC RECHERCHE */}
                                 {activeTab === 'inventaire' && (
                                     <div className="space-y-4 md:space-y-6 animate-fadeIn">
                                         
+                                        {/* BARRE DE RECHERCHE */}
+                                        <div className="relative">
+                                            <input 
+                                                type="text" 
+                                                placeholder="🔍 Filtrer mon sac..." 
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full bg-slate-900/80 border border-slate-600 rounded-lg py-2 px-4 pl-10 text-white text-sm focus:border-yellow-400 outline-none transition"
+                                            />
+                                            <span className="absolute left-3 top-2 text-slate-400">🔎</span>
+                                        </div>
+
                                         {/* FILTRES */}
                                         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                                             {['TOUT', 'EQUIPEMENT', 'CONSOMMABLE', 'RESSOURCE', 'AUTRE'].map(f => (
-                                                <button 
-                                                    key={f} 
-                                                    onClick={() => setInvFilter(f)} 
-                                                    className={`flex-shrink-0 px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition uppercase tracking-wider 
-                                                    ${invFilter === f ? theme.btnPrimary : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                                                >
-                                                    {f}
-                                                </button>
+                                                <button key={f} onClick={() => setInvFilter(f)} className={`flex-shrink-0 px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition uppercase tracking-wider ${invFilter === f ? theme.btnPrimary : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>{f}</button>
                                             ))}
                                         </div>
 
                                         {/* LISTE */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                              {inventaire.filter(item => {
-                                                 // 1. EXCLURE LES OBJETS DÉJÀ ÉQUIPÉS
-                                                 // On vérifie si l'ID unique de cet item (item.id) correspond à un des slots du joueur
+                                                 if (!item.objets) return false;
+                                                 
+                                                 // Filtre Recherche
+                                                 if (searchTerm && !item.objets.nom.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+
                                                  const estEquipe = [
-                                                     joueur.equip_arme_id, 
-                                                     joueur.equip_tete_id, 
-                                                     joueur.equip_corps_id, 
-                                                     joueur.equip_bottes_id, 
-                                                     joueur.equip_bague_id, 
-                                                     joueur.equip_collier_id, 
+                                                     joueur.equip_arme_id, joueur.equip_tete_id, joueur.equip_corps_id, 
+                                                     joueur.equip_bottes_id, joueur.equip_bague_id, joueur.equip_collier_id, 
                                                      joueur.equip_navire_id
                                                  ].includes(item.id);
+                                                 if (estEquipe) return false;
 
-                                                 if (estEquipe) return false; // On le cache s'il est porté
-
-                                                 // 2. FILTRES DE CATÉGORIE (Votre code existant)
                                                  const type = item.objets.type_equipement;
                                                  if (invFilter === 'TOUT') return true;
                                                  if (invFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
@@ -1799,60 +1808,25 @@ const handleLogin = async () => {
 
                                                  return (
                                                      <div key={i} className={`flex items-start justify-between bg-black/20 p-4 rounded-xl border ${theme.borderLow} border-l-4 ${cfg.border} hover:bg-black/30 transition group min-h-[140px]`}>
-                                                         
-                                                         {/* GAUCHE : IMAGE + INFOS */}
                                                          <div className="flex-1 min-w-0 pr-4 flex gap-4">
-                                                             
-                                                             {/* IMAGE (Carré) */}
-                                                             <div className="w-20 h-20 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center shrink-0 p-1 shadow-inner self-start">
-                                                                 {item.objets.image_url ? (
-                                                                     <img src={item.objets.image_url} alt={item.objets.nom} className="w-full h-full object-contain" />
-                                                                 ) : (
-                                                                     <span className="text-3xl opacity-50">📦</span>
-                                                                 )}
+                                                             <div className="w-20 h-20 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center shrink-0 p-1 shadow-inner self-start relative overflow-hidden">
+                                                                 {item.objets.image_url ? <img src={item.objets.image_url} alt={item.objets.nom} className="w-full h-full object-contain transition-transform hover:scale-110" /> : <span className="text-3xl opacity-50">📦</span>}
                                                              </div>
-
-                                                             {/* INFOS */}
                                                              <div className="flex-1 min-w-0">
                                                                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                                     <p className={`font-bold text-sm md:text-lg leading-tight ${theme.textMain}`}>
-                                                                         {item.objets.nom}
-                                                                     </p>
+                                                                     <p className={`font-bold text-sm md:text-lg leading-tight ${theme.textMain}`}>{item.objets.nom}</p>
                                                                      {isFruit && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse shrink-0">UNIQUE</span>}
                                                                  </div>
                                                                  <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${theme.textDim}`}>{item.objets.rarete} • {item.objets.type_equipement}</p>
-                                                                 
-                                                                 {/* STATS (VERTICALES) */}
-                                                                 <div className="text-[10px]">
-                                                                     <StatsDisplay 
-                                                                         stats={item.stats_perso || item.objets.stats_bonus} 
-                                                                         compact={false} 
-                                                                     />
-                                                                 </div>
+                                                                 <div className="text-[10px]"><StatsDisplay stats={item.stats_perso || item.objets.stats_bonus} compact={false} /></div>
                                                              </div>
                                                          </div>
-                                                         
-                                                         {/* DROITE : QUANTITÉ & ACTIONS */}
                                                          <div className="flex flex-col items-end gap-2 shrink-0 self-start">
                                                              <span className="bg-black/40 text-slate-400 px-3 py-1 rounded text-xs font-mono font-bold border border-white/5">x{item.quantite}</span>
-                                                             
                                                              <div className="flex flex-col gap-2 mt-2">
-                                                                 {(item.objets.type_equipement === 'Consommable' || isFruit) && (
-                                                                     <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold shadow-lg active:scale-95 transition w-full ${theme.btnSecondary}`}>
-                                                                         {isFruit ? 'MANGER 🍎' : item.objets.nom.includes('Parchemin') ? 'LIRE 📜' : 'BOIRE 🧪'}
-                                                                     </button>
-                                                                 )}
-                                                                 
-                                                                 {isEquipable && (
-                                                                     <button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold shadow-lg active:scale-95 transition w-full ${theme.btnSecondary}`}>
-                                                                         Équiper
-                                                                     </button>
-                                                                 )}
-                                                                 
-                                                                 {isCoffre && (
-                                                                     <button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 animate-pulse w-full`}>Ouvrir</button>
-                                                                 )}
-                                                                 
+                                                                 {(item.objets.type_equipement === 'Consommable' || isFruit) && (<button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold shadow-lg active:scale-95 transition w-full ${theme.btnSecondary}`}>{isFruit ? 'MANGER 🍎' : item.objets.nom.includes('Parchemin') ? 'LIRE 📜' : 'BOIRE 🧪'}</button>)}
+                                                                 {isEquipable && (<button onClick={() => gererObjet(item, 'EQUIPER')} className={`text-xs px-3 py-1.5 rounded font-bold shadow-lg active:scale-95 transition w-full ${theme.btnSecondary}`}>Équiper</button>)}
+                                                                 {isCoffre && (<button onClick={() => gererObjet(item, 'UTILISER')} className={`text-xs px-3 py-1.5 rounded font-bold border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 animate-pulse w-full`}>Ouvrir</button>)}
                                                                  <button onClick={() => ouvrirTransaction('VENTE', item, item.quantite)} className={`text-xs px-3 py-1.5 rounded font-bold w-full ${theme.btnSecondary}`}>HDV</button>
                                                                  <button onClick={() => gererObjet(item, 'VENDRE_INSTANT')} className="text-xs text-red-400 hover:text-red-200 px-2 underline font-bold transition w-full text-right" title="Vente Rapide">Vendre</button>
                                                              </div>
@@ -1860,10 +1834,10 @@ const handleLogin = async () => {
                                                      </div>
                                                  )
                                              })}
-                                             
-                                             {/* Message vide (Copie de la logique de filtre) */}
+                                             {/* Message vide avec prise en compte recherche */}
                                              {inventaire.filter(item => {
                                                  if (!item.objets) return false;
+                                                 if (searchTerm && !item.objets.nom.toLowerCase().includes(searchTerm.toLowerCase())) return false;
                                                  const estEquipe = [joueur.equip_arme_id, joueur.equip_tete_id, joueur.equip_corps_id, joueur.equip_bottes_id, joueur.equip_bague_id, joueur.equip_collier_id, joueur.equip_navire_id].includes(item.id);
                                                  if (estEquipe) return false;
                                                  const type = item.objets.type_equipement;
@@ -1874,39 +1848,26 @@ const handleLogin = async () => {
                                                  if (invFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire', 'Consommable', 'Fruit', 'Ressource'].includes(type);
                                                  return true;
                                              }).length === 0 && (
-                                                 <div className="col-span-1 md:col-span-2 text-center py-10 text-slate-500 italic">Sac vide...</div>
+                                                 <div className="col-span-1 md:col-span-2 text-center py-10 text-slate-500 italic">Sac vide ou aucun objet trouvé...</div>
                                              )}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* BOUTIQUE (AVEC FRUITS UNIQUES) */}
-                            {/* BOUTIQUE (CATÉGORIES DÉTAILLÉES) */}
+                             {/* BOUTIQUE AVEC RECHERCHE */}
                             {activeTab === 'boutique' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 animate-fadeIn">
                                     
-                                    {/* MENU CATÉGORIES */}
                                     {!viewShopCategory ? (
-                                        // On liste toutes les catégories explicites
                                         ['Arme', 'Tête', 'Corps', 'Bottes', 'Bijoux', 'Consommable', 'Fruit', 'Navire', 'Autre'].map(cat => (
                                             <button 
                                                 key={cat} 
                                                 onClick={() => setViewShopCategory(cat)} 
                                                 className={`h-28 md:h-40 border-2 ${theme.border} ${theme.panel} hover:bg-black/40 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 transition group shadow-lg relative overflow-hidden`}
                                             >
-                                                {/* Effet spécial pour les Fruits */}
                                                 {cat === 'Fruit' && <div className="absolute inset-0 bg-purple-500/10 animate-pulse"></div>}
-                                                
                                                 <span className="text-4xl md:text-5xl group-hover:scale-110 transition-transform drop-shadow-md">
-                                                    {cat === 'Arme' ? '⚔️' : 
-                                                     cat === 'Tête' ? '🧢' : 
-                                                     cat === 'Corps' ? '👕' : 
-                                                     cat === 'Bottes' ? '👢' : 
-                                                     cat === 'Bijoux' ? '💍' : 
-                                                     cat === 'Consommable' ? '🧪' : 
-                                                     cat === 'Fruit' ? '🍎' : 
-                                                     cat === 'Navire' ? '⛵' : 
-                                                     '📦'}
+                                                    {cat === 'Arme' ? '⚔️' : cat === 'Tête' ? '🧢' : cat === 'Corps' ? '👕' : cat === 'Bottes' ? '👢' : cat === 'Bijoux' ? '💍' : cat === 'Consommable' ? '🧪' : cat === 'Fruit' ? '🍎' : cat === 'Navire' ? '⛵' : '📦'}
                                                 </span>
                                                 <span className={`font-black uppercase text-sm md:text-lg tracking-widest ${theme.textMain}`}>
                                                     {cat === 'Fruit' ? 'Fruits du Démon' : cat}
@@ -1915,67 +1876,64 @@ const handleLogin = async () => {
                                             </button>
                                         ))
                                     ) : (
-                                        /* LISTE DES OBJETS FILTRÉE */
                                         <div className="col-span-1 md:col-span-2">
-                                            <button 
-                                                onClick={() => setViewShopCategory(null)} 
-                                                className={`mb-4 md:mb-6 flex items-center gap-2 font-bold text-xs uppercase tracking-widest ${theme.textDim} hover:text-white transition`}
-                                            >
+                                            <button onClick={() => setViewShopCategory(null)} className={`mb-4 md:mb-6 flex items-center gap-2 font-bold text-xs uppercase tracking-widest ${theme.textDim} hover:text-white transition`}>
                                                 ⬅ Retour aux catégories
                                             </button>
                                             
+                                            {/* BARRE DE RECHERCHE BOUTIQUE */}
+                                            <div className="relative mb-4">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder={`🔍 Chercher dans ${viewShopCategory}...`} 
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    className="w-full bg-slate-900/80 border border-slate-600 rounded-lg py-2 px-4 pl-10 text-white text-sm focus:border-yellow-400 outline-none transition"
+                                                />
+                                                <span className="absolute left-3 top-2 text-slate-400">🔎</span>
+                                            </div>
+
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {boutiqueItems.filter(i => 
-                                                    // 1. Correspondance directe (Arme, Tête, Corps, Bottes, Fruit, Navire...)
-                                                    i.type_equipement === viewShopCategory || 
-                                                    
-                                                    // 2. Cas spécial Bijoux (Regroupe Bague et Collier)
+                                                    (i.type_equipement === viewShopCategory || 
                                                     (viewShopCategory === 'Bijoux' && ['Bague','Collier'].includes(i.type_equipement)) || 
-                                                    
-                                                    // 3. Cas spécial Autre (Tout le reste)
-                                                    (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))
+                                                    (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))) &&
+                                                    (!searchTerm || i.nom.toLowerCase().includes(searchTerm.toLowerCase()))
                                                 ).map((item, i) => {
-                                                    // Gestion du Stock
                                                     const isSoldOut = item.stock !== null && item.stock <= 0;
                                                     const isUnique = item.stock !== null;
 
                                                     return (
                                                         <div key={i} className={`relative border ${theme.borderLow} bg-black/20 p-3 md:p-4 rounded-xl flex flex-col justify-between transition group ${isSoldOut ? 'opacity-60 grayscale' : 'hover:bg-black/30'}`}>
-                                                        <div className="flex-grow min-w-0 pr-2"> {/* flex-grow pour pousser le bouton vers le bas */}
-                                                          <div className="flex items-center gap-2 mb-1">
-                                                             <p className={`font-bold text-sm md:text-lg ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
-                                                              {isUnique && !isSoldOut && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
-                                                           </div>
-
-                                                           {/* NOUVEL EMPLACEMENT DE L'IMAGE */}
-                                                           <div className="flex items-start gap-3 mb-2">
-                                                           {item.image_url && (
-                                                           <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center p-1 md:p-1.5 shadow-inner">
-                                                              <img src={item.image_url} alt={item.nom} className="w-full h-full object-contain" />
-                                                             </div>
-                                                                  )}
-                                                               <div>
-                                                               <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
-                                                            {/* Affichage Stats (Sécurisé) */}
-                                                              <div className="text-[9px] md:text-[10px]">
-                                                           <StatsDisplay stats={item.stats_bonus || {}} compact={false} /> {/* compact={false} pour la verticale */}
-                                                         </div>
-                                                        </div>
-                                                      </div>
-                                                     </div>
+                                                            <div className="flex-grow min-w-0 pr-2">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <p className={`font-bold text-sm md:text-lg ${isSoldOut ? 'text-slate-500 line-through' : theme.textMain}`}>{item.nom}</p>
+                                                                    {isUnique && !isSoldOut && <span className="text-[8px] bg-purple-900 text-purple-200 px-1.5 rounded border border-purple-500 animate-pulse">UNIQUE</span>}
+                                                                </div>
+                                                                <div className="flex items-start gap-3 mb-2">
+                                                                    {item.image_url && (
+                                                                        <div className="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center p-1 md:p-1.5 shadow-inner">
+                                                                            <img src={item.image_url} alt={item.nom} className="w-full h-full object-contain" />
+                                                                        </div>
+                                                                    )}
+                                                                    <div>
+                                                                        <p className={`text-xs italic mb-1 ${theme.textDim}`}>{item.description}</p>
+                                                                        <div className="text-[9px] md:text-[10px]">
+                                                                            <StatsDisplay stats={item.stats_bonus || {}} compact={false} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                             
                                                             {isSoldOut ? (
-                                                             <div className="self-end px-4 py-2 rounded-lg border border-red-900/50 bg-red-950/30 text-red-500 font-black text-xs uppercase -rotate-12 border-2 mt-auto"> {/* mt-auto pour pousser en bas */}
-                                                                ÉPUISÉ
-                                                           </div>
-                                                              ) : (
+                                                                <div className="self-end px-4 py-2 rounded-lg border border-red-900/50 bg-red-950/30 text-red-500 font-black text-xs uppercase -rotate-12 border-2 mt-auto">ÉPUISÉ</div>
+                                                            ) : (
                                                                 <button 
                                                                     onClick={() => {
-                                                                        // Calcul limite achat (99 pour consommables, 1 pour équipement/fruit/navire)
                                                                         const maxAchat = ['Consommable', 'Ressource', 'Autre'].includes(item.type_equipement) ? 99 : 1;
                                                                         ouvrirTransaction('ACHAT_BOUTIQUE', item, maxAchat);
                                                                     }} 
-                                                                    className={`ml-2 font-bold py-2 px-3 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary}`}
+                                                                    className={`self-end font-bold py-2 px-4 md:px-5 rounded-lg shadow-lg active:scale-95 transition text-xs md:text-sm whitespace-nowrap ${theme.btnPrimary} mt-auto`}
                                                                 >
                                                                     {item.prix_achat.toLocaleString()} ฿
                                                                 </button>
@@ -1984,13 +1942,13 @@ const handleLogin = async () => {
                                                     )
                                                 })}
                                             </div>
-                                            
                                             {boutiqueItems.filter(i => 
-                                                i.type_equipement === viewShopCategory || 
-                                                (viewShopCategory === 'Bijoux' && ['Bague','Collier'].includes(i.type_equipement)) ||
-                                                (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))
+                                                (i.type_equipement === viewShopCategory || 
+                                                (viewShopCategory === 'Bijoux' && ['Bague','Collier'].includes(i.type_equipement)) || 
+                                                (viewShopCategory === 'Autre' && !['Arme','Tête','Corps','Bottes','Bague','Collier','Consommable','Fruit','Navire'].includes(i.type_equipement))) &&
+                                                (!searchTerm || i.nom.toLowerCase().includes(searchTerm.toLowerCase()))
                                             ).length === 0 && (
-                                                <div className="text-center py-10 text-slate-500 italic">Rien à vendre ici pour le moment...</div>
+                                                <div className="text-center py-10 text-slate-500 italic">Aucun objet trouvé...</div>
                                             )}
                                         </div>
                                     )}
@@ -2646,73 +2604,81 @@ const handleLogin = async () => {
                     
                     {/* MARCHÉ */}
                     {activeTab === 'marche' && (
-                         <div className="space-y-3">
-                            <div className="text-center text-white text-xs opacity-50 mb-2">Les meilleures affaires des pirates</div>
-                            {marcheItems.length === 0 ? (
-                                <div className="text-center py-10"><p className="text-2xl mb-2">🤷‍♂️</p><p className="text-white font-bold opacity-60">Le marché est vide.</p></div>
-                            ) : marcheItems.map((annonce, i) => {
+                         <div className="space-y-4 animate-fadeIn">
+                            <div className={`p-4 rounded-xl shadow-lg border-b-4 text-center ${theme.btnPrimary}`}>
+                                <h2 className="text-xl font-black uppercase tracking-widest text-white">Hôtel des Ventes</h2>
+                                <p className="text-xs opacity-90">Les meilleures affaires des pirates.</p>
+                            </div>
+
+                            {/* BARRE DE RECHERCHE */}
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    placeholder="🔍 Rechercher un objet..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-slate-900/80 border border-slate-600 rounded-lg py-3 px-4 pl-10 text-white focus:border-yellow-400 outline-none transition"
+                                />
+                                <span className="absolute left-3 top-3 text-slate-400">🔎</span>
+                            </div>
+
+                            {/* ONGLETS CATÉGORIES */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                {['TOUT', 'EQUIPEMENT', 'CONSOMMABLE', 'RESSOURCE', 'AUTRE'].map(f => (
+                                    <button key={f} onClick={() => setHdvFilter(f)} className={`flex-shrink-0 px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition uppercase tracking-wider ${hdvFilter === f ? theme.btnPrimary : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>{f}</button>
+                                ))}
+                            </div>
+
+                            {/* LISTE FILTRÉE */}
+                            <div className="space-y-2">
+                                {marcheItems.filter(annonce => {
+                                    // 1. Filtre Texte
+                                    if (searchTerm && !annonce.objets.nom.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                                    
+                                    // 2. Filtre Catégorie
+                                    const type = annonce.objets.type_equipement;
+                                    if (hdvFilter === 'TOUT') return true;
+                                    if (hdvFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
+                                    if (hdvFilter === 'CONSOMMABLE') return ['Consommable', 'Fruit'].includes(type);
+                                    if (hdvFilter === 'RESSOURCE') return type === 'Ressource';
+                                    if (hdvFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire', 'Consommable', 'Fruit', 'Ressource'].includes(type);
+                                    return true;
+                                }).length === 0 ? (
+                                    <div className="text-center py-10 opacity-50 italic">Aucune offre ne correspond à votre recherche...</div>
+                                ) : (
+                                    marcheItems.filter(annonce => {
+                                        if (searchTerm && !annonce.objets.nom.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                                        const type = annonce.objets.type_equipement;
+                                        if (hdvFilter === 'TOUT') return true;
+                                        if (hdvFilter === 'EQUIPEMENT') return ['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire'].includes(type);
+                                        if (hdvFilter === 'CONSOMMABLE') return ['Consommable', 'Fruit'].includes(type);
+                                        if (hdvFilter === 'RESSOURCE') return type === 'Ressource';
+                                        if (hdvFilter === 'AUTRE') return !['Arme', 'Tête', 'Corps', 'Bottes', 'Bague', 'Collier', 'Navire', 'Consommable', 'Fruit', 'Ressource'].includes(type);
+                                        return true;
+                                    }).map((annonce, i) => {
                                         const isMine = annonce.vendeur_id === session.user.id;
                                         const cfg = getRareteConfig(annonce.objets.rarete);
-                                        
                                         return (
                                             <div key={i} className={`flex flex-col md:flex-row justify-between items-start bg-black/20 p-3 md:p-4 rounded-xl shadow-sm border-l-4 transition hover:bg-black/30 ${cfg.border} mb-2`}>
-                                                
-                                                {/* GAUCHE : IMAGE + INFOS */}
                                                 <div className="flex-1 w-full md:w-auto flex gap-3">
-                                                    
-                                                    {/* IMAGE DE L'OBJET */}
                                                     <div className="w-16 h-16 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center shrink-0 p-1 shadow-inner relative overflow-hidden">
-                                                        {annonce.objets.image_url ? (
-                                                            <img src={annonce.objets.image_url} alt={annonce.objets.nom} className="w-full h-full object-contain" />
-                                                        ) : (
-                                                            <span className="text-2xl opacity-50">📦</span>
-                                                        )}
+                                                        {annonce.objets.image_url ? <img src={annonce.objets.image_url} alt={annonce.objets.nom} className="w-full h-full object-contain" /> : <span className="text-2xl opacity-50">📦</span>}
                                                     </div>
-
-                                                    {/* INFOS */}
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <p className={`font-bold text-sm md:text-lg truncate ${theme.textMain}`}>{annonce.objets.nom}</p>
-                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-opacity-20 ${cfg.bg} ${cfg.text}`}>
-                                                                {annonce.objets.rarete}
-                                                            </span>
-                                                        </div>
-                                                        
-                                                        {/* STATS (Uniques ou de Base) */}
-                                                        <div className="my-1 text-[10px]">
-                                                            <StatsDisplay stats={annonce.stats_perso || annonce.objets.stats_bonus} compact={true} />
-                                                        </div>
-
-                                                        <div className="flex items-center gap-2 text-xs mt-1">
-                                                            <span className="bg-black/40 px-2 py-0.5 rounded text-slate-300 font-mono border border-white/10">x{annonce.quantite}</span>
-                                                            <span className="text-slate-500">vendu par</span>
-                                                            <span className={`font-bold ${isMine ? "text-purple-400" : "text-white"}`}>
-                                                                {isMine ? "VOUS" : annonce.joueurs?.pseudo}
-                                                            </span>
-                                                        </div>
+                                                        <div className="flex items-center gap-2"><p className={`font-bold text-sm md:text-lg truncate ${theme.textMain}`}>{annonce.objets.nom}</p><span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-opacity-20 ${cfg.bg} ${cfg.text}`}>{annonce.objets.rarete}</span></div>
+                                                        <div className="my-1 text-[10px]"><StatsDisplay stats={annonce.stats_perso || annonce.objets.stats_bonus} compact={true} /></div>
+                                                        <div className="flex items-center gap-2 text-xs mt-1"><span className="bg-black/40 px-2 py-0.5 rounded text-slate-300 font-mono border border-white/10">x{annonce.quantite}</span><span className="text-slate-500">vendu par</span><span className={`font-bold ${isMine ? "text-purple-400" : "text-white"}`}>{isMine ? "VOUS" : annonce.joueurs?.pseudo}</span></div>
                                                     </div>
                                                 </div>
-
-                                                {/* DROITE : PRIX & ACTION */}
                                                 <div className="flex flex-row md:flex-col items-center md:items-end gap-3 md:gap-1 mt-3 md:mt-0 w-full md:w-auto justify-between md:justify-start">
                                                     <span className="font-mono font-black text-lg text-yellow-400">{annonce.prix_unitaire.toLocaleString()} ฿</span>
-                                                    
-                                                    {isMine ? (
-                                                        <span className="text-[10px] font-bold text-purple-300 bg-purple-900/20 px-2 py-1 rounded border border-purple-500/30">
-                                                            EN VENTE
-                                                        </span>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => ouvrirTransaction('ACHAT_MARCHE', annonce, annonce.quantite)} 
-                                                            className={`font-bold py-1.5 px-4 rounded-lg shadow-lg text-xs ${theme.btnPrimary}`}
-                                                        >
-                                                            ACHETER
-                                                        </button>
-                                                    )}
+                                                    {isMine ? (<span className="text-[10px] font-bold text-purple-300 bg-purple-900/20 px-2 py-1 rounded border border-purple-500/30">EN VENTE</span>) : (<button onClick={() => ouvrirTransaction('ACHAT_MARCHE', annonce, annonce.quantite)} className={`font-bold py-1.5 px-4 rounded-lg shadow-lg text-xs ${theme.btnPrimary}`}>ACHETER</button>)}
                                                 </div>
                                             </div>
                                         )
-                                    })}
+                                    })
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -2865,134 +2831,80 @@ const handleLogin = async () => {
                             )}
 
                     {/* CLASSEMENT */}
+                            {/* CLASSEMENT (AVEC RECHERCHE ET RANG FIXE) */}
                             {activeTab === 'classement' && (
                                 <div className="space-y-4">
                                     
-                                    {/* Filtres */}
-                                    <div className="flex justify-center gap-2 md:gap-4 mb-4 p-2 bg-black/20 rounded-xl overflow-x-auto no-scrollbar">
-                                        <button 
-                                            onClick={() => setLeaderboardType('NIVEAU')} 
-                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'NIVEAU' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
-                                        >
-                                            Joueurs (Niv)
-                                        </button>
-                                        
-                                        <button 
-                                            onClick={() => setLeaderboardType('RICHESSE')} 
-                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'RICHESSE' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
-                                        >
-                                            💰 Richesse
-                                        </button>
-
-                                        <button 
-                                            onClick={() => setLeaderboardType('PVP')} 
-                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'PVP' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
-                                        >
-                                            ⚔️ PvP
-                                        </button>
-                                        
-                                        <button 
-                                            onClick={() => setLeaderboardType('EQUIPAGE')} 
-                                            className={`px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold transition whitespace-nowrap ${leaderboardType === 'EQUIPAGE' ? theme.btnPrimary : 'text-slate-400 hover:text-white'}`}
-                                        >
-                                            🏴‍☠️ Équipages
-                                        </button>
+                                    {/* 1. Filtres */}
+                                    <div className="flex justify-center gap-2 md:gap-4 mb-2 p-2 bg-black/20 rounded-xl overflow-x-auto no-scrollbar">
+                                        {/* ... (Tes boutons filtres existants) ... */}
+                                        <button onClick={() => setLeaderboardType('NIVEAU')} className={`px-3 py-2 rounded-lg text-[10px] font-bold whitespace-nowrap ${leaderboardType === 'NIVEAU' ? theme.btnPrimary : 'text-slate-400'}`}>Niveau</button>
+                                        <button onClick={() => setLeaderboardType('RICHESSE')} className={`px-3 py-2 rounded-lg text-[10px] font-bold whitespace-nowrap ${leaderboardType === 'RICHESSE' ? theme.btnPrimary : 'text-slate-400'}`}>Richesse</button>
+                                        <button onClick={() => setLeaderboardType('PVP')} className={`px-3 py-2 rounded-lg text-[10px] font-bold whitespace-nowrap ${leaderboardType === 'PVP' ? theme.btnPrimary : 'text-slate-400'}`}>PvP</button>
+                                        <button onClick={() => setLeaderboardType('EQUIPAGE')} className={`px-3 py-2 rounded-lg text-[10px] font-bold whitespace-nowrap ${leaderboardType === 'EQUIPAGE' ? theme.btnPrimary : 'text-slate-400'}`}>Équipages</button>
                                     </div>
-                                    
-                                    {/* LISTE DES EQUIPAGES */}
-                                    {leaderboardType === 'EQUIPAGE' ? (
-                                        <div className="space-y-3">
-                                            {topEquipages.map((eq, index) => {
-                                                // Couleur faction
-                                                let color = "text-slate-400";
-                                                let border = "border-slate-700";
-                                                if(eq.faction === 'Pirate') { color = "text-red-500"; border = "border-red-900/50"; }
-                                                if(eq.faction === 'Marine') { color = "text-cyan-400"; border = "border-blue-900/50"; }
-                                                if(eq.faction === 'Révolutionnaire') { color = "text-emerald-500"; border = "border-emerald-900/50"; }
-                                                
-                                                const isMyCrew = eq.id === joueur.equipage_id;
 
-                                                return (
-                                                    <div key={index} className={`relative p-4 rounded-xl border bg-black/20 transition hover:bg-black/30 ${border} ${isMyCrew ? 'ring-1 ring-white/20' : ''}`}>
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`w-8 h-8 rounded flex items-center justify-center font-black text-lg bg-slate-800 ${index < 3 ? 'text-yellow-400' : 'text-slate-500'}`}>#{index + 1}</div>
-                                                                <div>
-                                                                    <h3 className="font-black text-white text-lg uppercase leading-none">{eq.nom}</h3>
-                                                                    <p className={`text-[12px] font-bold uppercase tracking-widest ${color}`}>{eq.faction} • Niv {eq.niveau}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className="text-yellow-500 font-black text-sm">{eq.berrys_banque.toLocaleString()} ฿</p>
-                                                                <p className="text-[9px] text-slate-500 uppercase font-bold">Banque</p>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Stats Détaillées */}
-                                                        <div className="grid grid-cols-3 gap-2 mt-3 bg-black/20 p-2 rounded-lg border border-white/5">
-                                                            <div className="text-center">
-                                                                <p className="text-white font-bold text-xs">{Math.floor(eq.elo_moyen)}</p>
-                                                                <p className="text-[8px] text-slate-500 uppercase">Elo Moyen</p>
-                                                            </div>
-                                                            <div className="text-center border-l border-white/5">
-                                                                <p className="text-indigo-400 font-bold text-xs">{parseInt(eq.xp).toLocaleString()}</p>
-                                                                <p className="text-[8px] text-slate-500 uppercase">XP Totale</p>
-                                                            </div>
-                                                            <div className="text-center border-l border-white/5">
-                                                                <p className="text-green-400 font-bold text-xs">{eq.expeditions_reussies}</p>
-                                                                <p className="text-[8px] text-slate-500 uppercase">Raids Réussis</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                            {topEquipages.length === 0 && <div className="text-center py-10 italic opacity-50">Aucun équipage formé pour le moment.</div>}
-                                        </div>
-                                    ) : (
-                                        /* LISTE DES JOUEURS */
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
-                                                <span>Joueur</span>
-                                                <span>{leaderboardType === 'PVP' ? 'Rang & LP' : leaderboardType === 'RICHESSE' ? 'Fortune' : 'Niveau'}</span>
+                                    {/* 2. Barre de Recherche */}
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            placeholder="🔍 Chercher un pirate..." 
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full bg-slate-900/80 border border-slate-600 rounded-lg py-2 px-4 pl-10 text-white text-sm focus:border-yellow-400 outline-none"
+                                        />
+                                        <span className="absolute left-3 top-2 text-slate-400">🔎</span>
+                                    </div>
+
+                                    {/* 3. MON RANG (STICKY CARD) - Visible uniquement pour les classements joueurs */}
+                                    {leaderboardType !== 'EQUIPAGE' && (
+                                        <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-3 rounded-xl border-2 border-yellow-500/50 shadow-lg mb-4 relative overflow-hidden">
+                                            <div className="absolute right-0 top-0 p-1 bg-yellow-500 text-black text-[9px] font-black uppercase rounded-bl-lg">Mon Rang</div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full border-2 border-yellow-400 overflow-hidden">
+                                                     {joueur.avatar_url ? <img src={joueur.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full bg-slate-700">👤</div>}
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-white text-lg leading-none">#{rangJoueur}</p>
+                                                    <p className="text-xs text-yellow-400">
+                                                        {leaderboardType === 'PVP' ? `${joueur.elo_pvp} Points` : 
+                                                         leaderboardType === 'RICHESSE' ? `${joueur.berrys.toLocaleString()} ฿` : 
+                                                         `Niveau ${joueur.niveau}`}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            {topJoueurs.map((j, index) => {
-                                                const isMe = j.pseudo === joueur?.pseudo;
-                                                const rankData = getRankInfo(j.elo_pvp || 0);
-
-                                                return (
-                                                    <div key={index} className={`flex items-center p-3 rounded-xl border transition-all ${isMe ? `${theme.border} bg-white/10 shadow-lg scale-[1.02]` : "border-white/5 bg-black/20"}`}>
-                                                        <div className={`w-8 font-black text-base md:text-lg text-center ${index < 3 ? "text-yellow-400 drop-shadow-md" : "text-slate-500"}`}>{index + 1}</div>
-                                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border border-white/10 mx-3 shrink-0">
-                                                            {j.avatar_url ? <img src={j.avatar_url} className="w-full h-full object-cover"/> : <div className="bg-slate-800 w-full h-full"></div>}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                            <div className="flex flex-col md:flex-row md:items-baseline gap-0 md:gap-2">
-                                                                <p className={`font-bold text-xs md:text-sm truncate ${isMe ? "text-white" : "text-slate-300"}`}>{j.pseudo}</p>
-                                                                {j.titre_actuel && (
-                                                                    <span className="text-[9px] md:text-[10px] text-yellow-500/90 italic truncate max-w-[120px]">
-                                                                        « {j.titre_actuel} »
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-[9px] md:text-[10px] text-slate-500 mt-0.5">{j.faction || "Neutre"}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            {leaderboardType === 'PVP' ? (
-                                                                <div className="flex flex-col items-end">
-                                                                    <span className={`font-black text-xs md:text-sm ${rankData.color}`}>{rankData.label}</span>
-                                                                    <span className="text-[9px] text-slate-500 font-bold">Total: {j.elo_pvp} pts</span>
-                                                                </div>
-                                                            ) : leaderboardType === 'RICHESSE' ? (
-                                                                <span className="text-yellow-400 font-mono font-bold text-xs md:text-base">{j.berrys.toLocaleString()} ฿</span>
-                                                            ) : (
-                                                                <span className="text-cyan-400 font-bold text-[12px] md:text-sm">Niv {j.niveau}</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
                                         </div>
                                     )}
+
+                                    {/* 4. Liste (Avec filtre de recherche) */}
+                                    <div className="space-y-2">
+                                        {leaderboardType === 'EQUIPAGE' ? (
+                                            // LISTE EQUIPAGES (Filtrée)
+                                            topEquipages.filter(e => !searchTerm || e.nom.toLowerCase().includes(searchTerm.toLowerCase())).map((eq, index) => (
+                                                /* ... Ton code d'affichage équipage ... */
+                                                <div key={index} className="relative p-4 rounded-xl border bg-black/20 mb-2">
+                                                    <div className="flex justify-between"><h3 className="font-bold text-white">{eq.nom}</h3><span className="text-yellow-500">{eq.berrys_banque} ฿</span></div>
+                                                    {/* ... suite ... */}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            // LISTE JOUEURS (Filtrée)
+                                            topJoueurs.filter(j => !searchTerm || j.pseudo.toLowerCase().includes(searchTerm.toLowerCase())).map((j, index) => {
+                                                const isMe = j.pseudo === joueur?.pseudo;
+                                                const rankData = getRankInfo(j.elo_pvp || 0);
+                                                return (
+                                                    <div key={index} className={`flex items-center p-3 rounded-xl border transition-all ${isMe ? `${theme.border} bg-white/10` : "border-white/5 bg-black/20"}`}>
+                                                        <div className={`w-8 font-black text-base text-center ${index < 3 ? "text-yellow-400" : "text-slate-500"}`}>{index + 1}</div>
+                                                        <div className="w-8 h-8 rounded-full overflow-hidden mx-3 border border-white/10">{j.avatar_url ? <img src={j.avatar_url} className="w-full h-full object-cover"/> : <div className="bg-slate-800 w-full h-full"></div>}</div>
+                                                        <div className="flex-1"><p className={`font-bold text-sm ${isMe ? "text-white" : "text-slate-300"}`}>{j.pseudo}</p></div>
+                                                        <div className="text-right text-xs font-bold text-slate-400">
+                                                            {leaderboardType === 'PVP' ? `${j.elo_pvp} pts` : leaderboardType === 'RICHESSE' ? `${j.berrys.toLocaleString()} ฿` : `Niv ${j.niveau}`}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })
+                                        )}
+                                    </div>
                                 </div>
                             )}
                             {/* CHANTIER NAVAL V2 (MULTI-MATÉRIAUX) */}
@@ -3070,8 +2982,7 @@ const handleLogin = async () => {
                                     )}
                                 </div>
                             )}
-                    {/* ARENE */}
-                    {/* ARENE */}
+                    {/* ARENE AVEC RECHERCHE */}
                             {activeTab === 'arene' && (
                                 <div className="space-y-4 animate-fadeIn">
                                     <div className={`p-4 rounded-xl shadow-lg mb-4 border-b-4 ${theme.btnPrimary}`}>
@@ -3079,45 +2990,49 @@ const handleLogin = async () => {
                                         <p className="opacity-90 text-xs">Choisissez vos adversaires !</p>
                                     </div>
 
-                                    <div className="flex p-1 bg-black/30 rounded-lg mb-4">
+                                    {/* FILTRES PVE/PVP */}
+                                    <div className="flex p-1 bg-black/30 rounded-lg mb-2">
                                         <button onClick={() => setAreneFilter('PVE')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${areneFilter === 'PVE' ? theme.btnPrimary : `${theme.textDim} hover:text-white`}`}>🤖 PNJs (PvE)</button>
                                         <button onClick={() => setAreneFilter('PVP')} className={`flex-1 py-2 rounded-md text-xs font-bold transition ${areneFilter === 'PVP' ? theme.btnPrimary : `${theme.textDim} hover:text-white`}`}>⚔️ JOUEURS (PvP)</button>
                                     </div>
 
+                                    {/* BARRE DE RECHERCHE */}
+                                    <div className="relative mb-4">
+                                        <input 
+                                            type="text" 
+                                            placeholder="🔍 Rechercher un adversaire..." 
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full bg-slate-900/80 border border-slate-600 rounded-lg py-2 px-4 pl-10 text-white text-sm focus:border-yellow-400 outline-none transition"
+                                        />
+                                        <span className="absolute left-3 top-2 text-slate-400">🔎</span>
+                                    </div>
+
+                                    {/* BARRE D'ÉNERGIE */}
                                     <div className={`border ${theme.border} p-4 rounded-xl text-center mb-4 bg-black/20 relative overflow-hidden`}>
                                         <p className={`font-black text-lg uppercase ${theme.textMain}`}>
-                                            Combats Disponibles : {Math.max(0, 10 - (joueur.combats_journaliers || 0))} / 10 ⚡
+                                            Combats : {Math.max(0, 10 - (joueur.combats_journaliers || 0))} / 10 ⚡
                                         </p>
-                                        
-                                        {/* CHRONO REGEN */}
                                         {chronoEnergie && (joueur.combats_journaliers > 0) ? (
-                                            <p className="text-xs text-yellow-400 font-mono mt-1 animate-pulse">
-                                                +1 ⚡ dans {chronoEnergie}
-                                            </p>
+                                            <p className="text-xs text-yellow-400 font-mono mt-1 animate-pulse">+1 ⚡ dans {chronoEnergie}</p>
                                         ) : (
                                             <p className="text-xs text-green-400 font-bold mt-1">Énergie Max !</p>
                                         )}
-
                                         <div className="w-full h-1 bg-slate-700 mt-3 rounded-full overflow-hidden">
-                                            <div 
-                                                className={`h-full transition-all duration-500 ${theme.barFill}`} 
-                                                style={{ width: `${Math.max(0, (10 - joueur.combats_journaliers) * 10)}%` }}
-                                            ></div>
-                                        </div>
-
-                                        <div className="flex justify-center gap-4 text-[10px] mt-3 font-mono opacity-80">
-                                            <span className="text-green-400">V: {joueur.victoires_pve + joueur.victoires_pvp}</span>
-                                            <span className="text-red-400">D: {joueur.defaites_pve + joueur.defaites_pvp}</span>
+                                            <div className={`h-full transition-all duration-500 ${theme.barFill}`} style={{ width: `${Math.max(0, (10 - joueur.combats_journaliers) * 10)}%` }}></div>
                                         </div>
                                     </div>
 
+                                    {/* LISTE FILTRÉE */}
                                     <div className="space-y-2">
-                                        {areneJoueurs.length === 0 ? (
+                                        {areneJoueurs.filter(adv => !searchTerm || adv.pseudo.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
                                             <div className={`text-center py-10 opacity-50 ${theme.textDim}`}>
-                                                {areneFilter === 'PVE' ? "Aucun monstre en vue..." : "Aucun pirate à l'horizon..."}
+                                                Aucun adversaire trouvé...
                                             </div>
                                         ) : (
-                                            areneJoueurs.map((adv, i) => {
+                                            areneJoueurs
+                                            .filter(adv => !searchTerm || adv.pseudo.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .map((adv, i) => {
                                                 const rank = getRankInfo(adv.elo_pvp);
                                                 let factionColor = "text-slate-500";
                                                 if (adv.faction === 'Pirate') factionColor = "text-red-500";
@@ -3130,9 +3045,7 @@ const handleLogin = async () => {
                                                             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border border-slate-600 bg-slate-800 shrink-0">
                                                                 {adv.avatar_url ? <img src={adv.avatar_url} className="w-full h-full object-cover"/> : <div className="flex items-center justify-center h-full text-2xl">👤</div>}
                                                             </div>
-                                                            
                                                             <div>
-                                                                {/* BLOC PSEUDO + TITRE (AJOUTÉ ICI) */}
                                                                 <div className="flex flex-col md:flex-row md:items-baseline gap-0 md:gap-2">
                                                                     <p className={`font-bold text-sm ${theme.textMain}`}>{adv.pseudo}</p>
                                                                     {adv.titre_actuel && (
@@ -3141,7 +3054,6 @@ const handleLogin = async () => {
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                
                                                                 <div className="flex flex-wrap items-center gap-2 text-[10px] mt-0.5">
                                                                     <span className={`font-black uppercase ${factionColor}`}>{adv.faction || 'Neutre'}</span>
                                                                     <span className="text-slate-600">•</span>
@@ -3157,10 +3069,7 @@ const handleLogin = async () => {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => lancerCombat(adv)} 
-                                                            className={`text-white font-bold py-2 px-4 rounded-lg shadow-lg text-xs flex items-center justify-center gap-1 active:scale-95 transition transform hover:scale-105 w-full sm:w-auto ${theme.btnPrimary}`}
-                                                        >
+                                                        <button onClick={() => lancerCombat(adv)} className={`text-white font-bold py-2 px-4 rounded-lg shadow-lg text-xs flex items-center justify-center gap-1 active:scale-95 transition transform hover:scale-105 w-full sm:w-auto ${theme.btnPrimary}`}>
                                                             ⚔️ COMBATTRE
                                                         </button>
                                                     </div>
