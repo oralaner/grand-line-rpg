@@ -1057,35 +1057,39 @@ const confirmerVenteDirecte = async () => {
   const jouerDes = async () => { 
       if (!miseCasino || miseCasino <= 0 || isAnimating) return; 
       
-      // Phase 1 : Animation de secousse
-      setIsAnimating('DES');
+      const isMobile = window.innerWidth < 768;
+
+      if (!isMobile) setIsAnimating('DES');
       setGameResult(null); 
 
       const { data } = await supabase.rpc('jouer_des', { mise: parseInt(miseCasino) });
       
       if(data.success) { 
           fetchJoueur(session.user.id); 
-          // Phase 2 : Révélation après 2s
+          
+          const delay = isMobile ? 0 : 2000;
+
           setTimeout(() => {
               setIsAnimating(false);
-              setGameResult(data); // On stocke le résultat pour l'afficher
+              setGameResult(data); 
               
-              // Phase 3 : Nettoyage après 3s de lecture du résultat
               setTimeout(() => {
                   setGameResult(null);
                   notify(data.resultat, data.gain > 0 ? "success" : "error");
               }, 3000);
-          }, 2000);
+          }, delay);
       } else {
           setIsAnimating(false);
-          notify(data.message, "error");
+          notify("Erreur", "error");
       }
   };
 
   const jouerPFC = async (choix) => { 
       if (!miseCasino || miseCasino <= 0 || isAnimating) return; 
       
-      setIsAnimating('PFC');
+      const isMobile = window.innerWidth < 768;
+
+      if (!isMobile) setIsAnimating('PFC');
       setGameResult(null);
       
       const { data } = await supabase.rpc('jouer_pfc', { mise: parseInt(miseCasino), choix_joueur: choix });
@@ -1093,15 +1097,18 @@ const confirmerVenteDirecte = async () => {
       if(data.success) { 
           fetchJoueur(session.user.id); 
           
+          const delay = isMobile ? 0 : 2000;
+
           setTimeout(() => {
               setIsAnimating(false);
               setGameResult(data);
               
+              // Nettoyage auto après 3s pour voir le résultat
               setTimeout(() => {
                   setGameResult(null);
                   notify(data.resultat, data.gain > 0 ? "success" : "error");
               }, 3000);
-          }, 2000);
+          }, delay);
       } else {
           setIsAnimating(false);
           notify(data.message, "error");
@@ -1113,19 +1120,22 @@ const confirmerVenteDirecte = async () => {
       if (action === 'JOUER' && (!miseCasino || miseCasino <= 0)) return notify("Mise invalide", "error");
       if (isAnimating || (action === 'JOUER' && gameResult)) return; 
 
-      // CAS 1 : STOP (Encaissement immédiat, pas d'anim)
+      const isMobile = window.innerWidth < 768; // Détection Mobile
+
+      // CAS 1 : STOP
       if (action === 'STOP') {
            const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) });
            if(data.success) { 
                fetchJoueur(session.user.id); 
                notify(`Encaissé : ${data.gain_final} ฿`, "success"); 
-               setGameResult(null); // On reset tout
+               setGameResult(null); 
            }
            return;
       }
 
-      // CAS 2 : JOUER (Animation)
-      setIsAnimating('QUITTE');
+      // CAS 2 : JOUER
+      // On lance l'anim SEULEMENT si on est sur PC
+      if (!isMobile) setIsAnimating('QUITTE');
       setGameResult(null);
 
       const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) });
@@ -1133,16 +1143,20 @@ const confirmerVenteDirecte = async () => {
       if (data.success) { 
           fetchJoueur(session.user.id); 
           
-          // Phase 1 : La pièce tourne (2 secondes)
+          // Si Mobile : Instantané (0ms). Si PC : 2000ms.
+          const delay = isMobile ? 0 : 2000;
+
           setTimeout(() => {
-              setIsAnimating(false);
-              setGameResult(data); // On affiche le résultat (Gagné/Perdu)
+              setIsAnimating(false); // Stop l'anim (si elle était lancée)
+              setGameResult(data);   // Affiche le résultat
               
-              // Phase 2 : On laisse le résultat affiché (2 secondes) avant de revenir
-              setTimeout(() => {
-                  setGameResult(null);
-              }, 2000);
-          }, 2000); 
+              // Phase 3 : Nettoyage auto (sauf si gagné pour Quitte ou Double, on laisse le choix)
+              // Pour Quitte ou double, on laisse le joueur choisir de continuer ou stop, 
+              // sauf si PERDU où on reset.
+              if (data.etat === 'PERDU') {
+                  setTimeout(() => setGameResult(null), 2000);
+              }
+          }, delay); 
       } else {
           setIsAnimating(false);
           notify(data?.message || "Erreur", "error"); 
