@@ -11,8 +11,8 @@ const StatsDisplay = ({ stats, compact = false }) => {
     if (entries.length === 0) return null;
 
     const config = {
-        force: { icon: "⚔️", color: "text-brown-200", label: "Force" },
-        force_brute: { icon: "⚔️", color: "text-brown-200", label: "Force" },
+        force: { icon: "⚔️", color: "text-white", label: "Force" },
+        force_brute: { icon: "⚔️", color: "text-white", label: "Force" },
         intelligence: { icon: "🧠", color: "text-red-400", label: "Intel" },
         vitalite: { icon: "❤️", color: "text-pink-400", label: "Vita" },
         agilite: { icon: "🐈", color: "text-green-400", label: "Agi" },
