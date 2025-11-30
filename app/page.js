@@ -3329,7 +3329,15 @@ const handleLogin = async () => {
                                          const nomArme = monArme ? monArme.nom.toLowerCase() : "";
                                          if (!monArme) { armeOk = false; armeManquante = skill.arme_requise; } 
                                          else {
-                                             if (skill.arme_requise === 'Sabre' && !nomArme.includes('sabre') && !nomArme.includes('katana') && !nomArme.includes('lame') && !nomArme.includes('hache')) { armeOk = false; armeManquante = "Sabre"; }
+                                             if (skill.arme_requise === 'Sabre' && 
+                                                 !nomArme.includes('sabre') && 
+                                                 !nomArme.includes('katana') && 
+                                                 !nomArme.includes('lame') && 
+                                                 !nomArme.includes('hache') && 
+                                                 !nomArme.includes('bâton') && 
+                                                 !nomArme.includes('couteau') && 
+                                                 !nomArme.includes('épée') &&   // <--- AJOUTÉ
+                                                 !nomArme.includes('dague')) { armeOk = false; armeManquante = "Sabre"; }
                                              if (skill.arme_requise === 'Pistolet' && !nomArme.includes('pistolet') && !nomArme.includes('mousquet') && !nomArme.includes('fusil')) { armeOk = false; armeManquante = "Pistolet"; }
                                          }
                                      }
