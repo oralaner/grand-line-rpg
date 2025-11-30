@@ -457,6 +457,8 @@ export default function Home() {
             }
         }
         setEquipement(newEquip);
+        chargerTitres();   // Vérifie les nouveaux succès
+        verifierQuetes();  // Vérifie l'avancement des quêtes
     }
   };
   
@@ -1245,13 +1247,18 @@ const handleLogin = async () => {
                 <button 
                     onClick={() => { setShowQuetes(!showQuetes); verifierQuetes(); }}
                     className={`fixed top-4 right-4 z-[90] p-2 rounded-full shadow-xl border-2 transition flex items-center justify-center w-12 h-12 group
-                    ${theme.panel} ${theme.border} hover:scale-110`}
+                    ${theme.panel} ${theme.border} hover:scale-110
+                    ${quetes.some(q => q.est_terminee && !q.est_recoltee) 
+                        ? 'animate-pulse ring-4 ring-yellow-400 shadow-[0_0_20px_gold] border-yellow-200 scale-110' // <--- EFFET CLIGNOTANT PUISSANT
+                        : ''} 
+                    `}
                     title="Journal de Quêtes"
                 >
                     <span className="text-2xl filter drop-shadow-md group-hover:-translate-y-1 transition-transform">🐦</span>
-                    {/* Badge si récompense dispo */}
+                    
+                    {/* Badge rouge (On le garde en plus du clignotement) */}
                     {quetes.some(q => q.est_terminee && !q.est_recoltee) && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-bounce border border-slate-900 shadow-lg"></span>
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full animate-bounce border-2 border-white shadow-lg"></span>
                     )}
                 </button>
             )}
