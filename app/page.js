@@ -65,20 +65,21 @@ const formatChronoLong = (ms) => {
     return `${h}h ${m}m ${s.toString().padStart(2, '0')}s`; 
 };
 
-// Slot d'équipement (CORRIGÉ : Utilise item.stats_bonus directement)
+// Slot d'équipement (CORRIGÉ : Croix visible & Texte unique)
 const EquipSlot = ({ type, item, onUnequip, theme }) => (
     <div 
-        className={`relative w-20 h-20 rounded-2xl flex flex-col items-center justify-center group/item transition-all duration-300 cursor-pointer border-2 shadow-md overflow-hidden
+        // 1. On enlève overflow-hidden pour que la croix rouge puisse dépasser
+        className={`relative w-20 h-20 rounded-2xl flex flex-col items-center justify-center group/item transition-all duration-300 cursor-pointer border-2 shadow-md
         ${item ? `bg-slate-800 ${theme?.border || 'border-yellow-500'} shadow-lg` : 'bg-slate-100/5 border-white/10 hover:border-white/30'}`}
     >
         {item ? (
             <>
-               {/* MODIFICATION ICI : Affiche l'image si dispo, sinon l'émoji */}
+               {/* IMAGE OBJET */}
                {item.image_url ? (
                    <img 
                        src={item.image_url} 
                        alt={item.nom} 
-                       className="w-12 h-12 object-contain drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition" 
+                       className="w-14 h-14 object-contain drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition rounded-lg" 
                    />
                ) : (
                    <div className="text-3xl drop-shadow-lg mb-1 transform group-hover/item:scale-110 transition">
@@ -86,34 +87,36 @@ const EquipSlot = ({ type, item, onUnequip, theme }) => (
                    </div> 
                )}
 
-               <div className={`text-[9px] font-bold text-center px-1 truncate w-full ${theme?.textMain || 'text-yellow-100'}`}>{item.nom}</div>
+               {/* NOM OBJET (Petit, en bas) */}
+               <div className={`absolute bottom-1 inset-x-0 text-[8px] font-bold text-center px-1 truncate ${theme?.textMain || 'text-yellow-100'} bg-black/40 rounded-b-xl py-0.5`}>
+                   {item.nom}
+               </div>
                
                {/* TOOLTIP */}
                <div className="absolute bottom-full mb-2 bg-slate-900/95 text-white text-xs p-3 rounded-lg border border-slate-500 w-40 hidden group-hover/item:block z-50 pointer-events-none shadow-2xl backdrop-blur-md">
                    <p className={`font-bold text-base mb-1 ${theme?.highlight || 'text-yellow-400'}`}>{item.nom}</p>
-                   
-                   <div className="mb-2">
-                       <StatsDisplay stats={item.stats_bonus} />
-                   </div>
-                   
+                   <div className="mb-2"><StatsDisplay stats={item.stats_bonus} /></div>
                    <p className="italic opacity-70 text-[10px] z-1000 leading-tight border-t border-slate-700 pt-2">{item.description}</p>
                </div>
 
+               {/* BOUTON DÉSÉQUIPER (Visible car plus d'overflow-hidden) */}
                <button 
                    onClick={(e) => { e.stopPropagation(); onUnequip(type); }} 
-                   className="absolute -top-2 -right-2 w-6 h-6 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs border border-slate-900 shadow-md z-10 transition-transform hover:scale-110"
+                   className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs border-2 border-slate-900 shadow-lg z-20 transition-transform hover:scale-110 font-bold"
                    title="Déséquiper"
                >✕</button>
             </>
         ) : (
             <>
-                <span className="text-slate-600 text-3xl font-bold select-none opacity-50 group-hover/item:text-white transition">
+                {/* SLOT VIDE : Juste l'icône fantôme et le nom du slot */}
+                <span className="text-slate-600 text-3xl font-bold select-none opacity-30 group-hover/item:text-white transition group-hover/item:opacity-50">
                     {type === 'Arme' ? '⚔️' : type === 'Tête' ? '🧢' : type === 'Corps' ? '👕' : type === 'Bottes' ? '👢' : type === 'Bague' ? '💍' : type === 'Collier' ? '📿' : '⛵'}
                 </span>
-                <span className="text-[9px] text-slate-500 uppercase font-bold mt-1">{type}</span>
+                <div className="absolute bottom-0 inset-x-0 bg-black/20 text-[7px] text-slate-500 text-center uppercase font-bold py-0.5 pointer-events-none rounded-b-xl">
+                    {type}
+                </div>
             </>
         )}
-        <div className="absolute bottom-0 inset-x-0 bg-black/30 text-[7px] text-slate-400 text-center uppercase font-bold py-0.5 pointer-events-none rounded-b-xl">{type}</div>
     </div>
 );
 
