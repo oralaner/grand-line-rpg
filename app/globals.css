@@ -8,3 +8,36 @@ body {
   padding: 0;
   background-color: #1a120b; /* Couleur de fond de secours */
 }
+
+/* --- AJOUTS POUR LES ANIMATIONS DU CASINO --- */
+
+/* Dés qui tremblent */
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+.animate-shake { animation: shake 0.5s infinite; }
+
+/* Pièce qui tourne (Quitte ou Double) */
+@keyframes flip {
+  0% { transform: rotateY(0); }
+  100% { transform: rotateY(3600deg); } /* 10 tours complets */
+}
+.animate-flip { animation: flip 2s ease-out forwards; }
+
+/* Poings qui pompent (Chifoumi) */
+@keyframes pump {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.1); }
+  100% { transform: translateY(0) scale(1); }
+}
+.animate-pump { animation: pump 0.5s infinite; }

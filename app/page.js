@@ -234,6 +234,9 @@ export default function Home() {
       'Paradise': '/maps/paradise.jpg',
       'New World': '/maps/new_world.jpg',
   };
+ 
+  const [isAnimating, setIsAnimating] = useState(false); // Bloque l'interface
+  const [pendingResult, setPendingResult] = useState(null); // Stocke le résultat DB en attendant la fin de l'anim
 
   const [chronoEnergie, setChronoEnergie] = useState(null); // Texte "MM:SS"
   const [dateProchainGain, setDateProchainGain] = useState(null); // Date brute
@@ -1050,10 +1053,78 @@ const confirmerVenteDirecte = async () => {
       } 
   };
   
-  const jouerQuitteOuDouble = async (action) => { if (!miseCasino || miseCasino <= 0) return notify("Mise invalide", "error"); const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) }); if (data.success) { fetchJoueur(session.user.id); if (data.etat === 'GAGNE') notify(`GAGNÉ ! Gain: ${data.gain_en_cours}`, "success"); else if (data.etat === 'PERDU') notify("Perdu...", "error"); else notify(`Encaissé : ${data.gain_final}`, "success"); } else notify("Erreur", "error"); };
-  const jouerPFC = async (choix) => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_pfc', { mise: parseInt(miseCasino), choix_joueur: choix }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat + " (IA: " + data.choix_ia + ")", data.resultat === 'VICTOIRE' ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
-  const jouerDes = async () => { if (!miseCasino || miseCasino <= 0) return; const { data } = await supabase.rpc('jouer_des', { mise: parseInt(miseCasino) }); if(data.success) { fetchJoueur(session.user.id); notify(data.resultat, data.resultat.includes('VICTOIRE') ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); } };
-const chargerTitres = async () => {
+  const jouerDes = async () => { 
+      if (!miseCasino || miseCasino <= 0 || isAnimating) return; 
+      
+      // 1. On lance l'anim
+      setIsAnimating('DES');
+      setPendingResult(null); // Reset
+
+      // 2. On appelle la DB
+      const { data } = await supabase.rpc('jouer_des', { mise: parseInt(miseCasino) });
+      
+      if(data.success) { 
+          fetchJoueur(session.user.id); // On met à jour les sous en fond
+          // 3. On attend 2 secondes (l'animation tourne)
+          setTimeout(() => {
+              setIsAnimating(false);
+              // 4. On notifie le résultat
+              notify(data.resultat, data.resultat.includes('VICTOIRE') ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); 
+          }, 2000);
+      } else {
+          setIsAnimating(false);
+          notify("Erreur", "error");
+      }
+  };
+
+  const jouerPFC = async (choix) => { 
+      if (!miseCasino || miseCasino <= 0 || isAnimating) return; 
+      
+      setIsAnimating('PFC');
+      
+      const { data } = await supabase.rpc('jouer_pfc', { mise: parseInt(miseCasino), choix_joueur: choix });
+      
+      if(data.success) { 
+          fetchJoueur(session.user.id); 
+          // On stocke le résultat pour l'afficher dans le JSX pendant l'anim (optionnel) ou après
+          setPendingResult(data);
+
+          setTimeout(() => {
+              setIsAnimating(false);
+              notify(data.resultat + " (IA: " + data.choix_ia + ")", data.resultat === 'VICTOIRE' ? "success" : data.resultat === 'DEFAITE' ? "error" : "info"); 
+              setPendingResult(null);
+          }, 2000); // 2 sec de "Pierre... Feuille... Ciseaux..."
+      }
+  };
+
+  const jouerQuitteOuDouble = async (action) => { 
+      if (!miseCasino || miseCasino <= 0 || isAnimating) return notify("Mise invalide", "error"); 
+      
+      // Si c'est "STOP", pas d'anim, on encaisse direct
+      if (action === 'STOP') {
+           const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) });
+           if(data.success) { fetchJoueur(session.user.id); notify(`Encaissé : ${data.gain_final}`, "success"); }
+           return;
+      }
+
+      // Si c'est "JOUER"
+      setIsAnimating('QUITTE');
+      const { data } = await supabase.rpc('casino_quitte_double', { action, mise_input: parseInt(miseCasino) });
+      
+      if (data.success) { 
+          fetchJoueur(session.user.id); 
+          setTimeout(() => {
+              setIsAnimating(false);
+              if (data.etat === 'GAGNE') notify(`GAGNÉ ! Gain: ${data.gain_en_cours}`, "success"); 
+              else notify("Perdu...", "error"); 
+          }, 2000); // 2 sec de pièce qui tourne
+      } else {
+          setIsAnimating(false);
+          notify("Erreur", "error"); 
+      }
+  };
+  
+  const chargerTitres = async () => {
       const { data } = await supabase
           .from('joueur_titres')
           .select('*, titres_ref(*)')
@@ -2833,65 +2904,94 @@ const handleLogin = async () => {
                             )}
 
                     {/* CASINO */}
-                    {activeTab === 'casino' && (
-                                <div className="space-y-4">
+                    {/* CASINO AVEC ANIMATIONS */}
+                            {activeTab === 'casino' && (
+                                <div className="space-y-4 animate-fadeIn">
                                     <div className={`p-4 rounded-xl text-center text-white border-4 shadow-inner ${theme.btnPrimary}`}>
                                         <h3 className="text-2xl font-bold uppercase mb-2 tracking-widest text-white drop-shadow-md">Casino</h3>
-                                        <div className="flex justify-center gap-2 mb-4">
-                                            <button onClick={() => setCasinoGame('QUITTE')} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'QUITTE' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Quitte ou Double</button>
-                                            <button onClick={() => setCasinoGame('PFC')} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'PFC' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Chifoumi</button>
-                                            <button onClick={() => setCasinoGame('DES')} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'DES' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Dés</button>
-                                        </div>
-                                        {/* ZONE DE MISE AVEC TIMER */}
-                                    <div className="bg-black/40 p-4 rounded-lg mb-6 backdrop-blur-sm border border-white/10 relative overflow-hidden transition-all">
                                         
-                                        {/* AFFICHAGE DU COOLDOWN */}
-                                        {casinoCooldown ? (
-                                            <div className="mb-4 bg-red-900/40 border border-red-500/50 p-2 rounded text-center animate-pulse">
-                                                <p className="text-[10px] text-red-200 font-bold uppercase tracking-widest">Croupier en pause</p>
-                                                <p className="text-3xl font-mono font-black text-white drop-shadow-md">{casinoCooldown}</p>
+                                        {/* Choix du Jeu (Désactivé pendant l'anim) */}
+                                        <div className="flex justify-center gap-2 mb-4">
+                                            <button onClick={() => setCasinoGame('QUITTE')} disabled={isAnimating} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'QUITTE' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Quitte ou Double</button>
+                                            <button onClick={() => setCasinoGame('PFC')} disabled={isAnimating} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'PFC' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Chifoumi</button>
+                                            <button onClick={() => setCasinoGame('DES')} disabled={isAnimating} className={`px-3 py-1.5 rounded text-xs font-bold transition ${casinoGame === 'DES' ? 'bg-white text-black shadow-lg' : 'bg-black/30 text-white/70 hover:text-white'}`}>Dés</button>
+                                        </div>
+
+                                        {/* Zone de Mise */}
+                                        <div className="bg-black/40 p-4 rounded-lg mb-6 backdrop-blur-sm border border-white/10 relative overflow-hidden transition-all">
+                                            {casinoCooldown ? (
+                                                <div className="mb-4 bg-red-900/40 border border-red-500/50 p-2 rounded text-center animate-pulse">
+                                                    <p className="text-[10px] text-red-200 font-bold uppercase tracking-widest">Croupier en pause</p>
+                                                    <p className="text-3xl font-mono font-black text-white drop-shadow-md">{casinoCooldown}</p>
+                                                </div>
+                                            ) : (
+                                                <div className="mb-4 bg-green-900/20 border border-green-500/30 p-1 rounded text-center">
+                                                     <p className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Jeu Disponible</p>
+                                                </div>
+                                            )}
+                                            <p className="text-xs uppercase font-bold opacity-70 mb-2 text-white">Votre Mise</p>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <input type="number" value={miseCasino} onChange={(e) => setMiseCasino(parseInt(e.target.value))} className="bg-transparent text-center text-3xl font-black text-white w-32 md:w-40 border-b-2 border-white/50 focus:border-white outline-none transition" disabled={!!casinoCooldown || isAnimating} />
+                                                <span className="text-xl font-bold">฿</span>
                                             </div>
-                                        ) : (
-                                            <div className="mb-4 bg-green-900/20 border border-green-500/30 p-1 rounded text-center">
-                                                 <p className="text-[10px] text-green-400 font-bold uppercase tracking-widest">Jeu Disponible</p>
+                                        </div>
+
+                                        {/* JEU : QUITTE OU DOUBLE */}
+                                        {casinoGame === 'QUITTE' && (
+                                            <div className="flex flex-col gap-4 min-h-[150px] justify-center">
+                                                {isAnimating === 'QUITTE' ? (
+                                                    <div className="flex justify-center items-center">
+                                                        <div className="w-24 h-24 bg-yellow-400 rounded-full border-4 border-yellow-200 shadow-[0_0_30px_gold] flex items-center justify-center text-5xl font-black text-yellow-800 animate-flip">
+                                                            ฿
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="bg-black/30 p-3 rounded border border-white/20">
+                                                            <p className="text-[10px] uppercase opacity-80">Gain en cours</p>
+                                                            <p className="text-4xl font-black text-yellow-400 drop-shadow-md">{joueur.casino_streak || 0} ฿</p>
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <button onClick={() => jouerQuitteOuDouble('JOUER')} className="bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-xl shadow-lg border-b-4 border-yellow-700 active:border-b-0 active:translate-y-1 transition-all uppercase">{joueur.casino_streak > 0 ? "Doubler !" : "Lancer"}</button>
+                                                            <button onClick={() => jouerQuitteOuDouble('STOP')} disabled={!joueur.casino_streak} className={`font-black py-4 rounded-xl shadow-lg border-b-4 transition-all uppercase ${!joueur.casino_streak ? 'bg-slate-700 text-slate-500 border-slate-900' : 'bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-700 active:translate-y-1'}`}>Stop</button>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
 
-                                        <p className="text-xs uppercase font-bold opacity-70 mb-2 text-white">Votre Mise</p>
-                                        <div className="flex items-center justify-center gap-2">
-                                            <input 
-                                                type="number" 
-                                                value={miseCasino} 
-                                                onChange={(e) => setMiseCasino(parseInt(e.target.value))} 
-                                                className="bg-transparent text-center text-3xl font-black text-white w-32 md:w-40 border-b-2 border-white/50 focus:border-white outline-none transition" 
-                                                disabled={!!casinoCooldown} // Bloque la saisie si cooldown
-                                            />
-                                            <span className="text-xl font-bold text-yellow-500">฿</span>
-                                        </div>
-                                    </div>
-                                        {casinoGame === 'QUITTE' && (
-                                            <div className="flex flex-col gap-4">
-                                                <div className="bg-black/30 p-3 rounded border border-white/20">
-                                                    <p className="text-[10px] uppercase opacity-80">Gain en cours</p>
-                                                    <p className="text-4xl font-black text-yellow-400 drop-shadow-md">{joueur.casino_streak || 0} ฿</p>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <button onClick={() => jouerQuitteOuDouble('JOUER')} className="bg-yellow-500 hover:bg-yellow-400 text-black font-black py-4 rounded-xl shadow-lg border-b-4 border-yellow-700 active:border-b-0 active:translate-y-1 transition-all uppercase">{joueur.casino_streak > 0 ? "Doubler !" : "Lancer"}</button>
-                                                    <button onClick={() => jouerQuitteOuDouble('STOP')} disabled={!joueur.casino_streak} className={`font-black py-4 rounded-xl shadow-lg border-b-4 transition-all uppercase ${!joueur.casino_streak ? 'bg-slate-700 text-slate-500 border-slate-900' : 'bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-700 active:translate-y-1'}`}>Stop</button>
-                                                </div>
-                                            </div>
-                                        )}
+                                        {/* JEU : CHIFOUMI */}
                                         {casinoGame === 'PFC' && (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <button onClick={() => jouerPFC('Pierre')} className="bg-slate-500 hover:bg-slate-400 text-white text-4xl font-bold py-6 rounded-xl border-b-4 border-slate-700 active:translate-y-1 transition" title="Pierre">🪨</button>
-                                                <button onClick={() => jouerPFC('Feuille')} className="bg-emerald-600 hover:bg-emerald-500 text-white text-4xl font-bold py-6 rounded-xl border-b-4 border-emerald-800 active:translate-y-1 transition" title="Feuille">📜</button>
-                                                <button onClick={() => jouerPFC('Ciseaux')} className="bg-red-600 hover:bg-red-500 text-white text-4xl font-bold py-6 rounded-xl border-b-4 border-red-800 active:translate-y-1 transition" title="Ciseaux">✂️</button>
+                                            <div className="min-h-[150px] flex flex-col justify-center">
+                                                {isAnimating === 'PFC' ? (
+                                                    <div className="flex justify-center gap-10">
+                                                        <div className="text-6xl animate-pump">✊</div> {/* Joueur */}
+                                                        <div className="text-6xl animate-pump" style={{ animationDelay: '0.1s' }}>🤖</div> {/* IA */}
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <button onClick={() => jouerPFC('Pierre')} className="bg-slate-500 hover:bg-slate-400 text-white text-4xl font-bold py-6 rounded-xl border-b-4 border-slate-700 active:translate-y-1 transition" title="Pierre">🪨</button>
+                                                        <button onClick={() => jouerPFC('Feuille')} className="bg-emerald-600 hover:bg-emerald-500 text-white text-4xl font-bold py-6 rounded-xl border-b-4 border-emerald-800 active:translate-y-1 transition" title="Feuille">📜</button>
+                                                        <button onClick={() => jouerPFC('Ciseaux')} className="bg-red-600 hover:bg-red-500 text-white text-4xl font-bold py-6 rounded-xl border-b-4 border-red-800 active:translate-y-1 transition" title="Ciseaux">✂️</button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
+
+                                        {/* JEU : DÉS */}
                                         {casinoGame === 'DES' && (
-                                            <div className="space-y-4">
-                                                <div className="text-xs italic opacity-80 bg-black/20 p-2 rounded">Battez le score de la maison.<br/>Un <span className="font-bold text-yellow-300">Double</span> gagnant rapporte <span className="font-bold text-yellow-300">x2</span> !</div>
-                                                <button onClick={jouerDes} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-lg border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all uppercase flex items-center justify-center gap-2"><span className="text-2xl">🎲</span> Lancer les dés</button>
+                                            <div className="space-y-4 min-h-[150px] flex flex-col justify-center">
+                                                {isAnimating === 'DES' ? (
+                                                    <div className="flex justify-center gap-4">
+                                                        <div className="w-16 h-16 bg-white rounded-xl text-black flex items-center justify-center text-3xl font-black shadow-lg animate-shake">?</div>
+                                                        <div className="w-16 h-16 bg-white rounded-xl text-black flex items-center justify-center text-3xl font-black shadow-lg animate-shake" style={{ animationDelay: '0.05s' }}>?</div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="text-xs italic opacity-80 bg-black/20 p-2 rounded">Battez le score de la maison.<br/>Un <span className="font-bold text-yellow-300">Double</span> gagnant rapporte <span className="font-bold text-yellow-300">x3</span> !</div>
+                                                        <button onClick={jouerDes} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-lg border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all uppercase flex items-center justify-center gap-2"><span className="text-2xl">🎲</span> Lancer les dés</button>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
                                     </div>
