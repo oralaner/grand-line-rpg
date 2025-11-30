@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-// COMPOSANT STATS (VERSION SÉCURISÉE ANTI-CRASH)
+// COMPOSANT STATS (VERSION SÉCURISÉE & FORMAT "DE X À Y")
 const StatsDisplay = ({ stats, compact = false }) => {
-    // 1. Sécurité absolue : Si pas de stats, on ne rend rien (pas d'erreur)
+    // 1. Sécurité absolue : Si pas de stats, on ne rend rien
     if (!stats || typeof stats !== 'object') return null;
 
     const entries = Object.entries(stats);
@@ -33,7 +33,8 @@ const StatsDisplay = ({ stats, compact = false }) => {
                 // Gestion sécurisée de l'affichage (Tableau ou Nombre)
                 let displayVal = val;
                 if (Array.isArray(val)) {
-                    displayVal = `${val[0]}-${val[1]}`; // Plage [Min, Max]
+                    // MODIFICATION ICI : Format "De X à Y" au lieu de "X-Y"
+                    displayVal = `De ${val[0]} à ${val[1]}`; 
                 } else if (typeof val === 'number' && val > 0) {
                     displayVal = `+${val}`; // Valeur Fixe
                 } else {
@@ -86,7 +87,7 @@ const EquipSlot = ({ type, item, onUnequip, theme }) => (
                )}
 
                {/* NOM OBJET (CORRIGÉ : Multi-lignes) */}
-               <div className={`absolute bottom-0 inset-x-0 text-[8px] font-bold text-center px-1 py-0.5 leading-tight ${theme?.textMain || 'text-yellow-100'} bg-black/60 rounded-b-xl min-h-[18px] flex items-center justify-center`}>
+               <div className={`absolute bottom-0 inset-x-0 text-[10px] font-bold text-center px-1 py-0.5 leading-tight ${theme?.textMain || 'text-yellow-100'} bg-black/60 rounded-b-xl min-h-[18px] flex items-center justify-center`}>
                    {item.nom}
                </div>
                
